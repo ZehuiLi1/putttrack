@@ -4,6 +4,7 @@
 
 - Base branch: `main`
 - Audited base SHA: `8f7cbd28e75f0581f55b4ffb2dc56ff949a74c30`
+- Accepted Architecture PR head reviewed: `234f8f9c61477bbe8483fd11c732e4d4ae2d54a2`
 - Locked product source: `docs/PRODUCT_LOGIC_LOCK.md`
 - Existing deterministic gameplay authority: `src/putttrack/gameplay/`
 - Tracking issue: #4
@@ -44,9 +45,49 @@
 - connectionless CS/PAwR;
 - rechargeable/wireless charging.
 
-## Verification limitations of this pass
+## Architecture acceptance verification
 
-This pass is architecture/documentation work. Repository content and branch/file topology were verified through the GitHub API. The execution container could not resolve `github.com`, so it could not clone the repository or execute the existing Python test suite. No claim is made that tests ran during this pass. The first implementation item is therefore an exact-head baseline verifier in a connected development/CI environment.
+Acceptance was performed against PR #5 head `234f8f9c61477bbe8483fd11c732e4d4ae2d54a2`.
+
+### Consistency checks
+
+- `PRODUCT_LOGIC_LOCK.md` and `ARCHITECTURE_CONSTITUTION.md`: no authority or player-flow conflict found.
+- Supporting architecture views and ADR-001 through ADR-012: consistent with the Constitution.
+- `KEEP_CHANGE_DEFER_REJECT.md`: consistent with the Constitution and ADRs.
+- `VERIFICATION_MATRIX.md`, `IMPLEMENTATION_ROADMAP.md` and Issues #1, #3, #6–#13: dependency order and exit gates are aligned.
+- PR file comparison confirms no changes to `src/putttrack/gameplay/`, `simulator/` or `tests/`; the architecture PR is documentation/README-only.
+- Relative Markdown targets in README, architecture index, ADR index and Bbo hardware evidence register were checked against the PR tree; no missing internal target was found.
+- GitHub reported the PR mergeable and there were no submitted reviews or unresolved review threads.
+
+### Executed baseline
+
+Environment:
+
+```text
+Python 3.13.5
+PYTHONPATH=src
+```
+
+Commands:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src python simulator/demo_gameplay.py
+```
+
+Result:
+
+```text
+7 tests run
+7 passed
+simulator exit code 0
+```
+
+The test workspace was reconstructed from the exact unchanged gameplay/source files at `main@8f7cbd28e75f0581f55b4ffb2dc56ff949a74c30`; the PR comparison proves those files are byte-identical on the Architecture PR. The container still could not resolve `github.com`, so repository cloning itself was unavailable, but source identity and PR scope were verified through the GitHub API.
+
+### Acceptance result
+
+**ACCEPT.** No architecture blocker was found. PR #5 is suitable to become the technical source of truth, subject to normal merge and subsequent exact-head verifier implementation in Issue #6.
 
 ## Completion test
 
