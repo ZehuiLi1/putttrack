@@ -1,0 +1,11 @@
+{
+  "camera_id": "cam-oblique-01",
+  "world_frame": "LAB_XY",
+  "notes": "EXAMPLE ONLY. Replace every pixel/world coordinate after surveying the real test area. Camera may be low/oblique; it does not need to be overhead.",
+  "points": [
+    {"label": "GCP-01", "image_u_px": 180.0, "image_v_px": 610.0, "world_x_m": 0.0, "world_y_m": 0.0},
+    {"label": "GCP-02", "image_u_px": 1100.0, "image_v_px": 610.0, "world_x_m": 8.0, "world_y_m": 0.0},
+    {"label": "GCP-03", "image_u_px": 950.0, "image_v_px": 260.0, "world_x_m": 8.0, "world_y_m": 3.0},
+    {"label": "GCP-04", "image_u_px": 330.0, "image_v_px": 260.0, "world_x_m": 0.0, "world_y_m": 3.0}
+  ]
+}
