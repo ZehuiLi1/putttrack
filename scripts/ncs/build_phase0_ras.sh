@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+NCS_MANIFEST_REF="${NCS_MANIFEST_REF:-v3.0.2}"
 NCS_REV="${NCS_REV:-89ba1294ac9b624e28271a5c71e99193ed4d92a4}"
 NCS_REPO="${NCS_REPO:-https://github.com/nrfconnect/sdk-nrf.git}"
 NCS_DIR="${NCS_DIR:-$PWD/.ncs-v3.0.2}"
@@ -15,7 +16,10 @@ command -v west >/dev/null 2>&1 || {
 
 if [ ! -d "$NCS_DIR/.west" ]; then
   rm -rf "$NCS_DIR"
-  west init -m "$NCS_REPO" --mr "$NCS_REV" "$NCS_DIR"
+  # west init expects a cloneable branch/tag for --mr. Use the release tag,
+  # then verify the resulting manifest repository resolves to the exact
+  # expected commit before any dependency update/build is allowed.
+  west init -m "$NCS_REPO" --mr "$NCS_MANIFEST_REF" "$NCS_DIR"
 fi
 
 pushd "$NCS_DIR" >/dev/null
@@ -48,6 +52,7 @@ popd >/dev/null
 
 cat <<EOF
 Phase-0 source build PASS
+NCS ref      : $NCS_MANIFEST_REF
 NCS revision : $NCS_REV
 Board        : $BOARD
 Initiator    : $OUT_DIR/ras_initiator
