@@ -18,7 +18,7 @@ Use the Bbo-supplied signed Initiator/Reflector images first to prove:
 - IFFT / phase-slope / RTT values;
 - no obvious reset or board-level failure.
 
-The vendor image does not emit a device acquisition timestamp, device boot domain or source sequence. `tools/capture_cs.py` therefore labels those values as host/capture fallbacks. **Never use that fallback log to claim true update latency, packet loss, ordering or reboot continuity.**
+The vendor image does not emit a device acquisition timestamp, source-device identity, device boot domain or source sequence. `tools/capture_cs.py` therefore labels those values as host/capture/CLI fallbacks. **Never use that fallback log to claim true update latency, packet loss, ordering, reboot continuity or device-port identity.**
 
 ### Profile B — PuttTrack source-built RAS baseline
 
@@ -28,6 +28,7 @@ Each distance report must emit:
 
 ```json
 {
+  "source_device_id": "A",
   "source_boot_id": "boot-a1b2c3d4",
   "source_monotonic_ns": 1050000000,
   "source_sequence": 2,
@@ -48,6 +49,18 @@ The host capture tool converts this into canonical `RangeObservation` while addi
 
 ## 2. Required source fields
 
+### `source_device_id`
+
+A stable experiment identity compiled/configured into the source firmware, such as `A`, `B`, `C`, `D` or `E` for the research Anchors.
+
+Purpose:
+
+- protect against USB/COM port swaps;
+- make the source itself state which Anchor generated the record;
+- allow the host to fail closed when firmware identity disagrees with the operator's `--anchor-id` argument.
+
+This is an experiment/device label, not a production security credential. Production device authentication remains a separate Architecture V1 concern.
+
 ### `source_boot_id`
 
 A new non-empty identifier generated once per MCU boot.
@@ -55,7 +68,7 @@ A new non-empty identifier generated once per MCU boot.
 Purpose:
 
 - distinguish sequence restart after reset from duplicate/corrupt packets;
-- make `(device_id, boot_id, sequence)` an unambiguous source identity;
+- make `(source_device_id, source_boot_id, source_sequence)` an unambiguous source identity;
 - expose reset events during long experiments.
 
 It does not need to be a security credential. Device authentication/keys are a separate production security concern.
@@ -92,6 +105,7 @@ Identifier that ties estimator outputs to one completed Channel Sounding procedu
 
 For structured telemetry it now preserves:
 
+- `source_device_id` / `device_id`;
 - `source_boot_id` / `boot_id`;
 - `source_monotonic_ns` / `timestamp_ns`;
 - `source_sequence` / `sequence`;
@@ -99,17 +113,31 @@ For structured telemetry it now preserves:
 - antenna path;
 - IFFT / phase / RTT / RSSI / quality.
 
-`tools/capture_cs.py` uses device source identity when present. Vendor logs continue to use an explicit capture-run fallback.
+`tools/capture_cs.py` uses device source identity when present. Vendor logs continue to use explicit capture/CLI fallbacks.
+
+For source-built telemetry:
+
+```text
+firmware source_device_id != capture --anchor-id
+        -> record rejected
+        -> identity_mismatches incremented
+        -> source_identity_complete = false
+```
+
+This is intentional fail-closed behavior. A real experiment should stop and correct the physical/port mapping rather than relabel measurements after the fact.
 
 `capture_summary.json` reports:
 
+- observed source device IDs;
 - observed source boot IDs;
 - number of records with device timestamp;
 - number with device sequence;
 - number with device boot ID;
+- number with device source-device ID;
+- identity mismatch count;
 - `source_identity_complete`.
 
-A run may be used for update-rate/loss/order/reset claims only when the relevant records have complete source identity.
+A run may be used for update-rate/loss/order/reset/device-assignment claims only when the relevant records have complete source identity.
 
 ## 4. Timing implementation guidance
 
@@ -159,6 +187,7 @@ A source-built run must record at minimum:
 - Bbo overlay/config hash;
 - Initiator firmware hash;
 - Reflector firmware hash;
+- `source_device_id` configuration;
 - CS mode/submode/channel/procedure configuration;
 - antenna path configuration;
 - UART/log settings.
@@ -185,5 +214,6 @@ Those remain real-hardware gates in Issue #1.
 - Nordic RAS Initiator / RAS Reflector Channel Sounding samples.
 - Nordic IPT Initiator / IPT Reflector samples for the later research profile.
 - Zephyr Kernel Timing and Time Units APIs (`k_uptime_ticks`, `k_ticks_to_ns_floor64`).
+- Zephyr random API used only for the non-security boot-domain nonce.
 
 Use the exact pinned source revision in each experiment manifest rather than relying on a moving `main` branch.
