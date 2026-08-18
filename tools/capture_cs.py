@@ -33,7 +33,7 @@ from putttrack.recording import (  # noqa: E402
     write_immutable_manifest,
 )
 
-TOOL_VERSION = "capture-cs/1.1"
+TOOL_VERSION = "capture-cs/1.2"
 
 
 def _event_id(device_id: str, boot_id: str, sequence: int) -> str:
@@ -170,8 +170,9 @@ def main(argv: list[str] | None = None) -> int:
         environment={"PYTHONPATH": os.environ.get("PYTHONPATH", "")},
         notes=(
             "Phase-0 capture tooling; no hardware-performance claim is implied. "
-            "Vendor text uses a capture-run boot fallback; source-built telemetry "
-            "should emit source_boot_id, source_monotonic_ns and source_sequence."
+            "Vendor text uses capture/CLI identity fallbacks; source-built telemetry "
+            "should emit source_device_id, source_boot_id, source_monotonic_ns and "
+            "source_sequence."
         ),
     )
     write_immutable_manifest(run_dir / "manifest.json", manifest)
@@ -184,10 +185,13 @@ def main(argv: list[str] | None = None) -> int:
     local_sequence = 0
     captured = 0
     parse_errors = 0
+    identity_mismatches = 0
     observed_boot_ids: set[str] = set()
+    observed_device_ids: set[str] = set()
     device_timestamp_records = 0
     device_sequence_records = 0
     device_boot_records = 0
+    device_id_records = 0
 
     with _input_stream(args) as stream, raw_path.open("a", encoding="utf-8") as raw_handle:
         for line_number, line in enumerate(stream, start=1):
@@ -205,6 +209,18 @@ def main(argv: list[str] | None = None) -> int:
             if estimate is None:
                 continue
 
+            if (
+                estimate.source_device_id is not None
+                and estimate.source_device_id != args.anchor_id
+            ):
+                identity_mismatches += 1
+                print(
+                    f"source device mismatch line {line_number}: firmware={estimate.source_device_id!r} "
+                    f"capture_anchor={args.anchor_id!r}",
+                    file=sys.stderr,
+                )
+                continue
+
             local_sequence += 1
             sequence = (
                 estimate.source_sequence
@@ -218,9 +234,12 @@ def main(argv: list[str] | None = None) -> int:
             )
             effective_boot_id = estimate.source_boot_id or fallback_boot_id
             observed_boot_ids.add(effective_boot_id)
+            if estimate.source_device_id is not None:
+                observed_device_ids.add(estimate.source_device_id)
             device_timestamp_records += int(estimate.source_monotonic_ns is not None)
             device_sequence_records += int(estimate.source_sequence is not None)
             device_boot_records += int(estimate.source_boot_id is not None)
+            device_id_records += int(estimate.source_device_id is not None)
 
             quality = {
                 **estimate.quality,
@@ -269,16 +288,21 @@ def main(argv: list[str] | None = None) -> int:
         "run_dir": str(run_dir),
         "captured_records": captured,
         "parse_errors": parse_errors,
+        "identity_mismatches": identity_mismatches,
         "hardware_validated": False,
         "observed_source_boot_ids": sorted(observed_boot_ids),
+        "observed_source_device_ids": sorted(observed_device_ids),
         "device_timestamp_records": device_timestamp_records,
         "device_sequence_records": device_sequence_records,
         "device_boot_records": device_boot_records,
+        "device_id_records": device_id_records,
         "source_identity_complete": (
             captured > 0
+            and identity_mismatches == 0
             and device_timestamp_records == captured
             and device_sequence_records == captured
             and device_boot_records == captured
+            and device_id_records == captured
         ),
     }
     (run_dir / "capture_summary.json").write_text(
