@@ -1,0 +1,32 @@
+{
+  "session_id": "foundation-example-session",
+  "players": [
+    {
+      "player_id": "p1",
+      "display_name": "Alex",
+      "ball_id": "ball-blue-07"
+    }
+  ],
+  "course": [
+    {
+      "hole_id": "H01",
+      "number": 1,
+      "title": "Evidence Foundation",
+      "instructions": "Replay fixture",
+      "score_curve": {
+        "1": 100,
+        "2": 80,
+        "3": 65
+      },
+      "features": [
+        {
+          "feature_id": "precision_gate",
+          "label": "Precision Gate",
+          "points_delta": 25,
+          "kind": "bonus",
+          "max_triggers_per_player": 1
+        }
+      ]
+    }
+  ]
+}

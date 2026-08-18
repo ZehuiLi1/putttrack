@@ -1,0 +1,2 @@
+{"antenna_path":0,"distance_ifft_m":1.024,"distance_phase_m":1.087,"distance_rtt_m":1.610,"rssi_dbm":-51,"source_monotonic_ns":1000000,"sequence":1,"procedure_id":"fixture-proc-1","quality":{"fixture":true}}
+{"antenna_path":1,"distance_ifft_m":1.011,"distance_phase_m":1.075,"distance_rtt_m":1.590,"rssi_dbm":-52,"source_monotonic_ns":2000000,"sequence":2,"procedure_id":"fixture-proc-2","quality":{"fixture":true}}

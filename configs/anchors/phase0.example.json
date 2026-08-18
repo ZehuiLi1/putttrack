@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "zone_id": "LAB",
+  "rf_cell_id": "CELL-LAB",
+  "anchors": {
+    "A": {
+      "coordinate_m": [0.0, 0.0, 1.0],
+      "orientation_deg": 0,
+      "port": "COM5",
+      "board": "Bbo nRF54L15DK",
+      "hardware_revision": "record-at-bring-up"
+    },
+    "B": {
+      "coordinate_m": [5.0, 0.0, 1.0],
+      "orientation_deg": 180,
+      "port": "COM6",
+      "board": "Bbo nRF54L15DK",
+      "hardware_revision": "record-at-bring-up"
+    },
+    "C": {
+      "coordinate_m": [5.0, 10.0, 1.0],
+      "orientation_deg": 180,
+      "port": "COM7",
+      "board": "Bbo nRF54L15DK",
+      "hardware_revision": "record-at-bring-up"
+    },
+    "D": {
+      "coordinate_m": [0.0, 10.0, 1.0],
+      "orientation_deg": 0,
+      "port": "COM8",
+      "board": "Bbo nRF54L15DK",
+      "hardware_revision": "record-at-bring-up"
+    },
+    "E": {
+      "coordinate_m": [2.5, 5.0, 2.5],
+      "orientation_deg": 0,
+      "port": "COM9",
+      "board": "Bbo nRF54L15DK",
+      "hardware_revision": "record-at-bring-up",
+      "role": "experimental_reference"
+    }
+  }
+}

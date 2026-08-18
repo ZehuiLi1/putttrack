@@ -4,10 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "putttrack"
-version = "0.1.0"
-description = "PuttTrack smart mini-golf research and gameplay engine"
+version = "0.2.0"
+description = "PuttTrack smart mini-golf evidence and gameplay foundation"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.optional-dependencies]
+research = ["pyarrow>=16"]
+hardware = ["pyserial>=3.5"]
+dev = ["pyarrow>=16", "pyserial>=3.5"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

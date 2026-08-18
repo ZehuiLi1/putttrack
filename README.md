@@ -24,7 +24,7 @@ The existing deterministic/idempotent Gameplay Engine lives under `src/putttrack
 
 ## Architecture Constitution
 
-The end-to-end architecture candidate is now defined in:
+The end-to-end architecture is defined in:
 
 - [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md) — primary technical source of truth;
 - [`docs/architecture/`](docs/architecture/) — hardware, RF, Gateway, Edge, data, security, failure, deployment and verification detail;
@@ -74,6 +74,39 @@ CS Reflector + BLE control/health
 - ML is limited initially to range bias/variance/outlier modelling, not opaque score or authoritative XY.
 - UWB is an evidence-triggered benchmark/fallback if CS fails accuracy, NLOS, scalability or energy gates.
 - Hole-specific movement-signature valid-stroke logic remains research-only pending a later claims-based FTO review.
+
+## Evidence Foundation
+
+Issue #6 turns the architecture contracts into executable software:
+
+- typed `RangeObservation`, `MotionObservation`, `PhysicalSensorObservation`, `TrackUpdate`, `EvidenceEvent` and persistable `GameplayEvent` records;
+- compatible schema-version handling and fail-closed unknown majors;
+- append-only, crash-aware canonical JSONL capture;
+- immutable SHA-256-verified run manifests;
+- source boot/sequence/monotonic-time ordering diagnostics;
+- deterministic evidence replay into the unchanged Gameplay Engine;
+- derived Parquet research export through the optional `research` dependency;
+- Bbo vendor-log and structured-JSON Channel Sounding capture tooling.
+
+Run the complete software verifier:
+
+```bash
+python tools/verify.py
+```
+
+Replay the checked-in run twice:
+
+```bash
+PYTHONPATH=src python tools/replay_run.py experiments/evidence_replay_example
+```
+
+Prepare a fixture Phase-0 capture:
+
+```bash
+make capture-fixture
+```
+
+See [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md) and [`experiments/phase0_cs/README.md`](experiments/phase0_cs/README.md). This tooling does not claim that real Bbo/Nordic hardware has passed Issue #1.
 
 ## Research Rig
 
@@ -145,23 +178,24 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - [`docs/architecture/REFERENCES.md`](docs/architecture/REFERENCES.md)
 - [`docs/adr/README.md`](docs/adr/README.md)
 
-### Research / IP
+### Evidence / research / IP
 
+- [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md)
+- [`docs/verification/EVIDENCE_FOUNDATION_V1.md`](docs/verification/EVIDENCE_FOUNDATION_V1.md)
 - [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)
 - [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md)
 
 ## Immediate dependency order
 
-1. Verify existing gameplay tests/simulator in a connected development environment.
-2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests.
-3. Implement canonical schemas, source timestamps and deterministic replay.
-4. Collect single-link and 3/4/5-Anchor camera-ground-truth datasets.
-5. Implement robust WLS plus asynchronous range-domain EKF.
-6. Add generic motion dataset and evidence policies.
-7. Connect confirmed evidence to the one-hole Gameplay/HMI vertical slice.
-8. Build Zone Gateway/field-bus and multi-ball scheduler simulation.
-9. Start custom Ball EVT only after power/RF/scheduling gates.
-10. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
+1. Run and maintain the exact-tree software verifier and canonical replay foundation.
+2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests and `tools/capture_cs.py`.
+3. Collect single-link and 3/4/5-Anchor camera-ground-truth datasets without changing the evidence schema.
+4. Implement robust WLS plus asynchronous range-domain EKF.
+5. Add generic motion dataset and evidence policies.
+6. Connect confirmed evidence to the one-hole Gameplay/HMI vertical slice.
+7. Build Zone Gateway/field-bus and multi-ball scheduler simulation.
+8. Start custom Ball EVT only after power/RF/scheduling gates.
+9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
 
 ## IP / legal note
 
