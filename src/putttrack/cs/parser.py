@@ -30,6 +30,8 @@ class ParsedCsEstimate:
     rssi_dbm: float | None = None
     source_monotonic_ns: int | None = None
     source_sequence: int | None = None
+    source_boot_id: str | None = None
+    source_device_id: str | None = None
     procedure_id: str | None = None
     quality: dict[str, Any] = field(default_factory=dict)
 
@@ -43,6 +45,14 @@ class ParsedCsEstimate:
             )
         ):
             raise CsParseError("at least one distance estimate is required")
+        if self.source_sequence is not None and self.source_sequence < 0:
+            raise CsParseError("source_sequence must be non-negative")
+        if self.source_monotonic_ns is not None and self.source_monotonic_ns < 0:
+            raise CsParseError("source_monotonic_ns must be non-negative")
+        if self.source_boot_id is not None and not self.source_boot_id.strip():
+            raise CsParseError("source_boot_id must be non-empty when supplied")
+        if self.source_device_id is not None and not self.source_device_id.strip():
+            raise CsParseError("source_device_id must be non-empty when supplied")
 
 
 class CsSerialParser:
@@ -65,6 +75,8 @@ class CsSerialParser:
                     quality={
                         "parser": "bbo_vendor_text_v1",
                         "timestamp_origin": "host_receive_fallback",
+                        "boot_id_origin": "capture_run_fallback",
+                        "device_id_origin": "capture_cli_fallback",
                     },
                 )
             except ValueError as exc:
@@ -89,11 +101,21 @@ class CsSerialParser:
             path = first("antenna_path", "path")
             sequence = first("source_sequence", "sequence")
             source_time = first("source_monotonic_ns", "timestamp_ns")
+            boot_id = first("source_boot_id", "boot_id")
+            device_id = first("source_device_id", "device_id")
             quality = dict(payload.get("quality") or {})
             quality.setdefault("parser", "putttrack_structured_json_v1")
             quality.setdefault(
                 "timestamp_origin",
                 "device" if source_time is not None else "host_receive_fallback",
+            )
+            quality.setdefault(
+                "boot_id_origin",
+                "device" if boot_id is not None else "capture_run_fallback",
+            )
+            quality.setdefault(
+                "device_id_origin",
+                "device" if device_id is not None else "capture_cli_fallback",
             )
             return ParsedCsEstimate(
                 antenna_path=int(path) if path is not None else None,
@@ -119,6 +141,8 @@ class CsSerialParser:
                 ),
                 source_monotonic_ns=int(source_time) if source_time is not None else None,
                 source_sequence=int(sequence) if sequence is not None else None,
+                source_boot_id=str(boot_id) if boot_id is not None else None,
+                source_device_id=str(device_id) if device_id is not None else None,
                 procedure_id=(
                     str(payload["procedure_id"])
                     if payload.get("procedure_id") is not None

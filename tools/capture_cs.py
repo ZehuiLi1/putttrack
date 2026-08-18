@@ -33,7 +33,7 @@ from putttrack.recording import (  # noqa: E402
     write_immutable_manifest,
 )
 
-TOOL_VERSION = "capture-cs/1.0"
+TOOL_VERSION = "capture-cs/1.2"
 
 
 def _event_id(device_id: str, boot_id: str, sequence: int) -> str:
@@ -41,7 +41,9 @@ def _event_id(device_id: str, boot_id: str, sequence: int) -> str:
     return f"rng-{uuid.uuid5(namespace, f'{device_id}:{boot_id}:{sequence}')}"
 
 
-def _load_anchor_config(path: Path | None, anchor_id: str) -> tuple[dict, tuple[float, float, float] | None]:
+def _load_anchor_config(
+    path: Path | None, anchor_id: str
+) -> tuple[dict, tuple[float, float, float] | None]:
     if path is None:
         return {}, None
     raw = json.loads(path.read_text(encoding="utf-8"))
@@ -72,7 +74,9 @@ def _input_stream(args: argparse.Namespace) -> Iterator[TextIO]:
         try:
             import io
 
-            text = io.TextIOWrapper(io.BufferedReader(stream), encoding="utf-8", errors="replace")
+            text = io.TextIOWrapper(
+                io.BufferedReader(stream), encoding="utf-8", errors="replace"
+            )
             yield text
         finally:
             if text is not None:
@@ -99,7 +103,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--zone-id", default="LAB")
     parser.add_argument("--hole-id", default="H-LAB")
     parser.add_argument("--rf-cell-id", default="CELL-LAB")
-    parser.add_argument("--source-boot-id", default=None)
+    parser.add_argument(
+        "--source-boot-id",
+        default=None,
+        help=(
+            "fallback boot domain for vendor logs that do not emit source_boot_id; "
+            "source-built structured telemetry overrides this per record"
+        ),
+    )
     parser.add_argument("--truth-distance-m", type=float, default=None)
     parser.add_argument("--condition", default="unspecified")
     parser.add_argument("--anchor-orientation-deg", type=float, default=None)
@@ -125,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
 
     anchor_config, coordinate = _load_anchor_config(args.anchor_config, args.anchor_id)
     config_paths = [args.anchor_config] if args.anchor_config else []
-    boot_id = args.source_boot_id or f"boot-{uuid.uuid4()}"
+    fallback_boot_id = args.source_boot_id or f"capture-boot-{uuid.uuid4()}"
 
     condition = {
         "name": args.condition,
@@ -157,7 +168,12 @@ def main(argv: list[str] | None = None) -> int:
         config_hash_values=config_hashes(config_paths),
         command=sys.argv if argv is None else ["capture_cs.py", *argv],
         environment={"PYTHONPATH": os.environ.get("PYTHONPATH", "")},
-        notes="Phase-0 capture tooling; no hardware-performance claim is implied.",
+        notes=(
+            "Phase-0 capture tooling; no hardware-performance claim is implied. "
+            "Vendor text uses capture/CLI identity fallbacks; source-built telemetry "
+            "should emit source_device_id, source_boot_id, source_monotonic_ns and "
+            "source_sequence."
+        ),
     )
     write_immutable_manifest(run_dir / "manifest.json", manifest)
 
@@ -169,6 +185,13 @@ def main(argv: list[str] | None = None) -> int:
     local_sequence = 0
     captured = 0
     parse_errors = 0
+    identity_mismatches = 0
+    observed_boot_ids: set[str] = set()
+    observed_device_ids: set[str] = set()
+    device_timestamp_records = 0
+    device_sequence_records = 0
+    device_boot_records = 0
+    device_id_records = 0
 
     with _input_stream(args) as stream, raw_path.open("a", encoding="utf-8") as raw_handle:
         for line_number, line in enumerate(stream, start=1):
@@ -186,9 +209,38 @@ def main(argv: list[str] | None = None) -> int:
             if estimate is None:
                 continue
 
+            if (
+                estimate.source_device_id is not None
+                and estimate.source_device_id != args.anchor_id
+            ):
+                identity_mismatches += 1
+                print(
+                    f"source device mismatch line {line_number}: firmware={estimate.source_device_id!r} "
+                    f"capture_anchor={args.anchor_id!r}",
+                    file=sys.stderr,
+                )
+                continue
+
             local_sequence += 1
-            sequence = estimate.source_sequence if estimate.source_sequence is not None else local_sequence
-            source_time = estimate.source_monotonic_ns if estimate.source_monotonic_ns is not None else edge_time
+            sequence = (
+                estimate.source_sequence
+                if estimate.source_sequence is not None
+                else local_sequence
+            )
+            source_time = (
+                estimate.source_monotonic_ns
+                if estimate.source_monotonic_ns is not None
+                else edge_time
+            )
+            effective_boot_id = estimate.source_boot_id or fallback_boot_id
+            observed_boot_ids.add(effective_boot_id)
+            if estimate.source_device_id is not None:
+                observed_device_ids.add(estimate.source_device_id)
+            device_timestamp_records += int(estimate.source_monotonic_ns is not None)
+            device_sequence_records += int(estimate.source_sequence is not None)
+            device_boot_records += int(estimate.source_boot_id is not None)
+            device_id_records += int(estimate.source_device_id is not None)
+
             quality = {
                 **estimate.quality,
                 "truth_distance_m": args.truth_distance_m,
@@ -198,10 +250,10 @@ def main(argv: list[str] | None = None) -> int:
                 "capture_line_number": line_number,
             }
             record = RangeObservation(
-                event_id=_event_id(args.anchor_id, boot_id, sequence),
+                event_id=_event_id(args.anchor_id, effective_boot_id, sequence),
                 event_type="cs.range_observed",
                 source_device_id=args.anchor_id,
-                source_boot_id=boot_id,
+                source_boot_id=effective_boot_id,
                 sequence=sequence,
                 source_monotonic_ns=source_time,
                 edge_received_ns=edge_time,
@@ -236,7 +288,22 @@ def main(argv: list[str] | None = None) -> int:
         "run_dir": str(run_dir),
         "captured_records": captured,
         "parse_errors": parse_errors,
+        "identity_mismatches": identity_mismatches,
         "hardware_validated": False,
+        "observed_source_boot_ids": sorted(observed_boot_ids),
+        "observed_source_device_ids": sorted(observed_device_ids),
+        "device_timestamp_records": device_timestamp_records,
+        "device_sequence_records": device_sequence_records,
+        "device_boot_records": device_boot_records,
+        "device_id_records": device_id_records,
+        "source_identity_complete": (
+            captured > 0
+            and identity_mismatches == 0
+            and device_timestamp_records == captured
+            and device_sequence_records == captured
+            and device_boot_records == captured
+            and device_id_records == captured
+        ),
     }
     (run_dir / "capture_summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
