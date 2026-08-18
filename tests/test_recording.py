@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import sys
 import tempfile
 import types
@@ -110,7 +111,15 @@ class RecordingTests(unittest.TestCase):
             self.assertEqual(load_manifest(path).digest(), digest)
             with self.assertRaises(RunManifestError):
                 write_immutable_manifest(path, self.manifest())
-            path.write_text(path.read_text() + " ", encoding="utf-8")
+
+            # write_immutable_manifest intentionally removes write permission on
+            # POSIX. Restore owner-write permission to simulate a privileged or
+            # otherwise-authorized tamper attempt, then verify the digest guard
+            # rejects the modified bytes. This keeps the test portable across
+            # Linux (permission enforcement) and environments where chmod is not
+            # an effective immutability boundary.
+            path.chmod(path.stat().st_mode | stat.S_IWUSR)
+            path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
             with self.assertRaises(RunManifestError):
                 load_manifest(path)
 
