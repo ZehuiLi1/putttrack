@@ -17,6 +17,7 @@ from putttrack.venue import (
     build_server,
     course_from_dict,
 )
+from putttrack.venue.web import TEE_SCREEN_HTML
 
 
 COURSE = {
@@ -134,6 +135,13 @@ class RuntimeTests(unittest.TestCase):
             self.assertGreater(len(audit.read_text().splitlines()), 1)
 
 
+class PresentationSecurityTests(unittest.TestCase):
+    def test_dynamic_player_and_ball_content_uses_text_content_not_inner_html(self) -> None:
+        self.assertNotIn("innerHTML", TEE_SCREEN_HTML)
+        self.assertIn("textContent", TEE_SCREEN_HTML)
+        self.assertIn("createElement", TEE_SCREEN_HTML)
+
+
 class HttpTests(unittest.TestCase):
     @staticmethod
     def request(port: int, method: str, path: str, data=None):
@@ -144,8 +152,13 @@ class HttpTests(unittest.TestCase):
         response = connection.getresponse()
         payload = response.read()
         status = response.status
+        content_type = response.getheader("content-type", "")
         connection.close()
-        return status, json.loads(payload) if payload else None
+        if not payload:
+            return status, None
+        if "application/json" in content_type:
+            return status, json.loads(payload)
+        return status, payload.decode("utf-8")
 
     def test_end_to_end_one_hole_http(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -166,9 +179,35 @@ class HttpTests(unittest.TestCase):
                     {"players": ["Alex", "Sam"], "booking_code": "Q1"},
                 )
                 self.assertEqual(status, 201)
+                self.assertEqual(
+                    self.request(port, "GET", "/api/session?code=Q1")[1]["session_id"],
+                    session["session_id"],
+                )
                 ball_id = session["players"][1]["ball_id"]
                 self.assertEqual(
                     self.request(port, "POST", "/api/sim/tee", {"ball_id": ball_id})[0],
+                    200,
+                )
+                self.assertEqual(
+                    self.request(
+                        port,
+                        "POST",
+                        "/api/operator/adjust",
+                        {"ball_id": ball_id, "points_delta": 5, "reason": ""},
+                    )[0],
+                    409,
+                )
+                self.assertEqual(
+                    self.request(
+                        port,
+                        "POST",
+                        "/api/operator/adjust",
+                        {
+                            "ball_id": ball_id,
+                            "points_delta": 5,
+                            "reason": "verified demo correction",
+                        },
+                    )[0],
                     200,
                 )
                 self.assertEqual(
@@ -190,7 +229,10 @@ class HttpTests(unittest.TestCase):
                 )
                 state = self.request(port, "GET", "/api/state")[1]
                 self.assertEqual(state["ranking"][0]["display_name"], "Sam")
-                self.assertEqual(state["ranking"][0]["points"], 125)
+                self.assertEqual(state["ranking"][0]["points"], 130)
+                audit_files = list(Path(temp_dir).glob("*/round_audit.jsonl"))
+                self.assertEqual(len(audit_files), 1)
+                self.assertIn("verified demo correction", audit_files[0].read_text())
             finally:
                 server.shutdown()
                 server.server_close()
