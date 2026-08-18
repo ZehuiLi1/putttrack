@@ -1,0 +1,33 @@
+name: Pre-Hardware Readiness
+
+on:
+  pull_request:
+    paths:
+      - "src/putttrack/vision/**"
+      - "tools/calibrate_ground_plane.py"
+      - "tools/fit_camera_sync.py"
+      - "tools/project_camera_gt.py"
+      - "tools/verify_pre_hardware.py"
+      - "configs/ground_truth/**"
+      - "experiments/camera_gt/**"
+      - "experiments/phase0_cs/PHYSICAL_RIG_RUNBOOK.md"
+      - "experiments/ux_dry_run/**"
+      - "docs/research/**"
+      - ".github/workflows/prehardware-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify pre-hardware readiness
+        run: python tools/verify_pre_hardware.py
