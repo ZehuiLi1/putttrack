@@ -124,11 +124,45 @@ Study the public World Golf Systems patent disclosures around translational/rota
 
 Use spatial trajectory + generic motion evidence + course geometry + optional physical feature truth. After legal review, movement-signature evidence may be evaluated as a confidence feature or fallback rather than the sole scoring truth.
 
+## Gameplay Product Direction
+
+PuttTrack should match the best parts of modern tech-enabled mini golf while reducing customer friction:
+
+- guest-first check-in; persistent account optional;
+- one assigned smart ball per player;
+- flexible player order inside a group;
+- unmistakable ball-recognition / ready cues at every hole;
+- automatic strokes, bonuses, hazards and cup completion;
+- fast non-blocking visual/audio feedback;
+- server-side course rules and scoring;
+- normal final-hole completion rather than a hidden one-shot terminator;
+- explicit recovery and evidence when sensors disagree.
+
+The canonical locked player/product behavior is defined in `docs/PRODUCT_LOGIC_LOCK.md`. System architecture reviewers should preserve that behavior while remaining free to challenge the current RF, gateway, deployment and software-topology hypotheses.
+
+A deterministic Gameplay Engine V1 lives under `src/putttrack/gameplay/`. It consumes confirmed evidence events and deliberately does not depend on the underlying CS / IMU / camera implementation.
+
+Run the demo with:
+
+```bash
+PYTHONPATH=src python simulator/demo_gameplay.py
+```
+
+Run the unit tests with:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
 ## Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture and module boundaries.
+- [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md) — locked product/player behavior that architecture work must preserve.
+- [`docs/ARCHITECTURE_REVIEW_BRIEF.md`](docs/ARCHITECTURE_REVIEW_BRIEF.md) — canonical handoff for the next full end-to-end architecture pass.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current technical architecture hypothesis; subject to architecture review.
 - [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md) — public patent research, movement-signature concept and legal decision gates.
 - [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md) — staged CS / IMU / camera / tracking experiments and acceptance metrics.
+- [`docs/GAMEPLAY_EXPERIENCE.md`](docs/GAMEPLAY_EXPERIENCE.md) — player journey, hole interaction, scoring philosophy, recovery UX and 18-hole pacing.
+- [`docs/GAMEPLAY_IMPLEMENTATION.md`](docs/GAMEPLAY_IMPLEMENTATION.md) — Gameplay Engine V1 event contract and implementation boundary.
 
 ## Immediate Backlog
 
@@ -146,6 +180,8 @@ Use spatial trajectory + generic motion evidence + course geometry + optional ph
 12. Benchmark generic vs hole-specific movement-signature models offline.
 13. Compare spatial-first, movement-signature and hybrid methods.
 14. Complete a patent/FTO checkpoint before any patent-sensitive commercial architecture is adopted.
+15. Connect sensor-fusion evidence to Gameplay Engine V1 and build the first tee-screen prototype.
+16. Run the architecture review defined by `docs/ARCHITECTURE_REVIEW_BRIEF.md` before freezing the production topology.
 
 ## IP / Legal Note
 
