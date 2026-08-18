@@ -15,20 +15,26 @@ jobs:
   ncs-v3-0-2:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
-    container:
-      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.0.2
     steps:
       - name: Checkout PuttTrack exact head
         uses: actions/checkout@v4
 
+      - name: Pull Nordic v3.0.2 toolchain
+        run: docker pull ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.0.2
+
       - name: Build official RAS samples and PuttTrack telemetry smoke app
-        env:
-          NCS_REV: 89ba1294ac9b624e28271a5c71e99193ed4d92a4
-          NCS_DIR: /tmp/ncs-v3.0.2
-          OUT_DIR: ${{ github.workspace }}/build/ncs-phase0
-          PUTTTRACK_ROOT: ${{ github.workspace }}
-          BOARD: nrf54l15dk/nrf54l15/cpuapp
-        run: bash scripts/ncs/build_phase0_ras.sh
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work/putttrack" \
+            -w /work/putttrack \
+            -e NCS_REV=89ba1294ac9b624e28271a5c71e99193ed4d92a4 \
+            -e NCS_MANIFEST_REF=v3.0.2 \
+            -e NCS_DIR=/tmp/ncs-v3.0.2 \
+            -e OUT_DIR=/work/putttrack/build/ncs-phase0 \
+            -e PUTTTRACK_ROOT=/work/putttrack \
+            -e BOARD=nrf54l15dk/nrf54l15/cpuapp \
+            ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.0.2 \
+            bash scripts/ncs/build_phase0_ras.sh
 
       - name: Summarize boundary
         if: always()
