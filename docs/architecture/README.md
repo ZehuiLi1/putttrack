@@ -24,8 +24,9 @@ Start with [`../ARCHITECTURE_CONSTITUTION.md`](../ARCHITECTURE_CONSTITUTION.md).
 18. [`DEPLOYMENT.md`](DEPLOYMENT.md) — Research Rig, EVT, DVT, pilot and production evolution.
 19. [`VERIFICATION_MATRIX.md`](VERIFICATION_MATRIX.md) — measurable go/no-go gates from single link to custom PCB.
 20. [`IMPLEMENTATION_ROADMAP.md`](IMPLEMENTATION_ROADMAP.md) — dependency-ordered work packages.
-21. [`KEEP_CHANGE_DEFER_REJECT.md`](KEEP_CHANGE_DEFER_REJECT.md) — explicit disposition of every requested hypothesis.
-22. [`REFERENCES.md`](REFERENCES.md) — source register and fact/inference/unknown discipline.
+21. [`ISSUE_MAP.md`](ISSUE_MAP.md) — live mapping from architecture workstreams to GitHub Issues.
+22. [`KEEP_CHANGE_DEFER_REJECT.md`](KEEP_CHANGE_DEFER_REJECT.md) — explicit disposition of every requested hypothesis.
+23. [`REFERENCES.md`](REFERENCES.md) — source register and fact/inference/unknown discipline.
 
 Architectural decisions are indexed in [`../adr/README.md`](../adr/README.md).
 
