@@ -1,0 +1,7 @@
+*** Booting nRF Connect SDK v3.0.2-89ba1294ac9b ***
+Starting Channel Sounding Initiator Sample
+Ranging data ready
+Distance estimates on antenna path 0: ifft: 1.024, phase_slope: 1.087, rtt: 1.610
+Sleeping for a few seconds...
+Ranging data ready
+Distance estimates on antenna path 0: ifft: 1.011, phase_slope: 1.075, rtt: 1.590
