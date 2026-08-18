@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "distances_m": [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0],
+  "conditions": [
+    "los_bench",
+    "near_ground",
+    "body_blockage",
+    "wall_proximity",
+    "corner_proximity",
+    "representative_metal",
+    "representative_enclosure"
+  ],
+  "anchor_orientation_deg": [0, 90, 180, 270],
+  "reflector_orientation_deg": [0, 90, 180, 270],
+  "minimum_stability_runs": [
+    {"distance_m": 1.0, "duration_min": 30},
+    {"distance_m": 3.0, "duration_min": 30}
+  ],
+  "required_estimators": ["ifft", "phase_slope", "rtt"],
+  "required_metadata": [
+    "run_id",
+    "device_id",
+    "boot_id",
+    "sequence",
+    "source_monotonic_ns",
+    "edge_received_ns",
+    "firmware_version",
+    "ncs_version",
+    "config_version",
+    "calibration_version",
+    "anchor_id",
+    "ball_id",
+    "antenna_path",
+    "truth_distance_m",
+    "condition"
+  ]
+}
