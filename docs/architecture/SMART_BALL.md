@@ -8,10 +8,12 @@ The ball is a low-power authenticated sensing/ranging endpoint. It owns physical
 
 | Stage | Hardware |
 |---|---|
-| Research | Nordic nRF54L15 Tag |
+| Research | Nordic nRF54L15 Tag remains the dual-antenna/multi-sensor RF reference; Seeed XIAO nRF54L15 Sense is an optional compact single-active-antenna/IMU prototype candidate for A/B testing |
 | EVT | Custom balanced core with nRF54L15, candidate nPM2100 + CR2447, two antenna paths and both wake + 6-axis sensors |
 | DVT | Reduced/qualified sensor and antenna set based on measured benefit |
 | Production | Qualified PCB/core/shell, manufacturing calibration and signed firmware |
+
+The XIAO candidate is not a replacement for the Nordic Tag reference by declaration. It must be compared under identical orientation, rolling, ground-proximity and multipath conditions.
 
 ## 3. Why nRF54L15 remains the leading candidate
 
@@ -39,7 +41,7 @@ This decision is conditional on EVT power, RF-in-shell and multi-link scheduling
         |              +------------+------------+
         |              |                         |
    RF switch       wake accelerometer         6-axis IMU
-    /     
+    /     \
 Antenna A Antenna B
 
 SWD/pogo + manufacturing test + battery/health test points
@@ -54,6 +56,8 @@ Retain two sensor classes:
 - ultra-low-power wake/motion detector;
 - six-axis IMU for impact, roll, pickup, drop and research labels.
 
+The XIAO nRF54L15 Sense is useful as a compact motion/CS prototype because Seeed documents an onboard LSM6DS3TR-C 6-DOF IMU. The Bbo core-board package must not be treated equivalently: its inspected guide lists LSM6DS3TR-C on the separate Kit expansion board, not as a bare-core-board resource.
+
 ### DVT decision
 
 Compare:
@@ -67,11 +71,15 @@ A sensor is removed only after power and event-classification evidence shows no 
 
 ## 6. Antenna strategy
 
-- Research Tag keeps two antenna paths.
+- Nordic nRF54L15 Tag is the reference for two identical 2.4 GHz antennas and NCS-managed antenna switching.
+- XIAO nRF54L15/Sense documents switching between an onboard ceramic antenna and an external antenna. Treat the normal XIAO configuration as **one active antenna at a time** unless a CS-specific multi-path configuration is separately implemented and verified.
+- A XIAO Sense Ball prototype is therefore valuable mainly as a compact single-active-path comparison against the Nordic dual-path Tag.
 - EVT custom ball should include two experimentally distinct antenna orientations if space permits.
 - Measure single vs dual path under random ball orientation, ground proximity, battery shielding, shell/potting and wet/dry conditions.
 - Production dual antenna is retained only if P95 ranging/no-fix improvement justifies switch, layout and calibration cost.
 - Perform per-antenna-path calibration and record path identity in every range observation.
+
+The expected value of Ball-side diversity is primarily lower tail error/no-fix sensitivity while the Ball rotates; do not assume a large P50 improvement without data.
 
 ## 7. Power architecture
 

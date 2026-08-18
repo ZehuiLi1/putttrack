@@ -2,7 +2,9 @@
 
 ## 1. Decision
 
-PuttTrack uses fixed powered Anchors as Bluetooth Channel Sounding Initiators and the Smart Ball as Reflector. Research uses five identical Bbo nRF54L15 boards plus a spare. Production starts from four geometry Anchors per ordinary RF cell and adds a fifth reference/elevated Anchor only when measured tail-error or availability gains justify it.
+PuttTrack uses fixed powered Anchors as Bluetooth Channel Sounding Initiators and the Smart Ball as Reflector. Research starts with five identical Bbo nRF54L15 boards plus a spare as the controlled baseline, then compares candidate fixed-antenna implementations only after that baseline is reproducible. Production starts from four geometry Anchors per ordinary RF cell and adds a fifth reference/elevated Anchor only when measured tail-error or availability gains justify it.
+
+The inspected Bbo vendor package is registered at [`../hardware/bbo-nrf54l15dk/`](../hardware/bbo-nrf54l15dk/). It supports Phase-0 bring-up but does not prove production performance.
 
 ## 2. Why four is the production baseline
 
@@ -30,6 +32,16 @@ Suggested keep threshold for production R:
 - >=50% reduction in no-fix/degraded intervals; or
 - clear recovery of a scoring-critical blind region that cannot be solved by moving the four baseline Anchors.
 
+### Research hardware progression
+
+| Stage | Fixed node | Purpose | Decision status |
+|---|---|---|---|
+| A0 | Bbo nRF54L15DK | homogeneous vendor-supported CS baseline/debug node | KEEP for Phase 0 |
+| A1 | Seeed XIAO nRF54L15 with controlled external 2.4 GHz FPC installation | compare antenna placement/enclosure/serviceability against Bbo baseline | CANDIDATE; measurement required |
+| A2 | custom powered Anchor | 24 V/field-bus/qualified RF implementation | DEFER until A0/A1 + venue gates |
+
+Changing the development board must not change geometry, truth points, procedure configuration or analysis definitions during an A/B comparison.
+
 ## 4. Placement rules
 
 - Surround the playable region where practical; avoid nearly collinear geometry.
@@ -44,9 +56,12 @@ Suggested keep threshold for production R:
 
 ### Research
 
-- Bbo board antenna for homogeneous baseline.
-- Nordic Tag dual paths on moving target.
-- Record Anchor and ball orientation/path in datasets.
+- Bbo board RF is the single-feed baseline documented in `docs/hardware/bbo-nrf54l15dk/HARDWARE_EVIDENCE.md`.
+- Record Bbo board orientation explicitly because the moving target and near-ground environment can expose directional/tail behavior.
+- XIAO nRF54L15 + external FPC is an **Anchor candidate comparison**, mainly to test whether controlled antenna placement away from board/cable/metal improves installation consistency or error tails. It is not yet a production decision.
+- Seeed documents switching between the XIAO onboard ceramic and external antenna; do not equate that ordinary selection example with a proven multi-path CS implementation.
+- Nordic nRF54L15 Tag remains the moving-target dual-antenna reference.
+- Record Anchor and Ball antenna/path/orientation in datasets.
 
 ### Production Anchor
 

@@ -7,7 +7,9 @@ All thresholds are candidate engineering gates. They must be confirmed against a
 | Requirement | Method | Pass gate |
 |---|---|---|
 | Gameplay baseline | run existing unit tests/simulator | all tests pass; deterministic replay identical |
-| Bbo <-> Bbo CS | Nordic official sample/config | repeatable IFFT/PBR and available phase/RTT outputs |
+| Vendor evidence identity | verify `docs/hardware/bbo-nrf54l15dk/SOURCE_MANIFEST.md` against retained raw package | archive and key-file SHA-256 values match before using vendor artifacts |
+| Bbo <-> Bbo CS | vendor-supplied/Nordic RAS sample path | repeatable IFFT/PBR and available phase/RTT outputs; firmware hash/version recorded |
+| Stock-image boundary | inspect/log procedure cadence | stock smoke-test image not used to make final tracking-rate claim; source-built scheduler required for dynamic tests |
 | Bbo <-> Nordic Tag | fixed 1 m/3 m | >=99% successful scheduled procedures in 30 min LOS; no unexplained reset |
 | Structured logging | parser/replay test | all records have identity, boot, sequence, source time, config and units |
 | Version record | build manifest | exact NCS/toolchain/board/firmware captured |
@@ -24,8 +26,11 @@ Conditions: 0.5/1/2/3/5/8/10 m, orientations, near-ground, body blockage, walls/
 | Missing/outlier rate LOS | <=2% |
 | NLOS detection/quality discrimination | >=90% recall for defined severe-error class, with reported precision |
 | Orientation/path dataset | complete across declared matrix |
+| Hardware/antenna A/B | Bbo baseline, candidate fixed external-FPC Anchor, compact single-active-path Ball prototype and Nordic dual-path Tag reference compared on identical truth points; report tail/no-fix deltas before architecture promotion |
 
 NLOS raw error is not required to meet LOS accuracy; the architecture must detect, down-weight or recover from it.
+
+Antenna/diversity decisions are made primarily on representative P90/P95, severe-outlier/no-fix rate and obstruction/orientation resilience, not a small P50 change alone.
 
 ## Phase 2 — Static 2D localisation / Anchor decision
 

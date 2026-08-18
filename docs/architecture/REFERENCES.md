@@ -2,6 +2,19 @@
 
 Sources below are grouped by authority. Public marketing claims are not treated as measured PuttTrack performance.
 
+## Project-held vendor primary evidence
+
+Bbo nRF54L15DK vendor package received and inspected 2026-08-18. The raw archive/vendor binaries/PDFs are not redistributed in this public repository; hashes and source-derived findings are registered under:
+
+- [`../hardware/bbo-nrf54l15dk/README.md`](../hardware/bbo-nrf54l15dk/README.md)
+- [`../hardware/bbo-nrf54l15dk/SOURCE_MANIFEST.md`](../hardware/bbo-nrf54l15dk/SOURCE_MANIFEST.md)
+- [`../hardware/bbo-nrf54l15dk/HARDWARE_EVIDENCE.md`](../hardware/bbo-nrf54l15dk/HARDWARE_EVIDENCE.md)
+- [`../hardware/bbo-nrf54l15dk/CHANNEL_SOUNDING_NOTES.md`](../hardware/bbo-nrf54l15dk/CHANNEL_SOUNDING_NOTES.md)
+
+Archive SHA-256: `1650f1e38c9022d6a696bc9da285f141707c7fd31ea24ba1f105abd16fd74864`.
+
+This evidence supports hardware bring-up/provenance decisions only. Vendor accuracy descriptions remain vendor claims until reproduced in PuttTrack datasets.
+
 ## Bluetooth Channel Sounding
 
 1. Bluetooth SIG, *Bluetooth Core 6.0 feature overview — Channel Sounding*  
@@ -36,7 +49,20 @@ Key interpretation:
 4. Nordic case study, upgraded Puttshack Trackaball  
    https://www.nordicsemi.com/Nordic-news/2025/08/Puttshack-Trackaball-uses-Nordic-nRF54L15-SoC-and-nPM2100-PMIC
 
+Nordic documents the nRF54L15 Tag as a dual-antenna Channel Sounding prototyping platform; its Tag antenna documentation states that the two antennas are selected through an RF switch and switching is automatic when the NCS Channel Sounding library is enabled.
+
 Puttshack battery life is a company estimate, not PuttTrack evidence.
+
+## Seeed XIAO candidate hardware
+
+1. Seeed Studio, *XIAO nRF54L15(Sense) getting started*  
+   https://wiki.seeedstudio.com/xiao_nrf54l15_sense_getting_started/
+2. Seeed Studio, *XIAO nRF54L15 Sense built-in sensor*  
+   https://wiki.seeedstudio.com/xiao_nrf54l15_sense_built_in_sensor/
+3. Seeed Studio, *2.4GHz FPC Antenna (1.86dBi) for XIAO nRF54L15*  
+   https://www.seeedstudio.com/2-4GHz-FPC-Antenna-1-86dBi-for-XIAO-nRF54L15-p-6578.html
+
+Seeed documents a 6-DOF LSM6DS3TR-C IMU on the Sense variant and an RF switch that selects the onboard ceramic or external antenna. The ordinary Seeed example switches one selected antenna at a time; PuttTrack must not assume this is already equivalent to Nordic Tag multi-path Channel Sounding. The external 2.4 GHz FPC is therefore an Anchor installation candidate first, with any CS multi-antenna use treated as a separate firmware/RF validation task.
 
 ## Scalability research
 
