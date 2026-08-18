@@ -113,6 +113,7 @@ def main() -> int:
             "putttrack.evidence",
             "putttrack.cs",
             "putttrack.gameplay",
+            "putttrack.venue",
         ]
         for module in modules:
             __import__(module)
