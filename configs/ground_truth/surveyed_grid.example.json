@@ -1,0 +1,14 @@
+{
+  "schema_version": "surveyed-grid/1.0",
+  "world_frame": "LAB_XY",
+  "notes": "EXAMPLE ONLY. Static Phase-2 truth can use surveyed grid points with no camera dependency.",
+  "origin_description": "fixed floor mark O",
+  "points": [
+    {"point_id": "G00", "x_m": 0.0, "y_m": 0.0, "z_m": 0.021, "method": "surveyed"},
+    {"point_id": "G10", "x_m": 1.0, "y_m": 0.0, "z_m": 0.021, "method": "surveyed"},
+    {"point_id": "G20", "x_m": 2.0, "y_m": 0.0, "z_m": 0.021, "method": "surveyed"},
+    {"point_id": "G01", "x_m": 0.0, "y_m": 1.0, "z_m": 0.021, "method": "surveyed"},
+    {"point_id": "G11", "x_m": 1.0, "y_m": 1.0, "z_m": 0.021, "method": "surveyed"},
+    {"point_id": "G21", "x_m": 2.0, "y_m": 1.0, "z_m": 0.021, "method": "surveyed"}
+  ]
+}

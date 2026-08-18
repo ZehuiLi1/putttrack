@@ -1,0 +1,5 @@
+group_id,participant_id,checkin_seconds,staff_explanations_before_ready,ready_understood_first_time,screen_touch_attempts,wrong_ball_recovery_seconds,bonus_feedback_noticed,next_player_flow_obvious,staff_interventions_total,notes
+G01,P01,,,,,,,,,
+G01,P02,,,,,,,,,
+G01,P03,,,,,,,,,
+G01,P04,,,,,,,,,

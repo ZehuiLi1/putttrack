@@ -1,0 +1,4 @@
+frame_id,video_time_ns,u_px,v_px,confidence,track_id,source
+000001,0,640,610,1.0,ball,manual_example
+000002,16666667,650,590,1.0,ball,manual_example
+000003,33333334,665,560,0.95,ball,manual_example

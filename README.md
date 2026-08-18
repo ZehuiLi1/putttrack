@@ -108,6 +108,46 @@ make capture-fixture
 
 See [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md) and [`experiments/phase0_cs/README.md`](experiments/phase0_cs/README.md). This tooling does not claim that real Bbo/Nordic hardware has passed Issue #1.
 
+## Pre-hardware readiness
+
+The repository is designed so a tall overhead camera is **not** a prerequisite for the RF research:
+
+- Phase 0/1 single-link truth uses measured physical separation;
+- Phase 2 static 3/4/5-Anchor truth can use a surveyed floor/grid with no camera;
+- Phase 3 dynamic truth can use a stable low/oblique camera mapped to venue XY through surveyed ground-control points;
+- a second low/oblique view can be added where one camera is occluded;
+- ramps/non-planar regions are excluded, segmented or handled with a later multi-view method rather than being incorrectly projected onto a flat plane.
+
+Camera/survey tooling:
+
+```bash
+PYTHONPATH=src python tools/calibrate_ground_plane.py camera_points.json calibration.json
+PYTHONPATH=src python tools/fit_camera_sync.py sync_pairs.csv camera_time_map.json
+PYTHONPATH=src python tools/project_camera_gt.py annotations.csv calibration.json ground_truth.csv --time-map camera_time_map.json
+```
+
+Run the full software + pre-hardware verifier:
+
+```bash
+make verify-prehardware
+```
+
+The first source baseline is pinned to Nordic nRF Connect SDK `v3.0.2` / sdk-nrf commit `89ba1294ac9b624e28271a5c71e99193ed4d92a4`. The official RAS Initiator/Reflector and the PuttTrack telemetry helper can be source-built with:
+
+```bash
+make ncs-phase0-build
+```
+
+An official-DK compile is only a source/toolchain compatibility check. It does not prove the Bbo overlay, flashing, RF path or physical performance.
+
+See:
+
+- [`docs/research/PRE_HARDWARE_READINESS.md`](docs/research/PRE_HARDWARE_READINESS.md)
+- [`docs/research/CAMERA_GROUND_TRUTH.md`](docs/research/CAMERA_GROUND_TRUTH.md)
+- [`docs/hardware/NCS_PHASE0_BUILD.md`](docs/hardware/NCS_PHASE0_BUILD.md)
+- [`experiments/phase0_cs/PHYSICAL_RIG_RUNBOOK.md`](experiments/phase0_cs/PHYSICAL_RIG_RUNBOOK.md)
+- [`experiments/ux_dry_run/README.md`](experiments/ux_dry_run/README.md)
+
 ## One-hole player-experience vertical slice
 
 The local vertical slice under `src/putttrack/venue/` exercises the locked customer flow before physical sensing is available:
@@ -204,18 +244,20 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 - [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md)
 - [`docs/verification/EVIDENCE_FOUNDATION_V1.md`](docs/verification/EVIDENCE_FOUNDATION_V1.md)
+- [`docs/research/PRE_HARDWARE_READINESS.md`](docs/research/PRE_HARDWARE_READINESS.md)
+- [`docs/research/CAMERA_GROUND_TRUTH.md`](docs/research/CAMERA_GROUND_TRUTH.md)
 - [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)
 - [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md)
 
 ## Immediate dependency order
 
-1. Run and maintain the exact-tree software verifier and canonical replay foundation.
+1. Maintain the software/pre-hardware verifiers and pinned source-build baseline.
 2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests and `tools/capture_cs.py`.
-3. Collect single-link and 3/4/5-Anchor camera-ground-truth datasets without changing the evidence schema.
-4. Implement robust WLS plus asynchronous range-domain EKF.
+3. Collect single-link surveyed-distance data, then 3/4/5-Anchor surveyed-grid data; use calibrated low/oblique video for continuous dynamic truth when needed.
+4. Implement robust WLS plus asynchronous range-domain EKF only after real range evidence exists.
 5. Add generic motion dataset and evidence policies.
 6. Replace simulated one-hole events with confirmed physical evidence while preserving the existing venue/UI boundary.
-7. Build Zone Gateway/field-bus and multi-ball scheduler simulation.
+7. Build Zone Gateway/field-bus and multi-ball scheduler simulation after measured procedure timing exists.
 8. Start custom Ball EVT only after power/RF/scheduling gates.
 9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
 

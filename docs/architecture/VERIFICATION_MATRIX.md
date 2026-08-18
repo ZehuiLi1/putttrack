@@ -2,6 +2,15 @@
 
 All thresholds are candidate engineering gates. They must be confirmed against actual venue/game requirements before production release. Report P50/P90/P95, missing/no-fix rate and failure tails; mean error alone is insufficient.
 
+Ground-truth policy:
+
+- Phase 0/1 single-link truth is surveyed/measured physical geometry; no camera dependency.
+- Phase 2 static XY truth should use independently surveyed grid/control points in the venue/lab coordinate frame; camera is optional.
+- Phase 3 dynamic continuous truth may use a calibrated low/oblique camera mapped to the ground plane, two overlapping low views where needed, or another independently validated truth system. A tall overhead camera is not required.
+- A single planar camera mapping must not be used across ramps/non-planar regions unless those regions are separately calibrated/handled.
+
+See `docs/research/CAMERA_GROUND_TRUTH.md`.
+
 ## Phase 0 — Baseline and single-link bring-up
 
 | Requirement | Method | Pass gate |
@@ -15,6 +24,8 @@ All thresholds are candidate engineering gates. They must be confirmed against a
 | Version record | build manifest | exact NCS/toolchain/board/firmware captured |
 
 ## Phase 1 — Single-link ranging
+
+Truth is measured/surveyed separation between documented RF reference points; adding camera error is unnecessary.
 
 Conditions: 0.5/1/2/3/5/8/10 m, orientations, near-ground, body blockage, walls/corners, metal/course features, final enclosures where available.
 
@@ -34,6 +45,8 @@ Antenna/diversity decisions are made primarily on representative P90/P95, severe
 
 ## Phase 2 — Static 2D localisation / Anchor decision
 
+Truth baseline: independently surveyed static grid/control points in the same world frame as Anchor x/y/z. Camera may be used as secondary evidence but is not required for the static gate.
+
 Compare 3, four perimeter, four+ground-centre, four+elevated reference, best-4-of-5 and robust weighted five.
 
 | Metric | Gate |
@@ -47,10 +60,16 @@ Compare 3, four perimeter, four+ground-centre, four+elevated reference, best-4-o
 
 ## Phase 3 — Dynamic rolling object
 
-Trajectories: slow/fast straight, diagonal, wall rebound, obstacle/S route, ramp, stop/restart and pickup/reposition.
+Continuous truth baseline: calibrated low/oblique planar video with surveyed ground-control points and a documented camera-to-Edge time map. Use a second overlapping low view if one angle has material occlusion/far-end error. Reserve held-out surveyed points to validate the camera mapping; do not infer RF accuracy from calibration-fit points alone.
+
+For the first dynamic baseline, prefer a controlled planar lane. Ramps/non-planar regions are evaluated only with separately valid truth geometry.
+
+Trajectories: slow/fast straight, diagonal, wall rebound, obstacle/S route, stop/restart and pickup/reposition; add ramp tests after non-planar truth is established.
 
 | Metric | Gate |
 |---|---|
+| Ground-truth spatial validation | held-out camera/survey projection error reported; target P95 <=0.03 m, max <=0.05 m where practical |
+| Ground-truth time alignment | visible-sync/time-map residual reported; target <=10 ms P95 where practical |
 | Dynamic P50 | <=0.30 m target |
 | Dynamic P90 | <=0.60 m; stretch <=0.50 m |
 | Dynamic P95 | <=1.00 m |
@@ -160,7 +179,9 @@ Measure—not estimate from datasheet alone:
 
 ## UWB decision gate
 
-Run a same-course/camera-ground-truth UWB benchmark if CS misses representative dynamic/scalability/energy gates after architecture-level optimisation. Compare:
+Run a same-course, independently validated ground-truth UWB benchmark if CS misses representative dynamic/scalability/energy gates after architecture-level optimisation. The truth source may be surveyed static points or calibrated low/oblique video for dynamic tracks; UWB and CS must be scored against the same truth records.
+
+Compare:
 
 - P50/P90/P95 and NLOS tails;
 - active update/latency;
