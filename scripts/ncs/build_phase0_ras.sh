@@ -8,6 +8,7 @@ NCS_DIR="${NCS_DIR:-$PWD/.ncs-v3.0.2}"
 BOARD="${BOARD:-nrf54l15dk/nrf54l15/cpuapp}"
 OUT_DIR="${OUT_DIR:-$PWD/build/ncs-phase0}"
 PUTTTRACK_ROOT="${PUTTTRACK_ROOT:-$PWD}"
+LOG_DIR="${LOG_DIR:-$OUT_DIR/logs}"
 
 command -v west >/dev/null 2>&1 || {
   echo "west is required. Use Nordic's v3.0.2 toolchain/container or an NCS v3.0.2 environment." >&2
@@ -16,9 +17,6 @@ command -v west >/dev/null 2>&1 || {
 
 if [ ! -d "$NCS_DIR/.west" ]; then
   rm -rf "$NCS_DIR"
-  # west init expects a cloneable branch/tag for --mr. Use the release tag,
-  # then verify the resulting manifest repository resolves to the exact
-  # expected commit before any dependency update/build is allowed.
   west init -m "$NCS_REPO" --mr "$NCS_MANIFEST_REF" "$NCS_DIR"
 fi
 
@@ -31,22 +29,43 @@ fi
 
 west update --narrow -o=--depth=1
 west zephyr-export
-mkdir -p "$OUT_DIR"
+mkdir -p "$OUT_DIR" "$LOG_DIR"
 
-west build --sysbuild -p always \
-  -b "$BOARD" \
-  nrf/samples/bluetooth/channel_sounding_ras_initiator \
-  -d "$OUT_DIR/ras_initiator"
+run_build() {
+  local name="$1"
+  shift
+  local log="$LOG_DIR/${name}.log"
+  echo "==> Building ${name}"
+  if "$@" >"$log" 2>&1; then
+    echo "PASS: ${name}"
+    tail -n 20 "$log" || true
+  else
+    local rc=$?
+    echo "FAIL: ${name} (exit ${rc})" >&2
+    echo "---- ${name}: last 120 log lines ----" >&2
+    tail -n 120 "$log" >&2 || true
+    echo "---- end ${name} ----" >&2
+    exit "$rc"
+  fi
+}
 
-west build --sysbuild -p always \
-  -b "$BOARD" \
-  nrf/samples/bluetooth/channel_sounding_ras_reflector \
-  -d "$OUT_DIR/ras_reflector"
+run_build ras_initiator \
+  west build --sysbuild -p always \
+    -b "$BOARD" \
+    nrf/samples/bluetooth/channel_sounding_ras_initiator \
+    -d "$OUT_DIR/ras_initiator"
 
-west build -p always \
-  -b "$BOARD" \
-  "$PUTTTRACK_ROOT/firmware/phase0_cs/telemetry_smoke_app" \
-  -d "$OUT_DIR/telemetry_smoke"
+run_build ras_reflector \
+  west build --sysbuild -p always \
+    -b "$BOARD" \
+    nrf/samples/bluetooth/channel_sounding_ras_reflector \
+    -d "$OUT_DIR/ras_reflector"
+
+run_build telemetry_smoke \
+  west build -p always \
+    -b "$BOARD" \
+    "$PUTTTRACK_ROOT/firmware/phase0_cs/telemetry_smoke_app" \
+    -d "$OUT_DIR/telemetry_smoke"
 
 popd >/dev/null
 
@@ -58,6 +77,7 @@ Board        : $BOARD
 Initiator    : $OUT_DIR/ras_initiator
 Reflector    : $OUT_DIR/ras_reflector
 Telemetry    : $OUT_DIR/telemetry_smoke
+Logs         : $LOG_DIR
 
 This proves official-DK source compatibility only. It is not a Bbo hardware/overlay/flash PASS.
 EOF
