@@ -1,0 +1,38 @@
+{
+  "course_id": "putttrack-demo-v1",
+  "title": "PuttTrack Demo",
+  "holes": [
+    {
+      "hole_id": "H01",
+      "number": 1,
+      "title": "Risk Ridge",
+      "instructions": "Aim for the cup. Precision Gate +25. No screen touch needed during play.",
+      "score_curve": {
+        "1": 100,
+        "2": 80,
+        "3": 65,
+        "4": 55,
+        "5": 45,
+        "6": 35,
+        "7": 30,
+        "8": 25
+      },
+      "features": [
+        {
+          "feature_id": "precision_gate",
+          "label": "Precision Gate",
+          "kind": "bonus",
+          "points_delta": 25,
+          "max_triggers_per_player": 1
+        },
+        {
+          "feature_id": "hazard",
+          "label": "Hazard",
+          "kind": "hazard",
+          "points_delta": -20,
+          "max_triggers_per_player": 2
+        }
+      ]
+    }
+  ]
+}

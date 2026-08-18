@@ -108,6 +108,27 @@ make capture-fixture
 
 See [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md) and [`experiments/phase0_cs/README.md`](experiments/phase0_cs/README.md). This tooling does not claim that real Bbo/Nordic hardware has passed Issue #1.
 
+## One-hole player-experience vertical slice
+
+The local vertical slice under `src/putttrack/venue/` exercises the locked customer flow before physical sensing is available:
+
+- guest-first check-in and booking-code lookup;
+- optional account linking;
+- server-side smart-ball allocation with human-readable Ball labels;
+- flexible player order;
+- amber `DETECTED / CHECKING` presentation followed by authoritative green `READY`;
+- simulated stroke/feature/pickup/cup semantic events routed through the existing Gameplay Engine;
+- SSE hole-screen feedback and local leaderboard;
+- append-only local Gameplay audit and audited operator correction endpoint.
+
+Run it with:
+
+```bash
+PYTHONPATH=src python tools/run_hole_demo.py
+```
+
+Then open `http://127.0.0.1:8080/checkin`. The simulation controls exist only to exercise the UI while Issue #1 remains a real-hardware gate. See [`docs/GAMEPLAY_VERTICAL_SLICE_V1.md`](docs/GAMEPLAY_VERTICAL_SLICE_V1.md).
+
 ## Research Rig
 
 ### Moving target
@@ -154,6 +175,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md)
 - [`docs/GAMEPLAY_EXPERIENCE.md`](docs/GAMEPLAY_EXPERIENCE.md)
 - [`docs/GAMEPLAY_IMPLEMENTATION.md`](docs/GAMEPLAY_IMPLEMENTATION.md)
+- [`docs/GAMEPLAY_VERTICAL_SLICE_V1.md`](docs/GAMEPLAY_VERTICAL_SLICE_V1.md)
 
 ### Architecture
 
@@ -192,7 +214,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 3. Collect single-link and 3/4/5-Anchor camera-ground-truth datasets without changing the evidence schema.
 4. Implement robust WLS plus asynchronous range-domain EKF.
 5. Add generic motion dataset and evidence policies.
-6. Connect confirmed evidence to the one-hole Gameplay/HMI vertical slice.
+6. Replace simulated one-hole events with confirmed physical evidence while preserving the existing venue/UI boundary.
 7. Build Zone Gateway/field-bus and multi-ball scheduler simulation.
 8. Start custom Ball EVT only after power/RF/scheduling gates.
 9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
