@@ -1,188 +1,168 @@
 # PuttTrack
 
-PuttTrack is a research and product-development repository for a smart mini-golf ball and venue tracking system.
+PuttTrack is a research and product-development repository for a smart mini-golf ball and an 18-hole, automatic-scoring venue platform.
 
-The current direction combines:
+## Product logic
 
-- Nordic nRF54L15 smart-ball hardware;
-- Bluetooth Channel Sounding (CS) for spatial ranging;
-- multi-anchor localisation;
-- ball IMU / motion-state sensing;
-- camera-derived ground truth during research and calibration;
-- multilateration + Kalman/EKF/IMM tracking;
-- optional learned RF confidence / range-bias correction;
-- venue game-event and scoring logic;
-- a parallel research benchmark of publicly disclosed World Golf Systems / Puttshack movement-signature concepts.
-
-## Current Decision
-
-The **current implementation path is spatial-first**:
+The locked player experience is defined in [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md):
 
 ```text
-Smart Ball
-  nRF54L15
-  + IMU
-  + Channel Sounding Reflector
-        |
-        v
-5 x nRF54L15 Anchors
-  4 perimeter + 1 centre/reference
-  Channel Sounding Initiators
-        |
-        v
-Range Collector / Edge Host
-        |
-        v
-Calibration + robust multilateration
-        |
-        v
-IMU-assisted adaptive EKF / IMM
-        |
-        v
-x, y, velocity, confidence
-        |
-        v
-Game Event Engine
+Guest / booking
+ -> quick check-in
+ -> one assigned smart ball per player
+ -> present any unfinished player's ball at the tee
+ -> DETECTED / CHECKING
+ -> READY
+ -> normal zero-touch physical play
+ -> automatic stroke / feature / cup evidence
+ -> deterministic score and non-blocking feedback
+ -> next player / next hole
+ -> local leaderboard and final digital result
 ```
 
-Movement-signature methods are being studied in parallel as a **research benchmark and possible future hybrid component**, not as the current commercial scoring dependency.
+The existing deterministic/idempotent Gameplay Engine lives under `src/putttrack/gameplay/` and deliberately consumes semantic evidence rather than depending on CS, IMU, UWB, camera or a specific sensor implementation.
 
-## Initial Hardware Research Rig
+## Architecture Constitution
 
-### Moving ball / tag
+The end-to-end architecture candidate is now defined in:
 
-- 1-2 x Nordic `nRF54L15 Tag`.
-- First Tag remains a golden-reference board where practical.
-- Second Tag, if available, can be used for rolling / enclosure / impact / orientation experiments.
+- [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md) — primary technical source of truth;
+- [`docs/architecture/`](docs/architecture/) — hardware, RF, Gateway, Edge, data, security, failure, deployment and verification detail;
+- [`docs/adr/`](docs/adr/) — accepted decisions with risks, gates and revisit triggers.
+
+The former [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is retained as the pre-convergence hypothesis and research history.
+
+## Converged direction
+
+```text
+                            CLOUD (non-authoritative)
+ bookings / optional accounts / loyalty / analytics / release control
+                                  ^
+                                  | queued sync
+                                  |
+Managed Ethernet/PoE LAN ---- Venue Edge (authoritative local game)
+        |                         registry / assignments / localisation
+        |                         evidence / Gameplay Engine / audit / HMI
+        |
+   Zone Gateways
+   ~2-3 holes each
+        |
+24 V + protected RS-485
+        |
+Anchors + Tee/Cup/Feature sensors
+        |
+Bluetooth Channel Sounding
+        |
+Smart Ball
+nRF54L15 + generic motion sensing
+CS Reflector + BLE control/health
+```
+
+### Core decisions
+
+- Nordic nRF54L15 Tag remains the moving research reference.
+- Five identical Bbo Anchors plus a spare remain the research rig.
+- Production starts from four perimeter/geometry Anchors; the fifth node is optional and should be RF-optimal/elevated when evidence justifies it.
+- Ball is CS Reflector; powered Anchors are Initiators.
+- Standard encrypted connected CS is the conditional Production V1 path; only one CS procedure per ball is active at a time.
+- Dynamic tracking uses an asynchronous range-domain EKF; robust multilateration remains for initialization, static benchmarking and reacquisition.
+- Generic motion informs scheduling/evidence/process noise; the ball does not own score or hole-specific rules.
+- Zone Gateways coordinate approximately 2–3 holes, with wired 24 V/protected RS-485 to field nodes and Ethernet/PoE to the venue LAN.
+- Venue Edge is a local authoritative modular monolith and continues through WAN loss.
+- Camera is research/calibration/replay ground truth, not production positioning authority.
+- Independent tee and physical cup evidence remain in Production V1.
+- ML is limited initially to range bias/variance/outlier modelling, not opaque score or authoritative XY.
+- UWB is an evidence-triggered benchmark/fallback if CS fails accuracy, NLOS, scalability or energy gates.
+- Hole-specific movement-signature valid-stroke logic remains research-only pending a later claims-based FTO review.
+
+## Research Rig
+
+### Moving target
+
+- 1–2 Nordic `nRF54L15 Tag` boards;
+- one golden reference where possible;
+- a second for enclosure/rolling/impact/orientation experiments.
 
 ### Anchors
 
-Initial target:
+- 5 identical Bbo nRF54L15 boards as A/B/C/D + experimental reference E;
+- 1 spare/development board;
+- experiments compare 3, four perimeter, ground-centre, elevated reference, best-4-of-5 and weighted/robust five.
 
-- 5 identical nRF54L15 development boards as active anchors.
-- 1 additional identical spare/development board.
-- Current candidate: Bbo nRF54L15 development board because it is available quickly and supports Nordic nRF Connect SDK workflows, USB serial logging and SWD.
+The research count does not freeze production Anchor quantity.
 
-Baseline geometry:
+## Validation before production hardware
 
-```text
-A ---------------- B
-|                  |
-|        E         |
-|                  |
-|       BALL       |
-|                  |
-D ---------------- C
-```
+See [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_MATRIX.md). Headline candidate gates include:
 
-A/B/C/D provide geometry. E is an additional redundancy/reference anchor. Experiments will compare 3 anchors, 4 perimeter anchors, 4+centre, best-4-of-5 and weighted-5 solutions before a production anchor count is fixed.
+- single-link LOS P90 <=0.5 m;
+- static XY P90 <=0.5 m and P95 <=0.8 m;
+- dynamic XY P90 <=0.6 m, P95 <=1.0 m and reacquisition <=1 s;
+- confirmed event to HMI <=500 ms;
+- stroke recall >=99% and false-stroke rate <=0.1% of labelled non-stroke episodes;
+- zero cross-ball/duplicate score mutation;
+- one-hole 1,000-round soak;
+- 20/40/80-ball scheduling simulation with bounded queues and measured headroom;
+- custom-ball conservative service-life projection >=2 years, stretch >=5 years.
 
-## Ball / Anchor / Server Responsibilities
+Do not start the final Ball PCB until measured CS, IMU, dual-antenna, scheduling and power requirements exist.
 
-### Ball
-
-Keep the battery-powered ball minimal:
-
-- permanent `BALL_ID`;
-- Channel Sounding Reflector role;
-- raw / derived IMU sensing;
-- generic motion states such as impact, rolling, slowing, stationary, pickup, drop and collision;
-- battery / health status;
-- event buffering and low-power scheduling.
-
-The ball should **not** be responsible for final XY localisation or scoring.
-
-### Anchor
-
-- Channel Sounding Initiator;
-- obtain / calculate per-link ranging estimates;
-- retain ranging quality information;
-- forward timestamped range evidence to the edge host.
-
-### Edge / Server
-
-- anchor calibration;
-- outlier rejection and confidence weighting;
-- multilateration;
-- Kalman / EKF / IMM tracking;
-- camera-ground-truth alignment during research;
-- optional ML range-bias / covariance estimation;
-- game-event inference and scoring;
-- evidence / replay / diagnostics.
-
-## Research Tracks
-
-### Track A — Spatial-first (current build path)
-
-Bluetooth Channel Sounding + generic IMU context + robust multilateration + adaptive tracking.
-
-### Track B — Movement-signature benchmark
-
-Study the public World Golf Systems patent disclosures around translational/rotational acceleration sequences and hole-specific movement signatures. Reconstruct benchmark classifiers from our own data; do not assume access to Puttshack production algorithms.
-
-### Track C — Hybrid
-
-Use spatial trajectory + generic motion evidence + course geometry + optional physical feature truth. After legal review, movement-signature evidence may be evaluated as a confidence feature or fallback rather than the sole scoring truth.
-
-## Gameplay Product Direction
-
-PuttTrack should match the best parts of modern tech-enabled mini golf while reducing customer friction:
-
-- guest-first check-in; persistent account optional;
-- one assigned smart ball per player;
-- flexible player order inside a group;
-- unmistakable ball-recognition / ready cues at every hole;
-- automatic strokes, bonuses, hazards and cup completion;
-- fast non-blocking visual/audio feedback;
-- server-side course rules and scoring;
-- normal final-hole completion rather than a hidden one-shot terminator;
-- explicit recovery and evidence when sensors disagree.
-
-The canonical locked player/product behavior is defined in `docs/PRODUCT_LOGIC_LOCK.md`. System architecture reviewers should preserve that behavior while remaining free to challenge the current RF, gateway, deployment and software-topology hypotheses.
-
-A deterministic Gameplay Engine V1 lives under `src/putttrack/gameplay/`. It consumes confirmed evidence events and deliberately does not depend on the underlying CS / IMU / camera implementation.
-
-Run the demo with:
+## Gameplay demo and tests
 
 ```bash
 PYTHONPATH=src python simulator/demo_gameplay.py
-```
-
-Run the unit tests with:
-
-```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-## Documentation
+## Documentation map
 
-- [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md) — locked product/player behavior that architecture work must preserve.
-- [`docs/ARCHITECTURE_REVIEW_BRIEF.md`](docs/ARCHITECTURE_REVIEW_BRIEF.md) — canonical handoff for the next full end-to-end architecture pass.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current technical architecture hypothesis; subject to architecture review.
-- [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md) — public patent research, movement-signature concept and legal decision gates.
-- [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md) — staged CS / IMU / camera / tracking experiments and acceptance metrics.
-- [`docs/GAMEPLAY_EXPERIENCE.md`](docs/GAMEPLAY_EXPERIENCE.md) — player journey, hole interaction, scoring philosophy, recovery UX and 18-hole pacing.
-- [`docs/GAMEPLAY_IMPLEMENTATION.md`](docs/GAMEPLAY_IMPLEMENTATION.md) — Gameplay Engine V1 event contract and implementation boundary.
+### Locked product/gameplay
 
-## Immediate Backlog
+- [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md)
+- [`docs/GAMEPLAY_EXPERIENCE.md`](docs/GAMEPLAY_EXPERIENCE.md)
+- [`docs/GAMEPLAY_IMPLEMENTATION.md`](docs/GAMEPLAY_IMPLEMENTATION.md)
 
-1. Acquire 1-2 Nordic nRF54L15 Tags.
-2. Acquire 5 identical nRF54L15 anchors + 1 spare.
-3. Archive anchor schematic, pin map, recovery firmware/tooling and SDK notes.
-4. Reproduce Nordic Channel Sounding Initiator/Reflector samples on bench hardware.
-5. Run anchor -> Nordic Tag ranging.
-6. Implement structured timestamped CS logging.
-7. Implement synchronized IMU logging.
-8. Add overhead-camera ground truth.
-9. Build 3/4/5-anchor localisation baseline.
-10. Add calibration, robust weighting and EKF.
-11. Collect labelled movement episodes.
-12. Benchmark generic vs hole-specific movement-signature models offline.
-13. Compare spatial-first, movement-signature and hybrid methods.
-14. Complete a patent/FTO checkpoint before any patent-sensitive commercial architecture is adopted.
-15. Connect sensor-fusion evidence to Gameplay Engine V1 and build the first tee-screen prototype.
-16. Run the architecture review defined by `docs/ARCHITECTURE_REVIEW_BRIEF.md` before freezing the production topology.
+### Architecture
 
-## IP / Legal Note
+- [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md)
+- [`docs/architecture/SYSTEM_CONTEXT.md`](docs/architecture/SYSTEM_CONTEXT.md)
+- [`docs/architecture/HARDWARE_TOPOLOGY.md`](docs/architecture/HARDWARE_TOPOLOGY.md)
+- [`docs/architecture/SMART_BALL.md`](docs/architecture/SMART_BALL.md)
+- [`docs/architecture/ANCHOR_RF_CELL.md`](docs/architecture/ANCHOR_RF_CELL.md)
+- [`docs/architecture/GATEWAY.md`](docs/architecture/GATEWAY.md)
+- [`docs/architecture/VENUE_EDGE.md`](docs/architecture/VENUE_EDGE.md)
+- [`docs/architecture/CLOUD_BOUNDARY.md`](docs/architecture/CLOUD_BOUNDARY.md)
+- [`docs/architecture/HMI.md`](docs/architecture/HMI.md)
+- [`docs/architecture/DATA_MODEL.md`](docs/architecture/DATA_MODEL.md)
+- [`docs/architecture/EVENT_CONTRACT.md`](docs/architecture/EVENT_CONTRACT.md)
+- [`docs/architecture/TIME_SYNC.md`](docs/architecture/TIME_SYNC.md)
+- [`docs/architecture/SECURITY.md`](docs/architecture/SECURITY.md)
+- [`docs/architecture/FAILURE_MODES.md`](docs/architecture/FAILURE_MODES.md)
+- [`docs/architecture/MULTIBALL_SCALABILITY.md`](docs/architecture/MULTIBALL_SCALABILITY.md)
+- [`docs/architecture/DEPLOYMENT.md`](docs/architecture/DEPLOYMENT.md)
+- [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_MATRIX.md)
+- [`docs/architecture/IMPLEMENTATION_ROADMAP.md`](docs/architecture/IMPLEMENTATION_ROADMAP.md)
+- [`docs/architecture/REFERENCES.md`](docs/architecture/REFERENCES.md)
+- [`docs/adr/README.md`](docs/adr/README.md)
 
-This repository contains engineering research notes, not legal advice or a freedom-to-operate opinion. Public patent material is used to understand prior art and define experiments. Before commercial deployment of any claim-sensitive movement-signature architecture, obtain an up-to-date Australian patent/FTO review of the exact final system.
+### Research / IP
+
+- [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)
+- [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md)
+
+## Immediate dependency order
+
+1. Verify existing gameplay tests/simulator in a connected development environment.
+2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests.
+3. Implement canonical schemas, source timestamps and deterministic replay.
+4. Collect single-link and 3/4/5-Anchor camera-ground-truth datasets.
+5. Implement robust WLS plus asynchronous range-domain EKF.
+6. Add generic motion dataset and evidence policies.
+7. Connect confirmed evidence to the one-hole Gameplay/HMI vertical slice.
+8. Build Zone Gateway/field-bus and multi-ball scheduler simulation.
+9. Start custom Ball EVT only after power/RF/scheduling gates.
+10. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
+
+## IP / legal note
+
+This repository records engineering research, public prior art and design constraints; it is not legal advice or a freedom-to-operate opinion. Production remains spatial-first and hole-independent. Patent-sensitive hole-specific movement-signature authority, charging/activation combinations and target-jurisdiction launch require an up-to-date claims-based review.
