@@ -4,6 +4,8 @@
 
 Make the first real nRF54L15 Channel Sounding measurements repeatable enough that they can support engineering and research decisions.
 
+This runbook starts **after** the pre-hardware software/source compatibility gate has passed. It must not be used to imply that Bbo hardware, RF performance or localisation accuracy has already been validated.
+
 ## 1. Equipment to prepare
 
 Minimum:
@@ -114,19 +116,33 @@ source_identity_complete = false
 
 because vendor text lacks complete device-source timing/identity. That is acceptable for smoke only.
 
-## 6. Source-built baseline
+## 6. Pinned source-built baseline
+
+The pre-hardware source/toolchain compatibility gate has already been pinned and compiled in CI using:
+
+```text
+NCS tag       = v3.0.2
+sdk-nrf SHA   = 89ba1294ac9b624e28271a5c71e99193ed4d92a4
+Nordic target = nrf54l15dk/nrf54l15/cpuapp
+```
+
+The official Nordic RAS Initiator, RAS Reflector and PuttTrack telemetry smoke application compiled successfully before PR #17 was merged.
+
+That proves the **official-DK source path only**. It does not prove the arriving Bbo board revision, overlay, flashing path, RF path or serial behavior.
 
 After vendor smoke:
 
-- pin exact NCS/toolchain revision;
-- compile the official RAS source path;
-- apply only the documented Bbo board/overlay changes;
-- integrate PuttTrack telemetry;
-- flash Initiator and Reflector;
-- verify JSON source identity;
-- power-cycle/reboot and prove boot-domain changes are visible.
+1. photograph/record the actual Bbo PCB revision and any serial/revision markings;
+2. verify the exact vendor archive/package used and preserve its hash;
+3. inspect/confirm the Bbo-specific overlay/pin assumptions against the actual board/package;
+4. keep the pinned NCS/sdk-nrf baseline above unless a documented hardware incompatibility requires a controlled change;
+5. compile the official RAS source path with only the documented Bbo board/overlay changes;
+6. integrate PuttTrack telemetry into the real Bbo Initiator source build;
+7. flash Initiator and Reflector;
+8. verify JSON source identity and version fields;
+9. power-cycle/reboot and prove boot-domain changes are visible.
 
-Do not tune CS procedure timing before the first source baseline is recorded.
+Do not tune CS procedure timing before the first Bbo-specific source baseline is recorded.
 
 ## 7. First stability runs
 
@@ -203,17 +219,20 @@ The matrix can be reduced after early data shows which axes matter, but do not s
 ## 10. Camera/survey truth choice
 
 - single-link distance: measured physical separation;
-- static XY: surveyed grid;
-- dynamic rolling: low/oblique calibrated camera when practical;
-- no requirement for a tall overhead mast.
+- static XY: independently surveyed grid/control points;
+- dynamic rolling: stable low/oblique calibrated camera when practical;
+- second low/oblique view only where one view has material occlusion or poor far-end geometry;
+- no requirement for a tall overhead mast;
+- do not use one planar homography across ramps/non-planar regions unless those regions are separately handled.
 
 See `docs/research/CAMERA_GROUND_TRUTH.md`.
 
 ## 11. Pre-run checklist
 
 - [ ] Correct physical board/label selected.
+- [ ] Actual Bbo board revision/serial evidence recorded.
 - [ ] Correct firmware hash recorded.
-- [ ] Correct NCS/toolchain/profile recorded.
+- [ ] Correct NCS/toolchain/profile/overlay recorded.
 - [ ] Correct COM/TTY selected.
 - [ ] `source_device_id` matches physical Anchor when using source telemetry.
 - [ ] Run-specific config saved.
@@ -221,7 +240,8 @@ See `docs/research/CAMERA_GROUND_TRUTH.md`.
 - [ ] Orientation recorded.
 - [ ] Environment/obstruction recorded.
 - [ ] Camera calibration ID recorded if used.
-- [ ] `python tools/verify.py` is green on capture machine.
+- [ ] `python tools/verify_pre_hardware.py` is green on the capture machine.
+- [ ] Optional hardware dependency installed: `pip install '.[hardware]'` when serial capture is required.
 
 ## 12. Post-run checklist
 
@@ -240,7 +260,9 @@ See `docs/research/CAMERA_GROUND_TRUTH.md`.
 Do not advance to 3/4/5-Anchor localisation until:
 
 - Bbo -> Nordic Tag interoperability is repeatable;
-- source-built firmware identity is pinned;
+- Bbo-specific source-built firmware identity/configuration is pinned;
 - 1 m and 3 m stability is understood;
 - the declared single-link matrix is captured;
 - range quality/tails are sufficient to define calibration and rejection rules.
+
+The next implementation target after this exit is Issue #7, not another software-only architecture expansion.
