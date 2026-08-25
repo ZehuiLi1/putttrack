@@ -1,8 +1,8 @@
-# Hardware and 18-Hole Venue Topology
+# Hardware and Venue Topology
 
-## 1. Recommended production topology
+## 1. Current baseline
 
-The production planning baseline is one Zone Gateway per two to three neighbouring holes, not one Linux computer per hole and not a direct cable from every Anchor to the Edge server.
+The venue is built around deterministic fixed sensors first. Smart-ball and CS infrastructure are added only when they provide additional value.
 
 ```text
                                      WAN
@@ -12,154 +12,292 @@ The production planning baseline is one Zone Gateway per two to three neighbouri
                         Managed core PoE switch (UPS)
         +-----------------------------+----------------------------+
         |              |              |             |              |
-     Edge PC       Check-in HMI   Operator HMI   Hole displays   Zone GWs
-                                                       PoE        Z1...Z6
-                                                                    |
-                                                         24 V local field PSU
-                                                           + two RS-485 trunks
-                                                                    |
-               +---------------------------+------------------------+
-               |                           |                        |
-         Hole A Anchors              Hole B Anchors           Hole C Anchors
-         Tee/Cup/Feature             Tee/Cup/Feature          Tee/Cup/Feature
+     Edge PC       Check-in HMI   Operator HMI   Hole displays   Hole/Zone GWs
+                                                                       |
+                                                               local 24 V PSU
+                                                                       |
+                                                          optical sensors / RS-485
 ```
 
-Six Zone Gateways is only a first planning number for an 18-hole course. The site layout, cable routes, power domains and RF-cell tests determine the final count.
+For the first one-hole MVP, a single available Waveshare ESP32-S3 PoE/Ethernet 8DI/8DO controller is both the hole controller and field-I/O endpoint.
 
-## 2. Physical device classes
+---
 
-### Smart Ball
+## 2. One-hole V0 physical topology
 
-Battery-powered nRF54L15 device with opaque identity, CS Reflector, BLE control/health and generic motion sensing.
+```text
+                         Local Venue Edge
+                              ^
+                              |
+                         Ethernet / PoE
+                              |
+               Waveshare ESP32-S3 8DI/8DO
+                              |
+                    8 isolated DI inputs
+                              |
+         +--------------------+--------------------+
+         |                    |                    |
+      Tee x2             Route/Zone x4          Cup x2
+```
 
-### Anchor
+Recommended input allocation:
 
-Fixed CS Initiator with validated RF layout, protected 24 V power input and wired field-bus transport.
+| DI | Sensor |
+|---|---|
+| 1 | tee ball-present beam |
+| 2 | launch-confirmation beam |
+| 3 | route/zone A |
+| 4 | route/zone B |
+| 5 | route/zone C |
+| 6 | route/zone D |
+| 7 | cup/return upper beam |
+| 8 | cup/return lower beam |
 
-### Tee node
+This deliberate eight-input baseline avoids buying or integrating an expander before the physical game loop is proven.
 
-Independent start-zone presence and indicator controller. It may be combined with a nearby Anchor enclosure only if failure and maintenance remain separable.
+---
 
-### Cup / feature sensor node
+## 3. Photoelectric sensing
 
-Provides scoring-critical physical evidence. Optical, inductive, pressure or other sensor choice is hole-specific; output must be timestamped and health-monitored.
+### Sensor class
 
-### Zone Gateway
+For outdoor deployment prefer industrial modulated through-beam photoelectric sensors with:
 
-Coordinates 2–3 holes, schedules CS, synchronizes field timestamps, collects sensors, buffers, relays updates and forwards through Ethernet.
+- 10–30 V DC supply, nominal 24 V installation;
+- NPN output compatible with the isolated DI input;
+- IP65 minimum, IP67 where appropriate;
+- fast response suitable for golf-ball passage;
+- stable operation in sunlight and normal outdoor conditions;
+- accessible alignment/service indication where practical.
 
-### Hole display / indicator
+### Mechanical installation
 
-PoE or Ethernet-connected sunlight-readable display plus local ring/light/audio. It consumes presentation state and cannot mutate score directly.
+Do not leave exposed transmitter/receiver posts where players, clubs or balls can easily knock them out of alignment.
 
-### Edge server
+Preferred arrangement:
 
-Authoritative local compute and persistence on UPS-backed wired LAN.
+```text
+course sidewall                           course sidewall
+     |                                          |
+ recessed TX  --------------------------  recessed RX
+     |                 ball                     |
+```
 
-## 3. Field wiring
+Use protected optical windows, drain/condensation-aware cavities and serviceable mounting.
+
+---
+
+## 4. Controller roles
+
+### Hole controller
+
+Pilot: existing Waveshare ESP32-S3 PoE/Ethernet 8DI/8DO.
+
+Responsibilities:
+
+- read/debounce DI;
+- timestamp edges;
+- identify simple legal sequences;
+- monitor input health;
+- generate semantic evidence;
+- buffer/retry short network interruptions;
+- drive simple local DO triggers;
+- forward through wired Ethernet.
+
+It does not own authoritative score.
+
+### Venue Edge
+
+Authoritative local compute and persistence on the wired LAN.
+
+Owns:
+
+- active player/session;
+- course/hole configuration;
+- reward/penalty rules;
+- deterministic Gameplay Engine;
+- event audit/replay;
+- HMI/player presentation state;
+- operator correction workflow.
+
+---
+
+## 5. I/O expansion
+
+### RS-485 default
+
+When the onboard eight inputs are insufficient, use protected RS-485/Modbus remote I/O.
+
+```text
+Waveshare controller
+       |
+       +-------- RS-485 -------- remote 8/16 DI/DO
+       |
+       +-------- RS-485 -------- remote 8/16 DI/DO
+```
+
+Why RS-485 is the default for simple field I/O:
+
+- mature 8/16-DI and mixed-I/O modules are widely available;
+- long differential field wiring;
+- simple addressable multidrop topology;
+- easy commissioning with USB-RS485/Modbus tools;
+- low bandwidth is sufficient for optical event inputs.
+
+Prefer remote I/O near sensor clusters instead of pulling every individual sensor cable back across a long hole.
+
+### CAN
+
+CAN remains available for future **intelligent** distributed nodes such as motorised obstacles, actuators or mechanisms that benefit from asynchronous arbitration/local control.
+
+Do not choose CAN merely to read simple optical DI.
+
+---
+
+## 6. Output / feedback topology
+
+The onboard eight DO channels can initially trigger:
+
+1. Tee READY cue;
+2. Safe route feedback;
+3. Bonus route feedback;
+4. Jackpot feedback;
+5. Hazard feedback;
+6. cup/finish effect;
+7. audio/effect input;
+8. spare.
+
+For richer RGB/DMX/Art-Net lighting, use a dedicated lighting controller. The hole controller should publish semantic triggers such as `BONUS_TRIGGERED` instead of timing complex animations itself.
+
+---
+
+## 7. Field wiring
 
 ### Ethernet / PoE
 
 Use for:
 
-- Zone Gateways;
+- Hole/Zone controllers;
 - displays and check-in/operator terminals;
-- optional cameras;
-- Edge server and network infrastructure.
+- Edge server and core infrastructure;
+- later smart-ball/NFC gateway infrastructure where useful.
 
-Benefits: standard diagnostics, managed switching, VLANs, time sync, remote update and replaceable endpoints.
+### 24 V field power
 
-### 24 V + protected RS-485
+Use local fused 24 V SELV distribution for photoelectric sensors and later remote I/O.
 
-Use for Anchors and simple tee/cup/feature nodes:
+Benefits:
 
-- high noise margin and manageable voltage drop;
-- multidrop field bus;
-- lower connector/cabling cost than Ethernet at every node;
-- suitable for isolated/protected outdoor branches.
+- good noise margin;
+- manageable drop over field wiring;
+- compatibility with industrial sensors;
+- straightforward protected distribution.
 
-Each Zone Gateway should have two independently protected/isolated buses so one cable fault does not remove the whole zone. Use fused branches, termination at the physical ends, biasing/failsafe design, TVS/surge components and labelled service disconnects.
+### RS-485
 
-### CAN
-
-CAN is an acceptable alternative where deterministic arbitration and existing venue controls justify it. Do not mix CAN and RS-485 without a clear subsystem reason. RS-485 is the default because the traffic is scheduled and low bandwidth.
+Use termination at the physical bus ends, appropriate bias/failsafe design, surge/TVS protection, labelled addresses and service disconnects.
 
 ### Fibre
 
-Use only where it solves a real electrical or distance problem:
+Reserve for real electrical/distance reasons: separate buildings, long exposed trunks, lightning/ground-potential isolation or copper-distance limits.
 
-- separate buildings;
-- exposed long trunks with severe lightning/ground-potential risk;
-- distance beyond practical copper Ethernet;
-- need to isolate surge domains.
+---
 
-## 4. Outdoor installation requirements
+## 8. Smart-ball V1 hardware additions
 
-- IP65 minimum, IP67 where washdown or pooling is credible.
-- UV-resistant enclosures, cable glands and labels.
-- Condensation management and drainage orientation.
-- Shielding/grounding designed as a system, not ad hoc at each node.
-- Surge protection at building entry, zone cabinet and exposed copper branches.
-- Physical service access without dismantling course scenery.
-- Replaceable modules with keyed connectors and persistent device labels.
-- Spare conduit/cable capacity and managed-switch spare ports.
-- Separate game low voltage from 240 V and comply with applicable Australian electrical rules.
+The optical venue remains unchanged when smart balls arrive.
 
-## 5. Power domains
+Smart-ball-side:
 
-### UPS-backed
+- nRF54L15;
+- NFC/NFCT antenna;
+- BLE;
+- IMU;
+- single primary cell;
+- candidate direct battery or nPM2100 power path.
 
-- Edge server;
-- core switch/firewall;
-- check-in/operator authority;
-- selected Zone Gateways and displays where operational continuity warrants it.
+Venue additions may include:
 
-### Zone 24 V supply
+- Tee NFC reader for wake/Ball ID;
+- BLE receiver/gateway capability;
+- optional Hole NFC identity station in the return chute.
 
-Provide local fused outputs for Anchors and sensors. A zone supply reduces voltage-drop and fault-domain size compared with a single long central low-voltage bus.
+None replaces the fixed optical cup/route sensors.
 
-### Smart Ball
+---
 
-Primary-cell candidate; no field charging dependency in Production V1. Service process handles battery/service replacement or ball retirement.
+## 9. Optional CS V2 hardware
 
-## 6. Pilot evolution
+Existing Bbo/nRF54L15 hardware remains the research rig.
 
-### One-hole lab
+A production CS Anchor/RF-cell network is **not** a current baseline requirement. Add fixed CS nodes only if a validated product feature such as live trajectory or multi-ball association justifies the cost and RF/power/scheduling complexity.
+
+---
+
+## 10. Outdoor installation requirements
+
+- IP65 minimum, IP67 where washdown/pooling is credible;
+- UV-resistant enclosures, cable glands and labels;
+- condensation/drainage strategy;
+- service access without removing large course scenery;
+- surge protection on exposed copper and zone feeds;
+- spare conduit/cable capacity and Ethernet ports;
+- low-voltage game wiring physically/electrically separated from 240 V as required;
+- earthing/bonding/lightning protection designed for the actual Australian site.
+
+---
+
+## 11. Pilot evolution
+
+### V0.1 — one-hole optical MVP
 
 ```text
-Nordic Tag
-  <-> 5 Bbo boards over CS
-Bbo USB serial -> PC
-camera -> PC
-simulated/real tee and cup inputs
+ordinary ball
+ -> 8 optical inputs
+ -> Waveshare 8DI/8DO
+ -> Ethernet
+ -> local Edge/UI
 ```
 
-### One-hole physical pilot
+### V0.2 — one-hole outdoor/reward soak
 
-```text
-custom/pilot anchors -> pilot Zone Gateway
-cup + tee nodes       -> pilot Zone Gateway
-Gateway -> Ethernet -> Edge
-Hole display -> PoE
-```
+- protected sensor mounts;
+- real 24 V field wiring;
+- Safe/Bonus/Jackpot/Hazard effects;
+- false-trigger/maintenance logging.
+
+### V0.3 — I/O expansion
+
+Add RS-485 remote I/O only if more sensors are justified.
+
+### V1 — smart ball
+
+Add NFC/BLE/IMU identity/state while preserving V0 sensing.
+
+### V2 — optional CS
+
+Add research/trajectory nodes only for features that have passed value and performance gates.
 
 ### 3–6-hole pilot
 
-Validate Zone Gateway sharing, neighbouring RF cells, outdoor wiring, update recovery and staff workflows.
+Replicate the proven hole-controller pattern, then decide whether grouping several holes behind a zone cabinet/gateway materially improves maintenance/cost.
 
 ### Full 18-hole
 
-Deploy only after the zone/fault and 20/40/80-ball models pass. Keep spare gateways, Anchors, displays and provisioned balls onsite.
+Scale after physical-sensor reliability, wiring/fault recovery, local Edge, staff workflow and smart-ball decisions pass their pilot gates. CS scalability is only a rollout blocker if the chosen commercial feature actually depends on CS.
 
-## 7. Installation records
+---
 
-The Device Registry must retain:
+## 12. Installation records
 
-- device ID and hardware revision;
-- physical coordinates/height/orientation;
-- zone/hole and bus address;
+The Device Registry should retain:
+
+- device/controller/sensor ID;
+- hardware revision;
+- hole/zone and DI/DO/bus mapping;
 - cable/port/fuse mapping;
 - firmware/config version;
-- RF and range calibration;
-- installation photos;
-- service and replacement history.
+- installation/alignment photos;
+- service/replacement history;
+- for smart balls: Ball ID, firmware, battery/service status;
+- for optional CS nodes: coordinates/orientation and RF/range calibration.
