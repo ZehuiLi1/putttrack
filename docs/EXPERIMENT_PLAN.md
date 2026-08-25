@@ -11,10 +11,13 @@ The experiment sequence should answer, in order:
 3. How many anchors are actually useful?
 4. Can multi-anchor CS achieve sub-metre 2D localisation?
 5. How much do Kalman/EKF and IMU improve dynamic tracking?
-6. Can generic motion states reliably identify game-relevant events?
-7. Do hole-specific movement signatures materially improve event inference?
-8. Does a hybrid spatial + motion approach outperform either alone?
-9. Can the design scale to multiple balls at acceptable latency and energy?
+6. Can a mechanically repeatable research ball provide reliable raw IMU data for generic motion-state recognition?
+7. Can generic motion states reliably identify game-relevant evidence?
+8. Do hole-specific movement signatures materially improve event inference?
+9. Does a hybrid spatial + motion approach outperform either alone?
+10. Can the design scale to multiple balls at acceptable latency and energy?
+
+The final production Smart Ball PCB is **not** a prerequisite for motion research. A repeatable instrumented research ball is. Final sensor ranges, mechanics and classifier choice remain evidence-gated until real ball data exists.
 
 ---
 
@@ -150,7 +153,7 @@ Initial research target:
 
 ### Ground truth
 
-Use overhead camera tracking to obtain timestamped `x_gt, y_gt` trajectories.
+Use calibrated camera tracking to obtain timestamped `x_gt, y_gt` trajectories. A stable low/oblique view mapped through surveyed ground-control points is acceptable; a tall overhead camera is not required.
 
 ### Trajectories
 
@@ -192,49 +195,152 @@ Stretch target:
 
 ---
 
-## Phase 4 — Generic Motion-State Dataset
+## Phase 4 — Research Ball and Generic Motion-State Dataset
 
-Collect labelled examples from the Nordic Tag IMU.
+See [`research/BALL_IMU_STATE_RECOGNITION.md`](research/BALL_IMU_STATE_RECOGNITION.md) for the canonical algorithm and sensor-range direction.
 
-Minimum classes:
+### P4.1 Tag sensor/logger bring-up
+
+Before trying to classify anything, verify that the Nordic Tag can preserve useful raw IMU evidence:
+
+- BMI270 `ax, ay, az, gx, gy, gz` streaming/FIFO;
+- monotonic timestamps and dropped-sample detection;
+- stationary noise and bias in multiple orientations;
+- initial general-state capture around 400 Hz;
+- impact experiments at higher accelerometer ODR, toward 1–1.6 kHz where practical;
+- exact accelerometer / gyro range and ODR recorded in every run.
+
+The bare Tag is a firmware/instrumentation reference, not the canonical classifier-training mechanical condition.
+
+### P4.2 Instrumented research-ball gate
+
+Build a mechanically repeatable research ball/core before collecting the canonical dataset.
+
+Requirements:
+
+- rigid, repeatable sensor/core mounting;
+- no loose PCB or battery motion;
+- fixed sensor coordinate frame and visible orientation marks;
+- documented mass and centre-of-mass offset;
+- enough impact robustness for controlled weak-to-normal putting tests;
+- ball mechanical revision recorded in every run.
+
+The research ball does not need final production RF tuning, potting, battery life or tournament-conforming balance.
+
+Compare bare-Tag and in-ball recordings so enclosure/mounting effects are visible rather than silently absorbed into thresholds.
+
+### P4.3 Saturation gate
+
+Treat BMI270 range sufficiency as a measurement question.
+
+Record accel/gyro clipping counts explicitly. BMI270 is limited to approximately `±16 g` acceleration and `±2000 dps` gyro. For a golf-ball-radius body in pure rolling, approximately `1 m/s` already corresponds to about `2680 dps`, so gyro clipping is plausible during normal rolling. Rigid impact acceleration can also exceed `16 g`.
+
+If clipping removes information needed for classification, evaluate a high-g accelerometer during EVT. Do not add one to the production BOM without measured evidence.
+
+### P4.4 Canonical labelled dataset
+
+Minimum classes/episodes:
 
 - stationary;
-- valid putt;
-- weak tap;
-- strong putt;
+- weak putter strike;
+- normal putter strike;
+- strong putter strike;
 - rolling;
-- slowing;
+- slowing / settling;
 - wall collision;
 - ball-ball collision;
 - pickup;
 - carry;
 - hand roll;
-- drag;
+- drag / deliberate manipulation;
 - drop;
 - bounce;
 - ramp ascent;
 - rollback;
-- cup drop / bounce / rest.
+- cup drop / bounce / rest;
+- removal from cup.
 
-### Data collection rules
+Data collection rules:
 
-- multiple repetitions per class;
+- start with roughly 100–200 episodes per important class;
 - multiple operators;
 - multiple ball orientations;
-- multiple speeds;
-- battery-state variation where practical;
+- multiple speeds / strike strengths;
+- multiple representative surfaces;
+- more samples for classes that remain confused after the first baseline;
 - retain raw accel + gyro rather than only processed states;
-- camera labels and CS position aligned to the same timeline.
+- align video ground truth and CS position to the same timeline for ambiguous sequences;
+- retain clipping/saturation information.
 
-### Baselines
+Canonical raw schema:
 
-- threshold / rule classifier;
-- feature-distance classifier;
-- tree classifier.
+```text
+t_us,ax,ay,az,gx,gy,gz,label,event_id,ball_id,session_id
+```
+
+Train/test separation must be by session and preferably by physical ball. Do not randomly split adjacent windows from the same episode into train and test.
+
+### P4.5 Algorithm ladder
+
+Do not start with an opaque eight-class neural network.
+
+**V0 — deterministic baseline**
+
+- orientation-invariant acceleration magnitude;
+- gyro magnitude;
+- jerk / sample-to-sample acceleration change;
+- high-pass impact energy;
+- variance / RMS;
+- temporal dwell, hysteresis, debounce and refractory periods;
+- explicit FSM/state-transition constraints.
+
+Target easy states first: `STATIONARY`, `IMPACT`, `ROLLING/ACTIVE`, `SETTLING`, `FREE_FALL/DROP`.
+
+**V1 — feature ML baseline**
+
+If V0 leaves meaningful ambiguity:
+
+- extract compact time/frequency features;
+- benchmark Random Forest first;
+- optionally compare SVM;
+- inspect feature importance and reduce the deployed feature set.
+
+**V2 — temporal TinyML only if justified**
+
+If held-out confusion remains material, benchmark a small quantised 1D-CNN or TCN, especially for:
+
+- putter strike vs collision;
+- pickup/carry vs unusual rolling/handling;
+- cup/drop/bounce sequences.
+
+Do not use an end-to-end model that directly produces score.
+
+### P4.6 Metrics
+
+Report more than overall accuracy:
+
+- precision / recall / F1 per class;
+- macro-F1;
+- missed-stroke rate;
+- false strokes per labelled non-stroke episode and per player-hour where possible;
+- event timestamp error;
+- confusion matrix;
+- latency;
+- CPU / RAM / flash;
+- active energy per event;
+- clipping/saturation rate;
+- robustness across balls, operators, orientations and surfaces.
 
 Primary goal:
 
-- robust generic physical-state labels independent of hole number.
+- robust generic physical-state evidence independent of hole number.
+
+Architecture candidate verification targets remain:
+
+- stroke recall >= 99%;
+- false-stroke rate <= 0.1% of labelled non-stroke episodes.
+
+These are targets, not current measured performance.
 
 ---
 
@@ -404,6 +510,9 @@ Each experimental run should have a manifest containing:
 - SDK version;
 - anchor serial IDs;
 - Tag hardware revision;
+- ball/core mechanical revision for IMU experiments;
+- IMU range / ODR;
+- clipping/saturation summary;
 - antenna configuration;
 - physical anchor coordinates;
 - camera calibration ID;
@@ -420,9 +529,11 @@ Each experimental run should have a manifest containing:
 3. Store firmware / algorithm commit hashes with each run.
 4. Separate calibration, training and test trajectories.
 5. Keep a held-out test region / trajectory set for ML work.
-6. Report P50/P90/P95, not only averages.
-7. Record failed / missing ranging attempts.
-8. Track configuration changes explicitly.
+6. Keep held-out sessions/balls for motion-state ML work.
+7. Report P50/P90/P95, not only averages.
+8. Record failed / missing ranging attempts.
+9. Record sensor clipping/saturation rather than silently clipping features.
+10. Track configuration changes explicitly.
 
 ---
 
@@ -440,9 +551,17 @@ Pass when 4/5-anchor static P90 < 1 m.
 
 Pass when dynamic tracking approaches the <=0.5 m P90 target in representative conditions.
 
-### T4 — Motion is useful
+### T4 — Research-ball IMU evidence is credible
 
-Pass when generic IMU states materially reduce false event / tracking ambiguity.
+Pass when:
+
+- a repeatable instrumented ball can capture raw timestamped IMU without unexplained data loss;
+- clipping/saturation limits are quantified;
+- generic-state baselines are evaluated on held-out sessions/balls;
+- motion evidence materially reduces false event / tracking ambiguity;
+- the remaining ambiguous classes are identified rather than hidden by overall accuracy.
+
+Only after T4 should the production IMU range/sensor stack and embedded classifier be frozen.
 
 ### T5 — Signature benchmark adds value
 
