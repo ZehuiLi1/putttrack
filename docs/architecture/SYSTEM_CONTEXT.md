@@ -2,7 +2,9 @@
 
 ## 1. Purpose
 
-This document defines who and what can assert truth in PuttTrack. It is intentionally independent of a particular RF implementation.
+This document defines who and what can assert truth in PuttTrack. It is intentionally independent of a particular sensing technology.
+
+The current staged architecture starts with ordinary-ball optical sensing and later adds smart-ball identity/motion and optional Channel Sounding.
 
 ## 2. Context diagram
 
@@ -10,33 +12,35 @@ This document defines who and what can assert truth in PuttTrack. It is intentio
 Players / Guests
        |
        v
-Check-in & Ball Assignment ---- Booking / optional account cloud
+Check-in / Active Player ---------------- Booking / optional account cloud
        |
        v
-Assigned Smart Balls
+Physical Hole
+tee / route / cup optical sensors
        |
        v
-Hole HMI <------ Presentation Hub <------ Gameplay Engine
-                                           ^
-                                           |
-                                      Semantic Evidence
-                                           ^
-                                           |
-Smart Ball -- RF/IMU --> Anchors / Sensors --> Zone Gateway
-                                           |
-                                           v
-                                       Venue Edge
-                                           |
-                               Operator / Maintainer Console
-                                           |
-                                      queued Cloud Sync
+Hole / Zone Controller -------- future NFC/BLE smart-ball adapters
+       |
+       v
+Semantic Evidence
+       |
+       v
+Venue Edge / Gameplay Engine
+       |
+       +------> Presentation Hub / Hole HMI
+       +------> Operator / Maintainer Console
+       +------> queued Cloud Sync
+
+Optional later inputs:
+Smart Ball -> NFC/BLE/IMU evidence
+CS subsystem -> trajectory/range evidence
 ```
 
 ## 3. Actors
 
 ### Player
 
-May present an assigned ball, make strokes and physically interact with course features. A player cannot directly mutate score through the screen.
+May place/strike a normal or assigned smart ball and physically interact with course features. A player cannot directly mutate score through the screen.
 
 ### Booking owner / guest
 
@@ -44,7 +48,7 @@ May create or join a session. A persistent account is optional; a display name i
 
 ### Operator
 
-May pause a hole, quarantine a device and issue explicit audited score corrections. Operator tools cannot edit authoritative tables silently.
+May pause a hole, quarantine a device and issue explicit audited corrections. Operator tools cannot edit authoritative state silently.
 
 ### Maintainer
 
@@ -58,25 +62,28 @@ May provide booking, optional identity, loyalty, analytics, release metadata and
 
 | Zone | Trust level | Main contents | May authoritatively decide |
 |---|---|---|---|
-| Smart Ball | Untrusted observation source until authenticated | BALL_ID, motion, health, CS reflector | Its own device health and source data only |
-| Anchor | Authenticated measurement source | CS observations and diagnostics | Per-link observation, never position/score |
-| Zone Gateway | Trusted field coordinator | schedule, timestamps, sensor records, buffers | Field sequencing and transport status |
-| Venue Edge | Primary authority | registry, sessions, localisation, evidence, gameplay, audit | Player assignment, semantic evidence acceptance, score |
-| Presentation | Read-only projection | screens, audio, leaderboard | Nothing authoritative |
-| Operator | Privileged command source | review/correction commands | Only explicit audited actions allowed by policy |
-| Cloud | Eventually consistent external plane | bookings, optional identity/history, fleet | Cloud-owned records, not current local round state |
+| Optical field sensors | Observation source | tee/route/cup beam state | raw physical observation only |
+| Hole/Zone Controller | Trusted field coordinator | input timing, ordered patterns, health, buffers | field sequencing/semantic candidate, never final score |
+| Smart Ball V1 | Authenticated observation/identity source | Ball ID, NFC/BLE state, motion, health | its own identity/source data only |
+| CS subsystem V2 | Optional measurement source | range/track diagnostics | optional spatial estimate, never score by itself |
+| Venue Edge | Primary authority | sessions, evidence acceptance, gameplay, score, audit | active player/ball association, semantic evidence acceptance, score |
+| Presentation | Read-only projection | screens, audio, leaderboard | nothing authoritative |
+| Operator | Privileged command source | review/correction commands | only explicit audited actions allowed by policy |
+| Cloud | Eventually consistent external plane | bookings, optional identity/history, fleet | cloud-owned records, not current local round state |
 
 ## 5. Canonical authorities
 
-- `BALL_ID`: Device Registry on Venue Edge, backed by manufacturing provisioning.
-- `PLAYER_ID`, `SESSION_ID`, assignment: Session Manager on Venue Edge.
-- Course geometry and rules: versioned Course Configuration on Venue Edge.
-- Raw observation: originating authenticated device plus immutable receive record.
-- Calibrated range/track: Localisation module.
-- Semantic evidence: Evidence Fusion.
+- `PLAYER_ID`, `SESSION_ID`, active turn: Session Manager on Venue Edge.
+- V0 ordinary-ball identity: implicit current active player/ball; `ball_id` may be null.
+- V1 `BALL_ID`: Device Registry on Venue Edge, backed by provisioning/NFC/BLE evidence.
+- Course zones, routes and rules: versioned Course Configuration on Venue Edge.
+- Raw physical observation: originating sensor/controller plus immutable receive record.
+- Generic ball motion state: smart-ball observation, accepted/used according to evidence policy.
+- Optional calibrated CS track: localisation module when CS is enabled.
+- Semantic evidence: Evidence/Evidence-Fusion boundary.
 - Score/game state: Gameplay Engine and append-only gameplay event log.
 - HMI state: derived projection; never source of truth.
-- Cross-venue history/rewards: Cloud after local completion sync.
+- Cross-venue history/rewards: cloud after local completion sync.
 
 ## 6. Safety and score boundary
 
@@ -86,20 +93,21 @@ For score integrity:
 
 ```text
 uncertain observation
-  -> pending / retry / review
+  -> pending / retry / reject / review
   -> never silent score mutation
 ```
 
+The first V0 design intentionally uses ordered physical evidence for launch/cup events rather than a single uncertain localisation point.
+
 ## 7. Offline behaviour
 
-The venue Edge must continue to:
+Venue Edge must continue to:
 
-- identify assigned balls;
-- schedule local hardware;
-- localise and track;
-- confirm evidence;
+- run active-player/session state;
+- accept optical field events;
+- confirm/reject semantic evidence;
 - score and display;
 - store audit records;
 - support operator recovery.
 
-WAN loss only delays cloud-owned functions and synchronization.
+Smart-ball BLE/NFC and optional CS may degrade independently. WAN loss only delays cloud-owned functions and synchronization.
