@@ -2,206 +2,326 @@
 
 ## 1. Role
 
-The ball is a low-power authenticated sensing/ranging endpoint. It owns physical device identity and measurements; it does not own player identity, hole rules, final position, score or game outcome.
+The smart ball is a **V1 augmentation** to an already-working optical venue.
+
+It owns:
+
+- physical Ball ID;
+- NFC/NFCT participation;
+- BLE identity/health/state transport;
+- generic motion sensing;
+- battery/firmware/device health.
+
+It does **not** own:
+
+- player identity;
+- hole rules;
+- route/zone authority;
+- score;
+- cup completion authority;
+- final game outcome.
+
+Bluetooth Channel Sounding is optional and is not required for V1 core play.
+
+---
 
 ## 2. Stage decisions
 
-| Stage | Hardware |
+| Stage | Hardware / purpose |
 |---|---|
-| Research | Nordic nRF54L15 Tag remains the dual-antenna/multi-sensor RF reference; Seeed XIAO nRF54L15 Sense is an optional compact single-active-antenna/IMU prototype candidate for A/B testing |
-| EVT | Custom balanced core with nRF54L15, candidate nPM2100 + CR2447, two antenna paths and both wake + 6-axis sensors |
-| DVT | Reduced/qualified sensor and antenna set based on measured benefit |
-| Production | Qualified PCB/core/shell, manufacturing calibration and signed firmware |
+| NFCT bring-up | Bbo nRF54L15 + external 13.56 MHz FPC coil |
+| Compact prototype | Nordic nRF54L15 Tag and/or Seeed XIAO nRF54L15 Sense for BLE/IMU/NFC integration experiments |
+| EVT | Custom balanced core with nRF54L15, external NFC antenna, primary-cell A/B power path and 6-axis IMU |
+| DVT | Reduce/qualify PMIC, sensor and RF options from measured benefit |
+| Production | Qualified core/shell, manufacturing calibration/provisioning and signed firmware |
 
-The XIAO candidate is not a replacement for the Nordic Tag reference by declaration. It must be compared under identical orientation, rolling, ground-proximity and multipath conditions.
+Nordic Tag remains valuable as an RF/CS research reference even though CS is not a V1 scoring dependency.
+
+---
 
 ## 3. Why nRF54L15 remains the leading candidate
 
-- Official Bluetooth Channel Sounding support in the nRF54L family.
-- One device handles BLE control, CS Reflector, motion processing, security and OTA.
-- 1.5 MB NVM / 256 KB RAM provides enough margin for product firmware and secure update.
-- Low radio and sleep current support a multi-year primary-cell target.
-- Nordic Tag and SDK provide a direct reference path.
+The reason is now broader than Channel Sounding:
 
-This decision is conditional on EVT power, RF-in-shell and multi-link scheduling tests.
+- one SoC provides BLE plus NFCT and leaves CS available for future optional features;
+- sufficient memory margin for product firmware, security and OTA;
+- low-power System OFF operation supports a primary-cell architecture;
+- Nordic development ecosystem and available Tag/Bbo hardware reduce bring-up risk;
+- CS can be enabled later without changing the MCU if trajectory features become worthwhile.
 
-## 4. Candidate block diagram
+The chip remains conditional on EVT RF-in-shell, impact, current and manufacturing tests.
+
+---
+
+## 4. Candidate V1 block diagram
 
 ```text
-          CR2447 primary cell candidate
-                      |
-                 nPM2100 candidate
-                      |
-                 regulated rail
-                      |
-        +-------------+-------------+
-        |                           |
-    nRF54L15                    sensor rail
-        |                           |
-        |              +------------+------------+
-        |              |                         |
-   RF switch       wake accelerometer         6-axis IMU
-    /     \
-Antenna A Antenna B
+                 one primary cell
+                       |
+           +-----------+-----------+
+           |                       |
+    direct-power path         nPM2100 path
+           |                       |
+           +-----------+-----------+
+                       |
+                   nRF54L15
+              +--------+--------+
+              |        |        |
+            NFCT      BLE      IMU rail
+              |                   |
+        NFC FPC coil           6-axis IMU
 
-SWD/pogo + manufacturing test + battery/health test points
+SWD/pogo + production test + battery/health test points
 ```
 
-## 5. Sensor strategy
+A second primary cell is not a baseline requirement. Add one only if measured service life cannot be met with an acceptable single-cell size and the mechanical-balance penalty is justified.
 
-### Research/EVT
+---
 
-Retain two sensor classes:
+## 5. NFC / NFCT role
 
-- ultra-low-power wake/motion detector;
-- six-axis IMU for impact, roll, pickup, drop and research labels.
+NFCT is a near-field session/identity mechanism, not a continuous positioning system.
 
-The XIAO nRF54L15 Sense is useful as a compact motion/CS prototype because Seeed documents an onboard LSM6DS3TR-C 6-DOF IMU. The Bbo core-board package must not be treated equivalently: its inspected guide lists LSM6DS3TR-C on the separate Kit expansion board, not as a bare-core-board resource.
+Preferred use:
 
-### DVT decision
+```text
+ball in System OFF with NFCT wake enabled
+        |
+placed on Tee reader field
+        |
+NFCT wake
+        |
+Ball ID / near-field association
+        |
+BLE begins normal session transport
+```
 
-Compare:
+Ball hardware requires an external NFC antenna/coil connected to the nRF54L15 NFCT pins and tuned for the final mechanical environment.
 
-1. two-sensor architecture;
-2. one modern IMU in wake-on-motion mode;
-3. accelerometer-only production state classification;
-4. optional high-g impact sensor if ±16 g saturation prevents reliable classification.
+Tee NFC may provide:
 
-A sensor is removed only after power and event-classification evidence shows no material loss.
+- deterministic physical Ball ID association;
+- wake from System OFF;
+- optional short session/bootstrap exchange.
 
-## 6. Antenna strategy
+A Hole NFC station may later identify the ball in a slowed/stopped return-chute read zone. It is optional because optical cup sensing already confirms entry.
 
-- Nordic nRF54L15 Tag is the reference for two identical 2.4 GHz antennas and NCS-managed antenna switching.
-- XIAO nRF54L15/Sense documents switching between an onboard ceramic antenna and an external antenna. Treat the normal XIAO configuration as **one active antenna at a time** unless a CS-specific multi-path configuration is separately implemented and verified.
-- A XIAO Sense Ball prototype is therefore valuable mainly as a compact single-active-path comparison against the Nordic dual-path Tag.
-- EVT custom ball should include two experimentally distinct antenna orientations if space permits.
-- Measure single vs dual path under random ball orientation, ground proximity, battery shielding, shell/potting and wet/dry conditions.
-- Production dual antenna is retained only if P95 ranging/no-fix improvement justifies switch, layout and calibration cost.
-- Perform per-antenna-path calibration and record path identity in every range observation.
+NFC does not replace optical route/cup evidence.
 
-The expected value of Ball-side diversity is primarily lower tail error/no-fix sensitivity while the Ball rotates; do not assume a large P50 improvement without data.
+---
 
-## 7. Power architecture
+## 6. BLE role
+
+BLE is the normal ball-to-venue communication channel after wake.
+
+V1 payloads may include:
+
+- Ball ID / session alias;
+- firmware/hardware revision;
+- boot/session/sequence IDs;
+- battery/health;
+- generic motion state/events;
+- selected diagnostic windows in Research Mode.
+
+Avoid making continuous connected handover a V1 requirement where simple advertisements/event transport can satisfy the experience. The final BLE transport mode should be chosen from measured reliability and power data.
+
+---
+
+## 7. Motion sensor strategy
+
+The first integrated prototype keeps a 6-axis IMU so the team can record and classify:
+
+- impact;
+- rolling;
+- slowing/settling;
+- stationary;
+- pickup/carried;
+- drop/bounce;
+- unknown/ambiguous motion.
+
+These are generic motion states. They may strengthen evidence but do not directly create score.
+
+Because normal venue wake can be provided by Tee NFC, a dedicated always-on wake accelerometer is no longer automatically required. Compare:
+
+1. NFC-only normal-session wake + 6-axis IMU powered after wake;
+2. one IMU with low-power wake mode;
+3. dual-sensor architecture only if service/transport use cases justify it.
+
+Do not keep a second sensor simply because the CS-first architecture originally assumed motion wake.
+
+---
+
+## 8. Power architecture
 
 ### Primary-cell default
 
-A primary coin cell avoids nightly charging infrastructure, charging-coil mass, contact alignment, water ingress and charging-rack maintenance.
+Start from one primary lithium cell.
 
-Candidate: CR2447 + nPM2100. This is not frozen until measured load profiles exist.
-
-### Targets
-
-- Minimum product service-life gate: 2 years under a conservative venue workload.
-- Stretch target: 5 years.
-- Do not claim the publicly reported Puttshack 7.5-year estimate as PuttTrack performance.
-- Measure energy per CS procedure, per motion burst, per connection setup, per advertisement and per OTA/service action.
-
-### Rechargeable path
-
-Deferred. Revisit only if:
-
-- primary-cell service life misses the minimum target;
-- replacement/retirement economics are unacceptable;
-- impact-safe charging architecture is demonstrated;
-- an updated FTO review clears the final charging/activation combination.
-
-## 8. Mechanical/core architecture
-
-- Standard-ball design target: diameter >=42.67 mm, mass <=45.93 g where feasible.
-- Use a concentric rigid inner carrier or symmetric multi-part core.
-- Welded-tab cell or constrained interconnect; no removable spring holder.
-- PCB and battery must not become independent impact masses.
-- Control radial mass distribution and verify static/dynamic balance.
-- Potting must support components while not detuning RF or trapping damaging stress.
-- Provide a predictable RF window and avoid conductive pigment/fill around antennas.
-- Environmental validation: water ingress, temperature cycling, UV, chemical cleaning, repeated impact and roll bias.
-
-### Suggested mechanical gates
-
-- centre-of-mass offset measured and correlated with roll bias;
-- no reset/contact interruption in repeated putter/wall impact tests;
-- RF sensitivity/TX degradation within agreed limit versus open reference;
-- no visible shell/core migration after endurance;
-- mass and diameter lot controls.
-
-## 9. Device identity and provisioning
-
-- Opaque `BALL_ID`, not BLE MAC address.
-- Hardware serial and cryptographic device identity provisioned at manufacture/service.
-- Assignment to player/session exists only on Venue Edge.
-- Advertising should expose only the minimum discovery alias required; scoring identity is accepted only after authenticated association.
-- Keep manufacturing calibration, service status and revocation state in Device Registry.
-
-## 10. Firmware state machine
+Two candidate electrical paths must be compared on custom EVT hardware:
 
 ```text
-MANUFACTURED
-  -> SHIPPING
-  -> STORAGE
-  -> IDLE_UNASSIGNED
-  -> ASSIGNED
-  -> PRESENTED
-  -> ARMED
-  -> IMPACT
-  -> ACTIVE_ROLLING
-  -> SETTLING
-  -> STATIONARY
+A) cell -> nRF54L15 (+ separate/simple IMU load switch if needed)
 
-side states:
-  PICKED_UP
-  CARRIED
-  LOW_BATTERY
-  FAULT
-  SERVICE_DFU
-  QUARANTINED
+B) cell -> nPM2100 -> nRF54L15
+                 -> switched sensor rail
 ```
 
-### State responsibilities
+nPM2100 is not required merely to power the nRF54L15. Its candidate value is:
 
-- `SHIPPING`: lowest possible current; authenticated service wake.
-- `STORAGE`: periodic minimal health, no venue activity.
-- `IDLE_UNASSIGNED`: discovery/health advertisement.
-- `ASSIGNED`: session alias active; low-rate zone presence.
-- `PRESENTED`: tee context observed; local RF cell association.
-- `ARMED`: READY confirmed; motion and ranging prepared.
-- `IMPACT`: high-rate IMU capture and immediate scheduler trigger.
-- `ACTIVE_ROLLING`: rolling state and CS participation.
-- `SETTLING`: reduced motion, final-position confirmation.
-- `STATIONARY`: hold position confidence then lower radio rate.
-- `PICKED_UP/CARRIED`: publish generic evidence, suspend rolling model.
-- `LOW_BATTERY`: service warning; admission policy controlled by Edge.
-- `FAULT`: safe minimal behavior and diagnostics.
-- `SERVICE_DFU`: signed update under service control, never during a live stroke.
+- primary-cell energy utilisation/regulation;
+- fuel-gauge / service-state support;
+- switched peripheral rail;
+- reset/watchdog/power-management integration.
 
-## 11. Ball-to-venue protocol boundary
+Direct battery may win if it gives sufficient usable capacity, voltage stability, battery estimation and reliability with a lower BOM/area.
 
-Ball outputs:
+### NFC-wake constraint
 
-- authenticated identity/session alias;
-- boot ID, firmware/hardware version;
-- monotonic timestamp + sequence;
-- generic motion events/states;
-- selected raw IMU windows in Research Mode;
-- battery/health;
-- CS Reflector participation and connection state.
+If NFCT wake from System OFF is required during normal venue standby, the nRF54L15 must retain VDD. Do not use a PMIC state that removes SoC power and then expect NFCT to wake it.
 
-Ball does not output `+points`, authoritative `stroke.confirmed`, hole ID or final XY.
+### Measurement programme
 
-## 12. OTA and recovery
+Measure:
 
-- Signed images, rollback counter/policy and known-good recovery image.
-- Updates at assignment/service station or controlled idle window.
-- Do not update balls in an active session unless an emergency quarantine policy explicitly ends assignment.
-- Failed update returns to previous image or service mode.
-- Production debug access is protected; authenticated service unlock is preferred.
+- System OFF with NFCT wake enabled;
+- NFC field wake energy/latency;
+- BLE advertisement/event energy;
+- IMU active and idle energy;
+- RF burst battery sag;
+- service-life projection for representative daily rounds;
+- direct versus nPM2100 usable battery capacity.
 
-## 13. Revisit triggers
+CS energy is measured separately as a V2 optional-feature cost.
 
-Re-evaluate nRF54L15/primary cell/two-antenna architecture if:
+---
 
-- CS field gates fail despite infrastructure/algorithm optimization;
-- UWB becomes required;
-- power projection remains below 2 years;
-- shell RF detuning removes the expected benefit;
-- dual antennas show negligible P95/no-fix improvement;
-- a single IMU meets wake and classification goals at lower total cost/current.
+## 9. NFC antenna strategy
+
+V1 starts with **one ball-side NFC antenna** rather than two/three switched coils.
+
+Reasons:
+
+- nRF54L15 NFCT presents one antenna interface;
+- multiple switched coils complicate tuning and wake behaviour;
+- it is easier to keep the moving ball simple and solve orientation diversity at the powered Tee/Hole reader side if needed.
+
+Prototype test matrix should cover:
+
+- multiple FPC coil sizes;
+- distance;
+- 0–90 degree orientation;
+- battery/PCB proximity;
+- shell/potting/ferrite effects;
+- read success and wake success.
+
+If single-reader orientation dead zones are unacceptable, prefer Tee reader coil diversity before adding ball-side RF switching.
+
+---
+
+## 10. 2.4 GHz antenna strategy
+
+For V1 BLE-only operation, prioritise a robust single production antenna path and simple mechanical/RF integration.
+
+Nordic Tag dual antennas remain useful for CS research. A custom-ball dual-antenna design is only retained if BLE reliability or optional-CS tail-error tests prove enough value to justify switch/layout/calibration complexity.
+
+Do not make dual antenna a V1 requirement by default.
+
+---
+
+## 11. Mechanical/core architecture
+
+- target conventional golf-ball diameter/mass where practical for the venue product;
+- keep centre of mass close enough to geometric centre to avoid perceptible roll bias;
+- constrain battery/PCB as one robust core rather than independent impact masses;
+- final cell connection should be impact-safe rather than a loose spring holder;
+- potting/shell must be validated for NFC and 2.4 GHz detuning;
+- provide production test access and reproducible Ball ID provisioning;
+- validate water, UV, cleaning chemicals, temperature, repeated putter/wall impacts and roll bias.
+
+The final battery size is selected together with mechanical balance, not from capacity alone.
+
+---
+
+## 12. Device identity and provisioning
+
+Use an opaque `BALL_ID`, not the BLE MAC as the gameplay identity.
+
+Venue Edge owns:
+
+```text
+BALL_ID -> PLAYER_ID -> SESSION_ID
+```
+
+The ball may store its provisioned device identity and calibration/service data, but does not store the player's profile or score rules.
+
+V0 ordinary-ball gameplay may have `ball_id = null`; V1 NFC/BLE fills the identity field without changing the game-event model.
+
+---
+
+## 13. Firmware state machine
+
+A V1 state model can be much simpler than the previous CS scheduler state machine:
+
+```text
+SHIPPING / SERVICE
+       |
+       v
+SYSTEM_OFF
+       |
+       | NFC field (normal venue path)
+       v
+SESSION_INIT
+       |
+       v
+READY
+       |
+     impact
+       v
+ACTIVE / ROLLING
+       |
+       v
+SETTLING / STATIONARY
+       |
+ session end / timeout
+       v
+SYSTEM_OFF
+```
+
+Side states:
+
+- `PICKED_UP / CARRIED`;
+- `LOW_BATTERY`;
+- `FAULT`;
+- `SERVICE_DFU`;
+- `QUARANTINED`.
+
+CS-specific ranging states are added only when the optional CS feature is enabled.
+
+---
+
+## 14. Channel Sounding boundary
+
+CS is an optional V2 capability, not a V1 identity/state requirement.
+
+Research can continue using:
+
+- Nordic nRF54L15 Tags;
+- six Bbo nRF54L15 boards;
+- raw Channel Sounding logging and advanced estimators.
+
+A product feature may consume CS output only after measured accuracy, tail error, scheduling, power and user-value gates are met.
+
+If CS is disabled or unhealthy, ordinary optical gameplay remains functional.
+
+---
+
+## 15. Immediate prototype sequence
+
+1. Bbo + external FPC NFC coil: read/tag proof.
+2. NFCT field wake from System OFF.
+3. NFCT wake -> BLE Ball ID/state advertisement.
+4. Nordic Tag/XIAO: IMU generic-state data collection.
+5. Tee reader/session prototype.
+6. Custom EVT: direct battery versus nPM2100 A/B.
+7. Shell/NFC/2.4 GHz/mechanical tests.
+8. Optional CS reintroduced only as a separate feature experiment.
