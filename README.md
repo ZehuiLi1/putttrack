@@ -1,266 +1,249 @@
 # PuttTrack
 
-PuttTrack is a research and product-development repository for a smart mini-golf ball and an 18-hole, automatic-scoring venue platform.
+PuttTrack is a research and product-development repository for an automatic-scoring mini-golf venue and a staged smart-ball platform.
 
-## Product logic
+The current product direction is **venue-first and event-driven**:
 
-The locked player experience is defined in [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md):
+> Build a complete ordinary-ball optical hole first; add NFC/BLE/IMU smart-ball capability second; keep Bluetooth Channel Sounding as an optional trajectory/research layer rather than a scoring dependency.
+
+## Current source of truth
+
+- [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md) — player/game authority boundaries.
+- [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md) — current technical architecture.
+- [`docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md`](docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md) — immediate physical build target.
+- [`docs/adr/ADR-013-optical-first-venue-and-staged-smart-ball.md`](docs/adr/ADR-013-optical-first-venue-and-staged-smart-ball.md) — decision that changed the product dependency order.
+
+The older [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and CS-focused ADRs remain useful research history, but they are no longer the production dependency chain.
+
+## Converged staged direction
 
 ```text
-Guest / booking
- -> quick check-in
- -> one assigned smart ball per player
- -> present any unfinished player's ball at the tee
- -> DETECTED / CHECKING
+V0 — ORDINARY BALL / OPTICAL VENUE
+
+ordinary ball
+    |
+tee x2 -> route/zone x4 -> cup x2
+    |
+Waveshare ESP32-S3 PoE/Ethernet 8DI/8DO
+    |
+wired Ethernet
+    |
+Local Venue Edge
+Gameplay Engine / scoring / event log / HMI
+
+
+V1 — SMART BALL AUGMENTATION
+
+nRF54L15 + NFCT + BLE + IMU + primary cell
+    |
+NFC tee wake / Ball ID
+BLE health/state
+IMU motion evidence
+    |
+existing optical venue remains scoring authority
+
+
+V2 — OPTIONAL CHANNEL SOUNDING
+
+CS research / trajectory / analytics / multi-ball association
+    |
+optional feature plugin
+    |
+core optical game still runs when CS is absent
+```
+
+## Immediate one-hole build
+
+The first physical demo is a static **Challenge Roulette** hole with one tee, four route/zone outcomes and one final cup.
+
+The V0 controller uses exactly eight digital inputs:
+
+| DI | Function |
+|---|---|
+| DI1 | Tee ball presence |
+| DI2 | Launch confirmation in front of tee |
+| DI3 | Route/zone A |
+| DI4 | Route/zone B |
+| DI5 | Route/zone C |
+| DI6 | Route/zone D |
+| DI7 | Upper cup/return-chute beam |
+| DI8 | Lower cup/return-chute beam |
+
+This fits the existing Waveshare ESP32-S3 8DI/8DO controller without an expander.
+
+Outdoor field sensors should be industrial modulated through-beam photoelectric pairs on nominal 24 V. Fixed scoring-critical events go upstream over wired Ethernet. When more field I/O is required, expand with protected **RS-485/Modbus remote I/O**; CAN is reserved for future intelligent actuator nodes rather than simple DI expansion.
+
+See [`docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md`](docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md).
+
+## V0 gameplay model
+
+V0 uses ordinary balls and assumes one active player/ball in a normal single-lane hole.
+
+```text
+ball placed on tee
  -> READY
- -> normal zero-touch physical play
- -> automatic stroke / feature / cup evidence
- -> deterministic score and non-blocking feedback
- -> next player / next hole
- -> local leaderboard and final digital result
+ -> tee clears + launch beam confirms passage
+ -> SHOT STARTED
+ -> one route/zone event
+ -> immediate bonus/hazard/jackpot feedback
+ -> upper cup beam
+ -> lower cup beam
+ -> HOLE COMPLETE
 ```
 
-The existing deterministic/idempotent Gameplay Engine lives under `src/putttrack/gameplay/` and deliberately consumes semantic evidence rather than depending on CS, IMU, UWB, camera or a specific sensor implementation.
+DI3–DI6 are discrete event-driven zone evidence, not continuous XY localisation.
 
-## Architecture Constitution
+A first reward configuration can be:
 
-The end-to-end architecture is defined in:
+- Safe: 0;
+- Bonus: +30 / +50;
+- Jackpot: +80 / x2 mode;
+- Hazard: -20 / -30.
 
-- [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md) — primary technical source of truth;
-- [`docs/architecture/`](docs/architecture/) — hardware, RF, Gateway, Edge, data, security, failure, deployment and verification detail;
-- [`docs/adr/`](docs/adr/) — accepted decisions with risks, gates and revisit triggers.
+Rewards are course/server configuration, not sensor firmware. Duplicate beam events must never duplicate score.
 
-The former [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is retained as the pre-convergence hypothesis and research history.
+## Smart-ball V1
 
-## Converged direction
+The smart ball is an augmentation, not a prerequisite for the first venue demo.
+
+Current preferred direction:
+
+- **nRF54L15** remains the MCU/radio candidate;
+- NFCT + external NFC coil for tee wake/near-field identity;
+- BLE for identity, firmware, battery/health and generic state transport;
+- 6-axis IMU during prototyping for impact/rolling/stationary/pickup evidence;
+- one primary lithium cell;
+- direct battery versus nPM2100 remains an A/B hardware decision;
+- CS capability stays available in the nRF54L15 but is not required in V1 firmware.
+
+A later Hole NFC read zone may identify the smart ball in the return chute. Physical optical cup detection remains authoritative.
+
+## Channel Sounding research
+
+The CS work is deliberately retained as a parallel research track.
+
+Available research hardware remains valuable:
+
+- Nordic nRF54L15 Tag boards as moving RF/IMU references;
+- six Bbo nRF54L15 boards for initiator/reflector, raw-data and multi-node experiments.
+
+Research topics remain:
+
+- raw Channel Sounding capture;
+- Nordic baseline versus MUSIC/OMP/subspace estimators;
+- per-link calibration/confidence;
+- multi-anchor ranging and tracking;
+- optional trajectory and multi-ball event association.
+
+The key rule is that **CS research must not delay the optical one-hole MVP**.
+
+## Gameplay authority
+
+The deterministic/idempotent Gameplay Engine under `src/putttrack/gameplay/` consumes semantic evidence rather than depending on a specific sensor technology.
+
+Canonical examples:
 
 ```text
-                            CLOUD (non-authoritative)
- bookings / optional accounts / loyalty / analytics / release control
-                                  ^
-                                  | queued sync
-                                  |
-Managed Ethernet/PoE LAN ---- Venue Edge (authoritative local game)
-        |                         registry / assignments / localisation
-        |                         evidence / Gameplay Engine / audit / HMI
-        |
-   Zone Gateways
-   ~2-3 holes each
-        |
-24 V + protected RS-485
-        |
-Anchors + Tee/Cup/Feature sensors
-        |
-Bluetooth Channel Sounding
-        |
-Smart Ball
-nRF54L15 + generic motion sensing
-CS Reflector + BLE control/health
+tee.presented
+tee.launch_confirmed
+zone.entered
+feature.confirmed
+cup.entry_candidate
+cup.confirmed
+pickup.detected
+operator.adjustment
 ```
 
-### Core decisions
+The ball, field controller and HMI never own authoritative score.
 
-- Nordic nRF54L15 Tag remains the moving research reference.
-- Five identical Bbo Anchors plus a spare remain the research rig.
-- Production starts from four perimeter/geometry Anchors; the fifth node is optional and should be RF-optimal/elevated when evidence justifies it.
-- Ball is CS Reflector; powered Anchors are Initiators.
-- Standard encrypted connected CS is the conditional Production V1 path; only one CS procedure per ball is active at a time.
-- Dynamic tracking uses an asynchronous range-domain EKF; robust multilateration remains for initialization, static benchmarking and reacquisition.
-- Generic motion informs scheduling/evidence/process noise; the ball does not own score or hole-specific rules.
-- Zone Gateways coordinate approximately 2–3 holes, with wired 24 V/protected RS-485 to field nodes and Ethernet/PoE to the venue LAN.
-- Venue Edge is a local authoritative modular monolith and continues through WAN loss.
-- Camera is research/calibration/replay ground truth, not production positioning authority.
-- Independent tee and physical cup evidence remain in Production V1.
-- ML is limited initially to range bias/variance/outlier modelling, not opaque score or authoritative XY.
-- UWB is an evidence-triggered benchmark/fallback if CS fails accuracy, NLOS, scalability or energy gates.
-- Hole-specific movement-signature valid-stroke logic remains research-only pending a later claims-based FTO review.
+## Venue infrastructure
 
-## Evidence Foundation
+Current baseline:
 
-Issue #6 turns the architecture contracts into executable software:
+```text
+Cloud (non-authoritative)
+       ^
+       | queued sync
+       |
+Local Venue Edge
+       |
+Managed Ethernet / PoE LAN
+       |
+Hole / Zone controllers
+       |
+24 V sensors + protected RS-485 expansion
+```
 
-- typed `RangeObservation`, `MotionObservation`, `PhysicalSensorObservation`, `TrackUpdate`, `EvidenceEvent` and persistable `GameplayEvent` records;
-- compatible schema-version handling and fail-closed unknown majors;
-- append-only, crash-aware canonical JSONL capture;
-- immutable SHA-256-verified run manifests;
-- source boot/sequence/monotonic-time ordering diagnostics;
-- deterministic evidence replay into the unchanged Gameplay Engine;
-- derived Parquet research export through the optional `research` dependency;
-- Bbo vendor-log and structured-JSON Channel Sounding capture tooling.
+- local venue play continues through WAN loss;
+- Ethernet/PoE is preferred for controllers, displays and Edge;
+- 24 V is preferred for outdoor field sensing/control;
+- RS-485/Modbus is the default simple DI/DO expansion path;
+- CAN is optional for future intelligent motor/actuator subsystems;
+- Home/consumer wireless links are not the scoring-critical fixed-sensor backbone.
 
-Run the complete software verifier:
+## Evidence foundation
+
+The repository already contains typed evidence/event models, deterministic replay and CS research capture tooling. Those capabilities remain useful under the new architecture because the Gameplay Engine is sensor-agnostic.
+
+Run the main verifier:
 
 ```bash
 python tools/verify.py
 ```
 
-Replay the checked-in run twice:
+Replay the checked-in evidence example:
 
 ```bash
 PYTHONPATH=src python tools/replay_run.py experiments/evidence_replay_example
 ```
 
-Prepare a fixture Phase-0 capture:
-
-```bash
-make capture-fixture
-```
-
-See [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md) and [`experiments/phase0_cs/README.md`](experiments/phase0_cs/README.md). This tooling does not claim that real Bbo/Nordic hardware has passed Issue #1.
-
-## Pre-hardware readiness
-
-The repository is designed so a tall overhead camera is **not** a prerequisite for the RF research:
-
-- Phase 0/1 single-link truth uses measured physical separation;
-- Phase 2 static 3/4/5-Anchor truth can use a surveyed floor/grid with no camera;
-- Phase 3 dynamic truth can use a stable low/oblique camera mapped to venue XY through surveyed ground-control points;
-- a second low/oblique view can be added where one camera is occluded;
-- ramps/non-planar regions are excluded, segmented or handled with a later multi-view method rather than being incorrectly projected onto a flat plane.
-
-Camera/survey tooling:
-
-```bash
-PYTHONPATH=src python tools/calibrate_ground_plane.py camera_points.json calibration.json
-PYTHONPATH=src python tools/fit_camera_sync.py sync_pairs.csv camera_time_map.json
-PYTHONPATH=src python tools/project_camera_gt.py annotations.csv calibration.json ground_truth.csv --time-map camera_time_map.json
-```
-
-Run the full software + pre-hardware verifier:
-
-```bash
-make verify-prehardware
-```
-
-The first source baseline is pinned to Nordic nRF Connect SDK `v3.0.2` / sdk-nrf commit `89ba1294ac9b624e28271a5c71e99193ed4d92a4`. The official RAS Initiator/Reflector and the PuttTrack telemetry helper can be source-built with:
-
-```bash
-make ncs-phase0-build
-```
-
-An official-DK compile is only a source/toolchain compatibility check. It does not prove the Bbo overlay, flashing, RF path or physical performance.
-
-See:
-
-- [`docs/research/PRE_HARDWARE_READINESS.md`](docs/research/PRE_HARDWARE_READINESS.md)
-- [`docs/research/CAMERA_GROUND_TRUTH.md`](docs/research/CAMERA_GROUND_TRUTH.md)
-- [`docs/hardware/NCS_PHASE0_BUILD.md`](docs/hardware/NCS_PHASE0_BUILD.md)
-- [`experiments/phase0_cs/PHYSICAL_RIG_RUNBOOK.md`](experiments/phase0_cs/PHYSICAL_RIG_RUNBOOK.md)
-- [`experiments/ux_dry_run/README.md`](experiments/ux_dry_run/README.md)
-
-## One-hole player-experience vertical slice
-
-The local vertical slice under `src/putttrack/venue/` exercises the locked customer flow before physical sensing is available:
-
-- guest-first check-in and booking-code lookup;
-- optional account linking;
-- server-side smart-ball allocation with human-readable Ball labels;
-- flexible player order;
-- amber `DETECTED / CHECKING` presentation followed by authoritative green `READY`;
-- simulated stroke/feature/pickup/cup semantic events routed through the existing Gameplay Engine;
-- SSE hole-screen feedback and local leaderboard;
-- append-only local Gameplay audit and audited operator correction endpoint.
-
-Run it with:
-
-```bash
-PYTHONPATH=src python tools/run_hole_demo.py
-```
-
-Then open `http://127.0.0.1:8080/checkin`. The simulation controls exist only to exercise the UI while Issue #1 remains a real-hardware gate. See [`docs/GAMEPLAY_VERTICAL_SLICE_V1.md`](docs/GAMEPLAY_VERTICAL_SLICE_V1.md).
-
-## Research Rig
-
-### Moving target
-
-- 1–2 Nordic `nRF54L15 Tag` boards;
-- one golden reference where possible;
-- a second for enclosure/rolling/impact/orientation experiments.
-
-### Anchors
-
-- 5 identical Bbo nRF54L15 boards as A/B/C/D + experimental reference E;
-- 1 spare/development board;
-- experiments compare 3, four perimeter, ground-centre, elevated reference, best-4-of-5 and weighted/robust five.
-
-The research count does not freeze production Anchor quantity.
-
-## Validation before production hardware
-
-See [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_MATRIX.md). Headline candidate gates include:
-
-- single-link LOS P90 <=0.5 m;
-- static XY P90 <=0.5 m and P95 <=0.8 m;
-- dynamic XY P90 <=0.6 m, P95 <=1.0 m and reacquisition <=1 s;
-- confirmed event to HMI <=500 ms;
-- stroke recall >=99% and false-stroke rate <=0.1% of labelled non-stroke episodes;
-- zero cross-ball/duplicate score mutation;
-- one-hole 1,000-round soak;
-- 20/40/80-ball scheduling simulation with bounded queues and measured headroom;
-- custom-ball conservative service-life projection >=2 years, stretch >=5 years.
-
-Do not start the final Ball PCB until measured CS, IMU, dual-antenna, scheduling and power requirements exist.
-
-## Gameplay demo and tests
+Gameplay demo/tests:
 
 ```bash
 PYTHONPATH=src python simulator/demo_gameplay.py
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
+## Current dependency order
+
+1. Keep existing Gameplay Engine/event/replay tests green.
+2. Build the **8-DI optical one-hole MVP** with an ordinary ball.
+3. Integrate reward/penalty feedback, local HMI and deterministic event logging.
+4. Soak-test tee, zone and cup detection; collect real pulse durations/false-trigger data.
+5. Add RS-485 remote I/O only when the first eight inputs are insufficient.
+6. Bring up nRF54L15 NFCT/BLE/IMU smart-ball prototype in parallel.
+7. Add NFC tee identity/wake without changing optical score authority.
+8. Validate primary-cell power and direct-versus-nPM2100 custom-board options.
+9. Expand to multi-hole outdoor pilot.
+10. Continue CS research as an optional trajectory/analytics plugin and promote only features that pass measured value/accuracy/power/scalability gates.
+
 ## Documentation map
 
-### Locked product/gameplay
+### Product/gameplay
 
 - [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md)
 - [`docs/GAMEPLAY_EXPERIENCE.md`](docs/GAMEPLAY_EXPERIENCE.md)
 - [`docs/GAMEPLAY_IMPLEMENTATION.md`](docs/GAMEPLAY_IMPLEMENTATION.md)
 - [`docs/GAMEPLAY_VERTICAL_SLICE_V1.md`](docs/GAMEPLAY_VERTICAL_SLICE_V1.md)
 
-### Architecture
+### Current architecture
 
 - [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md)
-- [`docs/architecture/SYSTEM_CONTEXT.md`](docs/architecture/SYSTEM_CONTEXT.md)
+- [`docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md`](docs/architecture/OPTICAL_FIRST_ONE_HOLE_MVP.md)
 - [`docs/architecture/HARDWARE_TOPOLOGY.md`](docs/architecture/HARDWARE_TOPOLOGY.md)
 - [`docs/architecture/SMART_BALL.md`](docs/architecture/SMART_BALL.md)
-- [`docs/architecture/ANCHOR_RF_CELL.md`](docs/architecture/ANCHOR_RF_CELL.md)
-- [`docs/architecture/GATEWAY.md`](docs/architecture/GATEWAY.md)
-- [`docs/architecture/VENUE_EDGE.md`](docs/architecture/VENUE_EDGE.md)
-- [`docs/architecture/CLOUD_BOUNDARY.md`](docs/architecture/CLOUD_BOUNDARY.md)
-- [`docs/architecture/HMI.md`](docs/architecture/HMI.md)
-- [`docs/architecture/DATA_MODEL.md`](docs/architecture/DATA_MODEL.md)
-- [`docs/architecture/EVENT_CONTRACT.md`](docs/architecture/EVENT_CONTRACT.md)
-- [`docs/architecture/TIME_SYNC.md`](docs/architecture/TIME_SYNC.md)
-- [`docs/architecture/SECURITY.md`](docs/architecture/SECURITY.md)
-- [`docs/architecture/FAILURE_MODES.md`](docs/architecture/FAILURE_MODES.md)
-- [`docs/architecture/MULTIBALL_SCALABILITY.md`](docs/architecture/MULTIBALL_SCALABILITY.md)
-- [`docs/architecture/DEPLOYMENT.md`](docs/architecture/DEPLOYMENT.md)
-- [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_MATRIX.md)
 - [`docs/architecture/IMPLEMENTATION_ROADMAP.md`](docs/architecture/IMPLEMENTATION_ROADMAP.md)
-- [`docs/architecture/REFERENCES.md`](docs/architecture/REFERENCES.md)
-- [`docs/adr/README.md`](docs/adr/README.md)
+- [`docs/architecture/EVENT_CONTRACT.md`](docs/architecture/EVENT_CONTRACT.md)
+- [`docs/architecture/VENUE_EDGE.md`](docs/architecture/VENUE_EDGE.md)
+- [`docs/adr/`](docs/adr/)
 
-### Evidence / research / IP
+### Research
 
 - [`docs/EVIDENCE_FOUNDATION.md`](docs/EVIDENCE_FOUNDATION.md)
-- [`docs/verification/EVIDENCE_FOUNDATION_V1.md`](docs/verification/EVIDENCE_FOUNDATION_V1.md)
-- [`docs/research/PRE_HARDWARE_READINESS.md`](docs/research/PRE_HARDWARE_READINESS.md)
-- [`docs/research/CAMERA_GROUND_TRUTH.md`](docs/research/CAMERA_GROUND_TRUTH.md)
 - [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)
-- [`docs/PATENT_RESEARCH.md`](docs/PATENT_RESEARCH.md)
-
-## Immediate dependency order
-
-1. Maintain the software/pre-hardware verifiers and pinned source-build baseline.
-2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests and `tools/capture_cs.py`.
-3. Collect single-link surveyed-distance data, then 3/4/5-Anchor surveyed-grid data; use calibrated low/oblique video for continuous dynamic truth when needed.
-4. Implement robust WLS plus asynchronous range-domain EKF only after real range evidence exists.
-5. Add generic motion dataset and evidence policies.
-6. Replace simulated one-hole events with confirmed physical evidence while preserving the existing venue/UI boundary.
-7. Build Zone Gateway/field-bus and multi-ball scheduler simulation after measured procedure timing exists.
-8. Start custom Ball EVT only after power/RF/scheduling gates.
-9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
+- [`docs/research/PRE_HARDWARE_READINESS.md`](docs/research/PRE_HARDWARE_READINESS.md)
+- [`experiments/phase0_cs/`](experiments/phase0_cs/)
 
 ## IP / legal note
 
-This repository records engineering research, public prior art and design constraints; it is not legal advice or a freedom-to-operate opinion. Production remains spatial-first and hole-independent. Patent-sensitive hole-specific movement-signature authority, charging/activation combinations and target-jurisdiction launch require an up-to-date claims-based review.
+This repository records engineering research, public prior art and design constraints; it is not legal advice or a freedom-to-operate opinion. Production decisions still require an appropriate claims-based IP and regulatory review before commercial freeze.
