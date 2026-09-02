@@ -40,6 +40,12 @@ desk-handling repetitions also show that stronger handling overlaps pickup at
 generic activity intensity. The resulting canonical motion record can enter
 the one-hole runtime as an observed/pending/rejected candidate, but cannot
 infer pickup/impact semantics or directly mutate score.
+The hardware-neutral tee/cup input path is also implemented: assigned-Ball tee
+presence can reach READY, while cup completion requires entry plus independent
+occupancy within 3 seconds and an already-confirmed stroke. It is covered by
+ordering, health, idempotency, replay and HTTP end-to-end tests, but no physical
+tee/cup mechanism has yet passed. See
+[`docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md`](docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md).
 
 ## Product logic
 
@@ -189,7 +195,8 @@ See:
 
 ## One-hole player-experience vertical slice
 
-The local vertical slice under `src/putttrack/venue/` exercises the locked customer flow before physical sensing is available:
+The local vertical slice under `src/putttrack/venue/` exercises the locked
+customer flow while physical mechanisms are still being built:
 
 - guest-first check-in and booking-code lookup;
 - optional account linking;
@@ -197,6 +204,8 @@ The local vertical slice under `src/putttrack/venue/` exercises the locked custo
 - flexible player order;
 - amber `DETECTED / CHECKING` presentation followed by authoritative green `READY`;
 - simulated stroke/feature/pickup/cup semantic events routed through the existing Gameplay Engine;
+- canonical physical tee/cup observation ingress with fail-closed authority,
+  audit and two-stage cup confirmation;
 - SSE hole-screen feedback and local leaderboard;
 - append-only local Gameplay audit and audited operator correction endpoint.
 

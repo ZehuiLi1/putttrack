@@ -7,7 +7,11 @@ import threading
 import unittest
 from pathlib import Path
 
-from putttrack.contracts import MotionObservation, record_to_dict
+from putttrack.contracts import (
+    MotionObservation,
+    PhysicalSensorObservation,
+    record_to_dict,
+)
 from putttrack.gameplay import EventType, GameplayEvent
 from putttrack.venue import (
     BallAsset,
@@ -178,6 +182,101 @@ class RuntimeTests(unittest.TestCase):
                 1,
             )
 
+    def test_physical_tee_and_two_stage_cup_complete_one_hole(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime, session = self.make_runtime(temp_dir)
+            assignment = session.assignments[0]
+
+            tee = self.physical_observation(
+                "physical-tee-1",
+                sensor_kind="tee_presence",
+                transition="occupied",
+                source_device_id="tee-node",
+                ball_id=assignment.ball_id,
+                edge_received_ns=1_000_000_000,
+            )
+            tee_decision = runtime.process_physical_sensor_observation(tee)
+            self.assertEqual(tee_decision.status, "accepted")
+            self.assertEqual(runtime.presentation()["cue"]["state"], "READY")
+
+            runtime.process_gameplay(
+                GameplayEvent(
+                    event_id="independent-stroke-1",
+                    event_type=EventType.STROKE_CONFIRMED,
+                    timestamp_ms=1_500,
+                    hole_id="H01",
+                    ball_id=assignment.ball_id,
+                )
+            )
+            entry = self.physical_observation(
+                "physical-cup-entry-1",
+                sensor_kind="cup_entry",
+                transition="entered",
+                source_device_id="cup-entry-node",
+                ball_id=assignment.ball_id,
+                edge_received_ns=2_000_000_000,
+            )
+            presence = self.physical_observation(
+                "physical-cup-presence-1",
+                sensor_kind="cup_presence",
+                transition="occupied",
+                source_device_id="cup-presence-node",
+                ball_id=assignment.ball_id,
+                edge_received_ns=2_400_000_000,
+            )
+            self.assertEqual(
+                runtime.process_physical_sensor_observation(entry).status,
+                "pending",
+            )
+            cup_decision = runtime.process_physical_sensor_observation(presence)
+            repeated = runtime.process_physical_sensor_observation(presence)
+
+            self.assertEqual(cup_decision.status, "accepted")
+            self.assertIs(repeated, cup_decision)
+            self.assertEqual(
+                runtime.state.stats[assignment.player_id].total_strokes,
+                1,
+            )
+            self.assertEqual(
+                runtime.state.current_runtime.players[assignment.player_id].status.value,
+                "complete",
+            )
+            self.assertEqual(runtime.state.status.value, "active")
+            audit_lines = (Path(temp_dir) / "audit.jsonl").read_text().splitlines()
+            self.assertEqual(
+                sum("physical_sensor_decision" in line for line in audit_lines),
+                3,
+            )
+
+    @staticmethod
+    def physical_observation(
+        event_id: str,
+        *,
+        sensor_kind: str,
+        transition: str,
+        source_device_id: str,
+        ball_id: str,
+        edge_received_ns: int,
+    ) -> PhysicalSensorObservation:
+        return PhysicalSensorObservation(
+            event_id=event_id,
+            event_type="sensor.edge_observed",
+            source_device_id=source_device_id,
+            source_boot_id="boot-1",
+            sequence=1,
+            source_monotonic_ns=edge_received_ns - 1_000_000,
+            edge_received_ns=edge_received_ns,
+            trace_id=f"trace-{event_id}",
+            hole_id="H01",
+            ball_id=ball_id,
+            sensor_id=f"sensor-{source_device_id}",
+            sensor_kind=sensor_kind,
+            transition=transition,
+            value=True,
+            health="ok",
+            debounce_version="debounce-v1",
+        )
+
 
 class PresentationSecurityTests(unittest.TestCase):
     def test_dynamic_player_and_ball_content_uses_text_content_not_inner_html(self) -> None:
@@ -307,6 +406,75 @@ class HttpTests(unittest.TestCase):
                 audit_files = list(Path(temp_dir).glob("*/round_audit.jsonl"))
                 self.assertEqual(len(audit_files), 1)
                 self.assertIn("verified demo correction", audit_files[0].read_text())
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
+
+    def test_physical_evidence_http_ingress(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app = VenueApplication(course_from_dict(COURSE), BALLS, run_root=temp_dir)
+            server = build_server(app, "127.0.0.1", 0)
+            port = server.server_address[1]
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                _, session = self.request(
+                    port,
+                    "POST",
+                    "/api/checkin",
+                    {"players": ["Alex"]},
+                )
+                ball_id = session["players"][0]["ball_id"]
+                tee = RuntimeTests.physical_observation(
+                    "http-physical-tee",
+                    sensor_kind="tee_presence",
+                    transition="occupied",
+                    source_device_id="http-tee-node",
+                    ball_id=ball_id,
+                    edge_received_ns=1_000_000_000,
+                )
+                status, response = self.request(
+                    port,
+                    "POST",
+                    "/api/evidence/physical",
+                    record_to_dict(tee),
+                )
+                self.assertEqual(status, 202)
+                self.assertEqual(response["decision"]["status"], "accepted")
+                self.assertEqual(response["state"]["cue"]["state"], "READY")
+
+                self.assertEqual(
+                    self.request(port, "POST", "/api/sim/stroke", {})[0],
+                    200,
+                )
+                for event in (
+                    RuntimeTests.physical_observation(
+                        "http-cup-entry",
+                        sensor_kind="cup_entry",
+                        transition="entered",
+                        source_device_id="http-cup-entry-node",
+                        ball_id=ball_id,
+                        edge_received_ns=2_000_000_000,
+                    ),
+                    RuntimeTests.physical_observation(
+                        "http-cup-presence",
+                        sensor_kind="cup_presence",
+                        transition="occupied",
+                        source_device_id="http-cup-presence-node",
+                        ball_id=ball_id,
+                        edge_received_ns=2_500_000_000,
+                    ),
+                ):
+                    status, response = self.request(
+                        port,
+                        "POST",
+                        "/api/evidence/physical",
+                        record_to_dict(event),
+                    )
+                    self.assertEqual(status, 202)
+                self.assertEqual(response["decision"]["status"], "accepted")
+                self.assertEqual(response["state"]["session_status"], "complete")
             finally:
                 server.shutdown()
                 server.server_close()

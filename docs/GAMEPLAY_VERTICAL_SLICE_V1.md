@@ -4,9 +4,10 @@
 
 This is a **local player-experience slice** built on top of the locked Gameplay
 Engine and Evidence Foundation. The nRF54L15 Tag stationary telemetry and the
-generic-motion candidate ingress are physically/software validated; tee, cup,
-feature and stroke confirmation remain simulated until independent sensors and
-labelled motion evidence exist.
+generic-motion candidate ingress are physically/software validated. The
+hardware-neutral tee/cup observation policy and HTTP ingress are implemented
+and software-tested; actual tee/cup mechanisms, Ball-to-tee correlation,
+feature sensing and stroke confirmation remain physical gates.
 
 The purpose is to prove that the player-facing flow can remain stable while real sensing work proceeds through Issue #1 and later localisation/evidence Issues.
 
@@ -62,6 +63,20 @@ as `evidence_pending`, but this policy is structurally unable to emit
 `stroke.confirmed`, `feature.confirmed` or `cup.confirmed`. Independent evidence
 and a later measured fusion policy are required.
 
+The physical-input path is separately fail-closed:
+
+```text
+debounced tee edge + assigned BLE Ball context
+ -> tee.presented -> READY
+
+cup entry edge + cup occupancy edge within 3 s
+ + same active PLAYING Ball (independent stroke already confirmed)
+ -> cup.confirmed
+```
+
+One cup edge, a foreign Ball, unhealthy sensor, undeclared debounce, sequence
+gap or out-of-order packet cannot mutate Gameplay state.
+
 ## Components
 
 - `src/putttrack/venue/course.py`
@@ -85,6 +100,11 @@ and a later measured fusion policy are required.
   - active/assigned Ball isolation;
   - fail-closed no-score authority boundary;
   - idempotent runtime decision handling.
+- `src/putttrack/evidence/physical_policy.py`
+  - tee identity/context authority gate;
+  - two-stage cup confirmation window;
+  - node health/debounce and source-order enforcement;
+  - deterministic semantic IDs and idempotent decisions.
 - `src/putttrack/venue/web.py`
   - standard-library local HTTP server;
   - tee screen and check-in pages;
@@ -135,6 +155,13 @@ Canonical non-authoritative evidence ingress:
 - `POST /api/evidence/motion` — accepts a typed `motion_observation`, returns
   HTTP 202 with an observed/pending/rejected policy decision.
 
+Canonical physical evidence ingress:
+
+- `POST /api/evidence/physical` — accepts a typed
+  `physical_sensor_observation`, returns HTTP 202 with an
+  accepted/pending/observed/rejected policy decision. `accepted` means the
+  resulting semantic event was processed by Gameplay.
+
 The `/api/sim/*` surface is **not** a production sensor API; it is an evidence simulator for this slice.
 
 ## Tests
@@ -154,6 +181,11 @@ The `/api/sim/*` surface is **not** a production sensor API; it is an evidence s
 - canonical motion HTTP ingress;
 - impact remains pending with zero stroke mutation;
 - duplicate, foreign and inactive-Ball motion isolation.
+- physical tee to READY and two-stage cup to player completion;
+- physical ingress over HTTP;
+- unhealthy, missing-debounce, wrong-Ball, sequence-gap, duplicate and expired
+  cup sequences fail closed;
+- identical physical input sequences replay to identical decisions.
 
 The implementation was developed against the merged Evidence Foundation. Existing Gameplay authority was not redesigned.
 
@@ -161,7 +193,7 @@ The implementation was developed against the merged Evidence Foundation. Existin
 
 - first-time-player usability with real people;
 - sunlight readability, outdoor display and audio hardware;
-- physical tee/cup integration;
+- physical tee/cup mechanism and Ball-identity correlation;
 - labelled impact/rolling/pickup distributions and calibrated confidence;
 - real motion candidate + independent sensor to confirmed-event latency;
 - physical Channel Sounding accuracy or update rate;

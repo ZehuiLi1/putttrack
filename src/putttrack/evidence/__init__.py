@@ -2,6 +2,11 @@
 
 from .adapter import EvidenceAdapterError, EvidenceToGameplayAdapter
 from .ordering import OrderingStatus, OrderingTracker
+from .physical_policy import (
+    NoCsPhysicalEvidencePolicy,
+    PhysicalEvidenceContext,
+    PhysicalEvidenceDecision,
+)
 from .motion_policy import (
     MotionCandidateDecision,
     MotionEvidenceContext,
@@ -24,6 +29,9 @@ __all__ = [
     "MotionCandidateDecision",
     "MotionEvidenceContext",
     "NoCsMotionCandidatePolicy",
+    "NoCsPhysicalEvidencePolicy",
+    "PhysicalEvidenceContext",
+    "PhysicalEvidenceDecision",
     "ReplayQuarantine",
     "ReplayReport",
     "engine_from_session_file",

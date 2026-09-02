@@ -159,8 +159,10 @@ prerequisites unless ADR-013 is revisited.
    the remaining physical work.
 2. **Generic motion V0:** extend the replay-first deterministic state/candidate
    baseline only from controlled physical evidence.
-3. **Physical one-hole inputs:** tee and cup sensor adapters into semantic
-   evidence and the existing vertical slice.
+3. **Physical one-hole inputs:** the hardware-neutral tee/cup adapters,
+   fail-closed policy, HTTP ingress and replay tests are complete. Build the
+   physical nodes, correlate assigned Ball identity at the tee, and measure the
+   two-stage cup mechanism next.
 4. **Bounded NFC service spike:** external antenna/matching evidence, NDEF read,
    NFC-to-BLE handoff and finally System OFF wake; no NFC telemetry/OTA scope.
    The optional MCUboot + application build-only proof has passed; hardware

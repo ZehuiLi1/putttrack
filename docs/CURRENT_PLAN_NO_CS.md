@@ -1,9 +1,9 @@
 # Current Execution Plan — BLE + Motion First, Channel Sounding Deferred
 
-**Status:** Active — M1 complete; M2 transport and development-board low-power
-path validated
+**Status:** Active — M1 complete; M2 transport/development-board low-power
+validated; M4 physical-ingress software boundary implemented
 
-**Effective:** 2026-09-02
+**Effective:** 2026-09-03
 
 **Decision:** ADR-013
 
@@ -99,6 +99,13 @@ position, cup entry or every valid stroke.
   reproducible `33.10 × 33.00 × 8.48 mm` populated-board envelope. A
   conservative `34.0 mm × 9.2 mm` removable carrier keep-in and a controlled
   programmable-roller protocol are documented for the first research ball.
+- A hardware-neutral `PhysicalSensorObservation` ingress now validates node
+  health/debounce declaration, source ordering, Ball identity and active-hole
+  context. Assigned tee presence can emit `tee.presented`; cup completion
+  requires entry followed by independent occupancy within 3 seconds and an
+  already-confirmed stroke. The policy, HTTP path, audit, idempotency and
+  deterministic replay tests pass. No physical tee/cup mechanism has been
+  selected or validated yet.
 
 ## 3. Active milestones
 
@@ -194,8 +201,13 @@ path, conservative handling of ambiguous evidence and no duplicate/cross-ball
 score mutations.
 
 **Current result:** step 3's non-authoritative ingress, audit, idempotency and
-Ball isolation are wired. Motion cannot confirm a stroke on its own. Steps 1–2
-and 4–5 still require physical presence/feature/cup hardware and fusion.
+Ball isolation are wired. The software side of steps 1–2 and 5 is now wired as
+a fail-closed physical ingress: tee requires correlated assigned-Ball identity,
+and cup requires entry plus occupancy while the active Ball is already PLAYING.
+Motion still cannot confirm a stroke on its own. Real BLE identity correlation,
+tee/cup mechanisms, feature hardware and physical false-positive/latency tests
+remain. See
+[`hardware/PHYSICAL_TEE_CUP_INGRESS.md`](hardware/PHYSICAL_TEE_CUP_INGRESS.md).
 
 ### M5 — Gateway, enclosure and service evidence
 
