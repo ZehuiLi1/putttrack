@@ -152,6 +152,49 @@ class TagCaptureSessionTests(unittest.TestCase):
         self.assertTrue(report.passed)
         self.assertEqual(report.sequence_gaps, 0)
 
+    def test_new_health_contract_allows_recovered_past_error_history(self) -> None:
+        initial = status(
+            sensor_error_count=9,
+            sensor_health="healthy",
+            capture_safe=True,
+            sensor_recovery_generation=2,
+        )
+        capture = TagCaptureSession()
+        capture.start(initial)
+        capture.observe_motion(motion(10, 1_100_000))
+
+        report = capture.finalize(replace(initial, sequence=10, uptime_ms=1_100))
+
+        self.assertTrue(report.passed)
+        self.assertEqual(report.sensor_recovery_generation_delta, 0)
+
+    def test_health_transition_or_recovery_during_capture_fails(self) -> None:
+        initial = status(
+            sensor_health="healthy",
+            capture_safe=True,
+            sensor_recovery_generation=2,
+        )
+        capture = TagCaptureSession()
+        capture.start(initial)
+        capture.observe_motion(motion(10, 1_100_000))
+
+        report = capture.finalize(
+            replace(
+                initial,
+                sequence=10,
+                uptime_ms=1_100,
+                sensor_health="recovering",
+                capture_safe=False,
+                sensor_recovery_generation=3,
+            )
+        )
+
+        self.assertFalse(report.passed)
+        self.assertIn("final_sensor_health_not_healthy", report.issues)
+        self.assertIn("final_capture_not_safe", report.issues)
+        self.assertIn("sensor_recovery_generation_increased", report.issues)
+        self.assertEqual(report.sensor_recovery_generation_delta, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

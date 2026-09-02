@@ -153,6 +153,22 @@ class TagTelemetryTests(unittest.TestCase):
                 "nfc_service_window_ms": 10000,
                 "nfc_service_window_opens": 2,
                 "nfc_service_window_suppressed": 1,
+                "sensor_health": "healthy",
+                "capture_safe": True,
+                "sensor_faults": 2,
+                "recovery_generation": 3,
+                "recovery_attempts": 4,
+                "recovery_successes": 1,
+                "recovery_failures": 3,
+                "adxl_error_streak": 0,
+                "bmi_error_streak": 0,
+                "last_sensor_error_bits": 1,
+                "last_sensor_error_ms": 4321,
+                "auto_reboots": 1,
+                "auto_reboot_fault_bits": 1,
+                "auto_reboot_guard": True,
+                "auto_reboot_pending": False,
+                "idle_health_check_ms": 600000,
             }
         )
 
@@ -188,6 +204,20 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertEqual(status.nfc_service_window_ms, 10000)
         self.assertEqual(status.nfc_service_window_open_count, 2)
         self.assertEqual(status.nfc_service_window_suppressed_count, 1)
+        self.assertEqual(status.sensor_health, "healthy")
+        self.assertTrue(status.capture_safe)
+        self.assertEqual(status.sensor_fault_count, 2)
+        self.assertEqual(status.sensor_recovery_generation, 3)
+        self.assertEqual(status.sensor_recovery_attempt_count, 4)
+        self.assertEqual(status.sensor_recovery_success_count, 1)
+        self.assertEqual(status.sensor_recovery_failure_count, 3)
+        self.assertEqual(status.last_sensor_error_bits, 1)
+        self.assertEqual(status.last_sensor_error_uptime_ms, 4321)
+        self.assertEqual(status.sensor_auto_reboot_count, 1)
+        self.assertEqual(status.sensor_auto_reboot_fault_bits, 1)
+        self.assertTrue(status.sensor_auto_reboot_guard)
+        self.assertFalse(status.sensor_auto_reboot_pending)
+        self.assertEqual(status.idle_sensor_health_check_ms, 600000)
 
     def test_old_smp_status_has_no_nfc_claim(self) -> None:
         status = status_from_smp(
@@ -210,6 +240,8 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertIsNone(status.nfc_setup_error)
         self.assertFalse(status.nfc_service_window_active)
         self.assertEqual(status.nfc_service_window_open_count, 0)
+        self.assertIsNone(status.sensor_health)
+        self.assertIsNone(status.capture_safe)
 
     def test_rejects_unknown_power_state(self) -> None:
         payload = {

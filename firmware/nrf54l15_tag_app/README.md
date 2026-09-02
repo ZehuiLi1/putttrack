@@ -23,7 +23,7 @@ XIAO USB HCI development bridge:
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
   that frozen capture.
 
-Confirmed firmware `0.1.13` and build-only candidate `0.1.15` provide three
+Confirmed firmware `0.1.13` and build-only candidate `0.1.16` provide three
 remotely selectable power policies while preserving the signed OTA and
 frozen-history protocol:
 
@@ -66,7 +66,7 @@ false wakes, remote confirmation and a post-confirm reset/idle cycle. DAPLink
 is therefore a commissioning and recovery tool, not part of ordinary
 application updates or operation.
 
-Candidate `0.1.15` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
+Candidate `0.1.16` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
 scan response to distinguish multiple boards. This is only a selector: capture
 must still lock the full encrypted `DEVICE_ID`. The candidate has passed signed
 default and NFC-variant builds but has not been installed on the physical Tag.
@@ -86,6 +86,13 @@ suspend state, power-management error count and `battery_supported=false`.
 Although the board SoC ADC exists, the official board description does not
 define a battery-divider or fuel-gauge channel, so firmware must not invent a
 battery percentage.
+
+Candidate `0.1.16` additionally detects per-sensor failure streaks, invalidates
+capture history across recovery, makes at most three local recovery attempts
+and permits only one quiet/disconnected warm reboot before quarantine. Its SMP
+health contract is fail-closed in the host capture tools while remaining
+compatible with confirmed `0.1.13`. See
+[`NRF54L15_TAG_SENSOR_RECOVERY.md`](../../docs/hardware/NRF54L15_TAG_SENSOR_RECOVERY.md).
 
 The full-rate path explicitly runs both IMUs at 100 Hz ODR and exports an
 absolute-deadline 50 Hz stream. The mcumgr status response also reports the

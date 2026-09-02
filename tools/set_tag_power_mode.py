@@ -26,10 +26,16 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("mode", choices=tuple(COMMAND_BY_MODE))
     result.add_argument("--device-name", default="PuttTrack-Tag-v0.1")
+    result.add_argument("--ble-address")
+    result.add_argument(
+        "--address-type",
+        choices=("public", "random", "public-identity", "random-identity"),
+    )
     result.add_argument("--hci-port", default="/dev/cu.usbmodem101")
     result.add_argument("--scan-timeout", type=int, default=15)
     result.add_argument("--timeout", type=int, default=30)
     result.add_argument("--apply-timeout", type=float, default=8.0)
+    result.add_argument("--request-retries", type=int, default=3)
     result.add_argument("--nrfutil", type=Path)
     return result
 
@@ -63,10 +69,6 @@ def request(
         "--log-output=stdout",
         "--log-level=warn",
         "raw-smp-request",
-        "--device-name",
-        args.device_name,
-        "--scan-timeout",
-        str(args.scan_timeout),
         "--pair",
         "--secure-connection",
         "--operation",
@@ -76,24 +78,50 @@ def request(
         "--command-id",
         str(command_id),
     ]
-    completed = subprocess.run(
-        command,
-        text=True,
-        capture_output=True,
-        check=False,
-        stdin=subprocess.DEVNULL,
+    if args.ble_address:
+        command.extend(("--address", args.ble_address))
+        if args.address_type:
+            command.extend(("--address-type", args.address_type))
+    else:
+        command.extend(
+            (
+                "--device-name",
+                args.device_name,
+                "--scan-timeout",
+                str(args.scan_timeout),
+            )
+        )
+    last_detail = "no response"
+    for attempt in range(1, args.request_retries + 1):
+        completed = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            stdin=subprocess.DEVNULL,
+        )
+        if completed.returncode == 0:
+            for line in reversed(completed.stdout.splitlines()):
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(payload, dict):
+                    return payload
+            last_detail = "request returned no JSON object"
+        else:
+            last_detail = (completed.stderr or completed.stdout).strip()
+        if attempt < args.request_retries:
+            print(
+                f"WARN: SMP command {command_id} attempt {attempt} failed; retrying",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(0.25)
+    raise RuntimeError(
+        f"SMP command {command_id} failed after {args.request_retries} attempts: "
+        f"{last_detail}"
     )
-    if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout).strip()
-        raise RuntimeError(f"SMP request failed: {detail}")
-    for line in reversed(completed.stdout.splitlines()):
-        try:
-            payload = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, dict):
-            return payload
-    raise RuntimeError("SMP request returned no JSON object")
 
 
 def main() -> int:
@@ -102,6 +130,10 @@ def main() -> int:
         raise SystemExit(f"HCI serial port does not exist: {args.hci_port}")
     if args.apply_timeout <= 0:
         raise SystemExit("--apply-timeout must be positive")
+    if args.request_retries <= 0:
+        raise SystemExit("--request-retries must be positive")
+    if args.address_type and not args.ble_address:
+        raise SystemExit("--address-type requires --ble-address")
 
     nrfutil = find_nrfutil(args.nrfutil)
     acknowledgement = request(
@@ -131,6 +163,9 @@ def main() -> int:
                 "acknowledgement": acknowledgement,
                 "battery_supported": status.battery_supported,
                 "firmware_version": status.firmware_version,
+                "adxl367_ready": status.adxl367_ready,
+                "bmi270_ready": status.bmi270_ready,
+                "sensor_error_count": status.sensor_error_count,
                 "mode": status.power_policy,
                 "runtime_state": status.runtime_state,
                 "stream_rate_hz": status.stream_rate_hz,
@@ -145,6 +180,11 @@ def main() -> int:
                 "idle_wake_interrupt_enabled": status.idle_wake_interrupt_enabled,
                 "adxl367_wakeup_mode_enabled": status.adxl367_wakeup_mode_enabled,
                 "power_transition_count": status.power_transition_count,
+                "sensor_health": status.sensor_health,
+                "capture_safe": status.capture_safe,
+                "sensor_recovery_generation": status.sensor_recovery_generation,
+                "sensor_auto_reboot_count": status.sensor_auto_reboot_count,
+                "sensor_auto_reboot_guard": status.sensor_auto_reboot_guard,
             },
             indent=2,
             sort_keys=True,

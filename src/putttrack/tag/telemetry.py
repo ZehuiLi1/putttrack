@@ -65,6 +65,22 @@ class StatusRecord:
     nfc_service_window_ms: int | None = None
     nfc_service_window_open_count: int = 0
     nfc_service_window_suppressed_count: int = 0
+    sensor_health: str | None = None
+    capture_safe: bool | None = None
+    sensor_fault_count: int = 0
+    sensor_recovery_generation: int = 0
+    sensor_recovery_attempt_count: int = 0
+    sensor_recovery_success_count: int = 0
+    sensor_recovery_failure_count: int = 0
+    adxl367_error_streak: int = 0
+    bmi270_error_streak: int = 0
+    last_sensor_error_bits: int = 0
+    last_sensor_error_uptime_ms: int = 0
+    sensor_auto_reboot_count: int = 0
+    sensor_auto_reboot_fault_bits: int = 0
+    sensor_auto_reboot_guard: bool = False
+    sensor_auto_reboot_pending: bool = False
+    idle_sensor_health_check_ms: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -282,10 +298,20 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
 
     power_policy = _optional_text(payload, "power_policy")
     runtime_state = _optional_text(payload, "runtime_state")
+    sensor_health = _optional_text(payload, "sensor_health")
     if power_policy not in (None, "auto", "research", "idle"):
         raise TelemetryProtocolError(f"unsupported power_policy {power_policy!r}")
     if runtime_state not in (None, "active", "idle"):
         raise TelemetryProtocolError(f"unsupported runtime_state {runtime_state!r}")
+    if sensor_health not in (
+        None,
+        "healthy",
+        "suspect",
+        "recovering",
+        "degraded",
+        "quarantined",
+    ):
+        raise TelemetryProtocolError(f"unsupported sensor_health {sensor_health!r}")
 
     return StatusRecord(
         protocol_version=version,
@@ -354,6 +380,48 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
         nfc_service_window_suppressed_count=(
             _optional_non_negative_int(payload, "nfc_service_window_suppressed")
             or 0
+        ),
+        sensor_health=sensor_health,
+        capture_safe=_optional_bool(payload, "capture_safe"),
+        sensor_fault_count=_optional_non_negative_int(payload, "sensor_faults") or 0,
+        sensor_recovery_generation=(
+            _optional_non_negative_int(payload, "recovery_generation") or 0
+        ),
+        sensor_recovery_attempt_count=(
+            _optional_non_negative_int(payload, "recovery_attempts") or 0
+        ),
+        sensor_recovery_success_count=(
+            _optional_non_negative_int(payload, "recovery_successes") or 0
+        ),
+        sensor_recovery_failure_count=(
+            _optional_non_negative_int(payload, "recovery_failures") or 0
+        ),
+        adxl367_error_streak=(
+            _optional_non_negative_int(payload, "adxl_error_streak") or 0
+        ),
+        bmi270_error_streak=(
+            _optional_non_negative_int(payload, "bmi_error_streak") or 0
+        ),
+        last_sensor_error_bits=(
+            _optional_non_negative_int(payload, "last_sensor_error_bits") or 0
+        ),
+        last_sensor_error_uptime_ms=(
+            _optional_non_negative_int(payload, "last_sensor_error_ms") or 0
+        ),
+        sensor_auto_reboot_count=(
+            _optional_non_negative_int(payload, "auto_reboots") or 0
+        ),
+        sensor_auto_reboot_fault_bits=(
+            _optional_non_negative_int(payload, "auto_reboot_fault_bits") or 0
+        ),
+        sensor_auto_reboot_guard=(
+            _optional_bool(payload, "auto_reboot_guard") or False
+        ),
+        sensor_auto_reboot_pending=(
+            _optional_bool(payload, "auto_reboot_pending") or False
+        ),
+        idle_sensor_health_check_ms=_optional_non_negative_int(
+            payload, "idle_health_check_ms"
         ),
     )
 

@@ -49,6 +49,7 @@ class TagCaptureReport:
     bmi270_gyro_clip_delta: int
     advertising_error_delta: int
     power_management_error_delta: int
+    sensor_recovery_generation_delta: int
     issues: tuple[str, ...]
 
     @property
@@ -73,12 +74,14 @@ class TagCaptureSession:
         "bmi270_gyro_clip_delta": "bmi270_gyro_clip_count",
         "advertising_error_delta": "advertising_start_error_count",
         "power_management_error_delta": "power_management_error_count",
+        "sensor_recovery_generation_delta": "sensor_recovery_generation",
     }
     _FAIL_ON_INCREASE = {
         "sensor_error_count",
         "notify_drop_count",
         "advertising_start_error_count",
         "power_management_error_count",
+        "sensor_recovery_generation",
     }
 
     def __init__(self, *, expected_device_id: str | None = None) -> None:
@@ -110,7 +113,11 @@ class TagCaptureSession:
             self._issues.add("initial_adxl367_not_ready")
         if not status.bmi270_ready:
             self._issues.add("initial_bmi270_not_ready")
-        if status.sensor_error_count:
+        if status.sensor_health is not None and status.sensor_health != "healthy":
+            self._issues.add("initial_sensor_health_not_healthy")
+        if status.capture_safe is False:
+            self._issues.add("initial_capture_not_safe")
+        if status.sensor_health is None and status.sensor_error_count:
             self._issues.add("initial_sensor_errors_nonzero")
 
     def observe_motion(self, motion: MotionRecord) -> None:
@@ -177,6 +184,10 @@ class TagCaptureSession:
             self._issues.add("final_adxl367_not_ready")
         if not status.bmi270_ready:
             self._issues.add("final_bmi270_not_ready")
+        if status.sensor_health is not None and status.sensor_health != "healthy":
+            self._issues.add("final_sensor_health_not_healthy")
+        if status.capture_safe is False:
+            self._issues.add("final_capture_not_safe")
 
         deltas: dict[str, int] = {}
         for report_name, status_name in self._DELTA_COUNTERS.items():

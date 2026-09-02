@@ -278,3 +278,20 @@ signed and passed `imgtool verify` with NCS v3.4.0 on 2026-09-03:
 Neither image was uploaded. The NFC variant is not authorized for installation
 until the antenna and C17/C19 checks are complete, and the default variant is
 not needed merely because a newer build exists.
+
+## Build-only bounded sensor-recovery candidate
+
+Repository candidate `0.1.16+0` retains the identity and NFC behavior above and
+adds bounded sensor fault detection, capture-generation invalidation, local
+reconfiguration, a guarded warm reboot and quarantine. Default and NFC builds
+passed under NCS v3.4.0 on 2026-09-03; the compile-only artifacts used Nordic's
+insecure debug key and must not be flashed:
+
+| Variant | App RRAM | App RAM | debug signed BIN SHA-256 |
+|---|---:|---:|---|
+| default | 185,268 / 696,176 B | 207,360 / 262,144 B | `6fee79ea7ba9c649ad7097edb48ef66703f5a52aebe289dc64c779bc91f91976` |
+| NFC service | 192,544 / 696,176 B | 210,508 / 262,144 B | `a26d641651e38c36456dbae0c0dd2fb63078b4f53fd39d13f8aebea37a32ea3b` |
+
+The physical Tag remains confirmed `0.1.13`. See
+[`NRF54L15_TAG_SENSOR_RECOVERY.md`](NRF54L15_TAG_SENSOR_RECOVERY.md) for the
+observed assembled-ball failure, policy and physical acceptance gates.

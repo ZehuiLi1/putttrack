@@ -194,7 +194,14 @@ def main() -> int:
     capture_session.start(status)
     if not status.adxl367_ready or not status.bmi270_ready:
         raise RuntimeError("Tag reports that one or more motion sensors are not ready")
-    if status.sensor_error_count != 0:
+    if status.sensor_health is not None and (
+        status.sensor_health != "healthy" or status.capture_safe is not True
+    ):
+        raise RuntimeError(
+            f"Tag capture is not safe: health={status.sensor_health!r}, "
+            f"capture_safe={status.capture_safe!r}"
+        )
+    if status.sensor_health is None and status.sensor_error_count != 0:
         raise RuntimeError(
             "Tag reports pre-existing sensor errors; reboot and diagnose before collecting labels"
         )

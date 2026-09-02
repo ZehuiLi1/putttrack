@@ -46,7 +46,7 @@ position, cup entry or every valid stroke.
 - Repository-owned Tag firmware `0.1.13` installed over BLE while powered from
   CR2032, remotely confirmed and verified after a further reboot.
 - Multi-Tag capture now locks the full encrypted device ID plus boot/firmware,
-  sequence/time and health-counter continuity. Build-only candidate `0.1.15`
+  sequence/time and health-counter continuity. Build-only candidate `0.1.16`
   adds a per-device advertising suffix; it has not replaced the confirmed
   physical `0.1.13` image.
 - A primary-source Trackaball review confirmed the relevance of distributed
@@ -75,6 +75,17 @@ position, cup entry or every valid stroke.
   connect/disconnect cycles passed before confirmation, and two more passed
   after confirmation, reset and automatic idle. Advertising start errors and
   sensor errors remained zero.
+- The first mechanically assembled ball closes fully and restrains the Tag. Its
+  first post-reset stationary history contained 1,024 contiguous dual-IMU
+  samples over 20.46 seconds at exactly 50 Hz with zero error, gap or clipping
+  deltas. Before that reset, status exposed one ADXL367 boot-initialization
+  failure that had been counted every 160 ms for almost the full 3.2-hour boot.
+- Build-only candidate `0.1.16` now detects consecutive failures, invalidates
+  capture history across recovery, tries local reconfiguration three times,
+  permits one quiet/disconnected warm reboot and quarantines recurrence. Host
+  capture rejects unhealthy state or a recovery-generation change. The
+  confirmed physical image remains `0.1.13` until R0 collection and fault
+  injection are complete.
 - The physical capture converts to canonical `MotionObservation` and reaches the
   one-hole no-CS candidate policy. A real stationary observation was audited as
   `motion.stationary` with zero score/stroke mutation.
@@ -101,7 +112,7 @@ position, cup entry or every valid stroke.
   unpopulated `TBD` tuning footprints. The default board DTS selects GPIO mode;
   the hardware route is present but has not yet been populated or validated.
 - The optional NFC Type 2 service variant now passes a complete NCS v3.4.0
-  MCUboot + application build. Candidate `0.1.15` adds a one-shot 10-second
+  MCUboot + application build. Candidate `0.1.16` retains the one-shot 10-second
   fast-BLE discovery window on an NFC field edge and exposes window/field
   diagnostics. Both generated images select NFCT pad mode; the signed OTA image
   verifies and retains BLE/SMP/motion at link time. It has not been installed,
@@ -310,7 +321,7 @@ Re-open the CS track only when at least one is true:
    post-confirm reset. Measured coin-cell current remains a separate gate.
 6. ~~Make capture safe before a second Tag is powered.~~ Complete: full
    `DEVICE_ID` locking, address pinning, boot/session continuity and strict
-   malformed/error handling are implemented. Candidate `0.1.15` provides a
+   malformed/error handling are implemented. Candidate `0.1.16` provides a
    human-readable short-ID advertising suffix but remains build-only.
 7. Build a repeatable, restrained research-ball core and record labelled putter
    impact, rolling, settling and post-stop episodes. Then extend the implemented

@@ -101,7 +101,7 @@ internally consistent.
 The application exposes a read-only URI:
 
 ```text
-putttrack://service/tag/<opaque-device-id>?fw=0.1.15
+putttrack://service/tag/<opaque-device-id>?fw=0.1.16
 ```
 
 It counts NFC field-on/field-off events and reports those plus initialization
@@ -112,14 +112,14 @@ not used to extend the window. The idle 2.0–2.5 second advertisement remains
 enabled after timeout, so this build does not claim System OFF or measured
 energy savings. A field does not change identity, configuration or firmware.
 
-Latest NCS v3.4.0 build evidence for candidate `0.1.15+0`:
+Latest NCS v3.4.0 build evidence for candidate `0.1.16+0`:
 
-- application RRAM: `189,736 / 696,176 bytes` (`27.25%`);
-- application RAM: `210,420 / 262,144 bytes` (`80.27%`);
-- signed application image version: `0.1.15+0`;
+- application RRAM: `192,544 / 696,176 bytes` (`27.66%`);
+- application RAM: `210,508 / 262,144 bytes` (`80.30%`);
+- signed application image version: `0.1.16+0`;
 - signed image passed `imgtool verify` with the existing lab Ed25519 key;
 - signed OTA BIN SHA-256:
-  `d6a996a2c4fc5c10d6c4385e16a0898b6b46ca5b51eeb4ef9b58eb12ea0c47ef`;
+  `a26d641651e38c36456dbae0c0dd2fb63078b4f53fd39d13f8aebea37a32ea3b`;
 - signed OTA and first-install artifacts were produced successfully;
 - a separate default build kept NFC disabled/GPIO pin mode and also passed
   signature verification;
@@ -147,7 +147,7 @@ identity path.
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a
    firmware/version marker; count field-detected, field-lost and read events.
 3. **NFC-to-BLE handoff:** an NFC touch opens a bounded connectable BLE service
-   window. **Build-only implementation passed in `0.1.15`; physical timing is
+   window. **Build-only implementation passed in `0.1.16`; physical timing is
    pending.** Encrypted BLE remains the lab channel for configuration,
    diagnostics and signed OTA; production controller authentication is open.
 4. **System OFF proof:** only after ordinary reads are reliable, test NFC field

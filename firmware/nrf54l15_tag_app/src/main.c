@@ -20,6 +20,7 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
+#include <zephyr/linker/section_tags.h>
 #include <zephyr/mgmt/mcumgr/mgmt/handlers.h>
 #include <zephyr/mgmt/mcumgr/mgmt/mgmt.h>
 #include <zephyr/mgmt/mcumgr/smp/smp.h>
@@ -28,6 +29,7 @@
 #include <zephyr/random/random.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/reboot.h>
 #include <zephyr/sys/util.h>
 #include <zcbor_encode.h>
 
@@ -38,7 +40,7 @@
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.15"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.16"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -80,6 +82,15 @@
 #define ACTIVE_DELTA_MICRO_MS2 300000
 #define ACTIVE_GYRO_MICRO_RADS 80000
 #define IDLE_WAKE_REQUIRED_SAMPLES 2U
+#define SENSOR_FAILURE_STREAK_LIMIT 5U
+#define SENSOR_RECOVERY_MAX_ATTEMPTS 3U
+#define SENSOR_RECOVERY_RETRY_INITIAL_MS 1000U
+#define SENSOR_RECOVERY_RETRY_SECOND_MS 5000U
+#define SENSOR_REBOOT_QUIET_MS 10000U
+#define SENSOR_REBOOT_GUARD_CLEAR_MS 300000U
+#define IDLE_SENSOR_HEALTH_CHECK_MS 600000U
+#define SUSPECT_SENSOR_HEALTH_CHECK_MS 1000U
+#define SENSOR_RETENTION_MAGIC 0x50544831U
 #define ADVERTISING_RETRY_MS 250U
 #define IDLE_ADV_INTERVAL_MIN_MS 2000U
 #define IDLE_ADV_INTERVAL_MAX_MS 2500U
@@ -131,6 +142,21 @@ enum putttrack_runtime_state {
 	PUTTTRACK_RUNTIME_IDLE = 1,
 };
 
+enum putttrack_sensor_health {
+	PUTTTRACK_SENSOR_HEALTHY = 0,
+	PUTTTRACK_SENSOR_SUSPECT = 1,
+	PUTTTRACK_SENSOR_RECOVERING = 2,
+	PUTTTRACK_SENSOR_DEGRADED = 3,
+	PUTTTRACK_SENSOR_QUARANTINED = 4,
+};
+
+struct sensor_reboot_retention {
+	uint32_t magic;
+	uint32_t guard;
+	uint32_t reboot_count;
+	uint32_t last_fault_bits;
+};
+
 /* PuttTrack telemetry service: 8f3a1000-6e7d-4b9a-a6e8-3f3f7d2c0001. */
 static const struct bt_uuid_128 putttrack_service_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0x8f3a1000, 0x6e7d, 0x4b9a, 0xa6e8, 0x3f3f7d2c0001));
@@ -166,6 +192,15 @@ static char advertising_name[ADVERTISING_NAME_BUFFER_SIZE];
 static uint32_t reset_cause;
 static uint32_t sequence;
 static uint32_t sensor_error_count;
+static uint32_t sensor_fault_count;
+static uint32_t sensor_recovery_generation;
+static uint32_t sensor_recovery_attempt_count;
+static uint32_t sensor_recovery_success_count;
+static uint32_t sensor_recovery_failure_count;
+static uint32_t adxl367_error_streak;
+static uint32_t bmi270_error_streak;
+static uint32_t last_sensor_error_bits;
+static uint64_t last_sensor_error_uptime_ms;
 static uint32_t notify_drop_count;
 static uint32_t adxl367_clip_count;
 static uint32_t bmi270_accel_clip_count;
@@ -174,8 +209,10 @@ static bool adxl367_ready;
 static bool bmi270_ready;
 static atomic_t notify_enabled;
 static atomic_t ble_connected;
+static atomic_t bluetooth_ready;
 static atomic_t power_policy = ATOMIC_INIT(PUTTTRACK_POWER_AUTO);
 static atomic_t runtime_state = ATOMIC_INIT(PUTTTRACK_RUNTIME_ACTIVE);
+static atomic_t sensor_health = ATOMIC_INIT(PUTTTRACK_SENSOR_HEALTHY);
 static uint32_t power_transition_count;
 static uint32_t advertising_start_error_count;
 static uint32_t power_management_error_count;
@@ -190,12 +227,17 @@ static uint32_t current_bmi270_gyro_odr_hz = BMI270_GYRO_ODR_HZ;
 static uint32_t current_adv_interval_min_ms = 100U;
 static uint32_t current_adv_interval_max_ms = 150U;
 static int64_t last_active_motion_ms;
+static int64_t sensor_healthy_since_ms;
+static int64_t next_sensor_recovery_ms;
+static int64_t last_idle_sensor_health_check_ms;
+static uint8_t sensor_recovery_attempts_in_episode;
 static int32_t active_previous_adxl[3];
 static bool active_previous_adxl_valid;
 static int32_t idle_adxl_baseline[3];
 static bool idle_adxl_baseline_valid;
 static uint8_t idle_wake_samples;
 static struct k_work_delayable advertise_work;
+static struct sensor_reboot_retention sensor_reboot_retention __noinit;
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #define NFC_NDEF_BUFFER_SIZE 160U
@@ -218,6 +260,7 @@ K_MUTEX_DEFINE(packet_mutex);
 K_SEM_DEFINE(power_event_sem, 0, 1);
 
 static void build_status_packet(void);
+static void begin_sensor_recovery(uint32_t error_bits);
 
 static const char *power_policy_name(enum putttrack_power_policy policy)
 {
@@ -235,6 +278,23 @@ static const char *power_policy_name(enum putttrack_power_policy policy)
 static const char *runtime_state_name(enum putttrack_runtime_state state)
 {
 	return state == PUTTTRACK_RUNTIME_ACTIVE ? "active" : "idle";
+}
+
+static const char *sensor_health_name(enum putttrack_sensor_health health)
+{
+	switch (health) {
+	case PUTTTRACK_SENSOR_SUSPECT:
+		return "suspect";
+	case PUTTTRACK_SENSOR_RECOVERING:
+		return "recovering";
+	case PUTTTRACK_SENSOR_DEGRADED:
+		return "degraded";
+	case PUTTTRACK_SENSOR_QUARANTINED:
+		return "quarantined";
+	case PUTTTRACK_SENSOR_HEALTHY:
+	default:
+		return "healthy";
+	}
 }
 
 static void bytes_to_hex(const uint8_t *input, size_t input_len, char *output)
@@ -263,8 +323,10 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	zcbor_state_t *zse = ctxt->writer->zs;
 	enum putttrack_power_policy policy = atomic_get(&power_policy);
 	enum putttrack_runtime_state state = atomic_get(&runtime_state);
+	enum putttrack_sensor_health health = atomic_get(&sensor_health);
 	const char *policy_text = power_policy_name(policy);
 	const char *state_text = runtime_state_name(state);
+	const char *health_text = sensor_health_name(health);
 	char device_id_hex[DEVICE_ID_MAX_SIZE * 2];
 	char boot_id_hex[BOOT_ID_SIZE * 2];
 	struct zcbor_string device_id_value = {
@@ -286,6 +348,10 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	struct zcbor_string runtime_state_value = {
 		.value = (const uint8_t *)state_text,
 		.len = strlen(state_text),
+	};
+	struct zcbor_string sensor_health_value = {
+		.value = (const uint8_t *)health_text,
+		.len = strlen(health_text),
 	};
 	uint32_t status_sequence;
 	bool ok;
@@ -343,6 +409,42 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_tstr_encode(zse, &power_policy_value) &&
 	     zcbor_tstr_put_lit(zse, "runtime_state") &&
 	     zcbor_tstr_encode(zse, &runtime_state_value) &&
+	     zcbor_tstr_put_lit(zse, "sensor_health") &&
+	     zcbor_tstr_encode(zse, &sensor_health_value) &&
+	     zcbor_tstr_put_lit(zse, "capture_safe") &&
+	     zcbor_bool_put(zse, health == PUTTTRACK_SENSOR_HEALTHY &&
+			    adxl367_ready && bmi270_ready &&
+			    state == PUTTTRACK_RUNTIME_ACTIVE &&
+			    current_stream_rate_hz == MOTION_STREAM_RATE_HZ) &&
+	     zcbor_tstr_put_lit(zse, "sensor_faults") &&
+	     zcbor_uint32_put(zse, sensor_fault_count) &&
+	     zcbor_tstr_put_lit(zse, "recovery_generation") &&
+	     zcbor_uint32_put(zse, sensor_recovery_generation) &&
+	     zcbor_tstr_put_lit(zse, "recovery_attempts") &&
+	     zcbor_uint32_put(zse, sensor_recovery_attempt_count) &&
+	     zcbor_tstr_put_lit(zse, "recovery_successes") &&
+	     zcbor_uint32_put(zse, sensor_recovery_success_count) &&
+	     zcbor_tstr_put_lit(zse, "recovery_failures") &&
+	     zcbor_uint32_put(zse, sensor_recovery_failure_count) &&
+	     zcbor_tstr_put_lit(zse, "adxl_error_streak") &&
+	     zcbor_uint32_put(zse, adxl367_error_streak) &&
+	     zcbor_tstr_put_lit(zse, "bmi_error_streak") &&
+	     zcbor_uint32_put(zse, bmi270_error_streak) &&
+	     zcbor_tstr_put_lit(zse, "last_sensor_error_bits") &&
+	     zcbor_uint32_put(zse, last_sensor_error_bits) &&
+	     zcbor_tstr_put_lit(zse, "last_sensor_error_ms") &&
+	     zcbor_uint64_put(zse, last_sensor_error_uptime_ms) &&
+	     zcbor_tstr_put_lit(zse, "auto_reboots") &&
+	     zcbor_uint32_put(zse, sensor_reboot_retention.reboot_count) &&
+	     zcbor_tstr_put_lit(zse, "auto_reboot_fault_bits") &&
+	     zcbor_uint32_put(zse, sensor_reboot_retention.last_fault_bits) &&
+	     zcbor_tstr_put_lit(zse, "auto_reboot_guard") &&
+	     zcbor_bool_put(zse, sensor_reboot_retention.guard != 0U) &&
+	     zcbor_tstr_put_lit(zse, "auto_reboot_pending") &&
+	     zcbor_bool_put(zse, health == PUTTTRACK_SENSOR_DEGRADED &&
+			    sensor_reboot_retention.guard == 0U) &&
+	     zcbor_tstr_put_lit(zse, "idle_health_check_ms") &&
+	     zcbor_uint32_put(zse, IDLE_SENSOR_HEALTH_CHECK_MS) &&
 	     zcbor_tstr_put_lit(zse, "power_transitions") &&
 	     zcbor_uint32_put(zse, power_transition_count) &&
 	     zcbor_tstr_put_lit(zse, "idle_timeout_ms") &&
@@ -866,10 +968,13 @@ static const struct bt_le_adv_param idle_advertising = BT_LE_ADV_PARAM_INIT(
 static void advertise(struct k_work *work)
 {
 	const struct bt_le_adv_param *parameters;
+	enum putttrack_sensor_health health = atomic_get(&sensor_health);
 	int rc;
 
 	ARG_UNUSED(work);
-	if (atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_IDLE
+	if ((atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_IDLE ||
+	     health == PUTTTRACK_SENSOR_DEGRADED ||
+	     health == PUTTTRACK_SENSOR_QUARANTINED)
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	    && atomic_get(&nfc_service_window_active) == 0
 #endif
@@ -894,7 +999,8 @@ static void advertise(struct k_work *work)
 
 static void refresh_advertising(void)
 {
-	if (atomic_get(&ble_connected) != 0) {
+	if (atomic_get(&bluetooth_ready) == 0 ||
+	    atomic_get(&ble_connected) != 0) {
 		return;
 	}
 	(void)bt_le_adv_stop();
@@ -970,6 +1076,15 @@ static void initialize_identity(void)
 	(void)sys_csrand_get(boot_id, sizeof(boot_id));
 	(void)hwinfo_get_reset_cause(&reset_cause);
 	(void)hwinfo_clear_reset_cause();
+}
+
+static void initialize_sensor_reboot_retention(void)
+{
+	if (sensor_reboot_retention.magic != SENSOR_RETENTION_MAGIC) {
+		sensor_reboot_retention = (struct sensor_reboot_retention) {
+			.magic = SENSOR_RETENTION_MAGIC,
+		};
+	}
 }
 
 static int set_sensor_frequency(const struct device *device,
@@ -1124,6 +1239,131 @@ static int disable_idle_wake_interrupt(void)
 	return rc;
 }
 
+static void increment_saturating(uint32_t *value)
+{
+	if (*value != UINT32_MAX) {
+		(*value)++;
+	}
+}
+
+static void clear_motion_history(void)
+{
+	k_mutex_lock(&packet_mutex, K_FOREVER);
+	motion_ring_write_index = 0U;
+	motion_ring_count = 0U;
+	frozen_motion_count = 0U;
+	frozen_capture_id++;
+	k_mutex_unlock(&packet_mutex);
+}
+
+static void begin_sensor_recovery(uint32_t error_bits)
+{
+	enum putttrack_sensor_health health = atomic_get(&sensor_health);
+
+	if (health == PUTTTRACK_SENSOR_RECOVERING ||
+	    health == PUTTTRACK_SENSOR_DEGRADED ||
+	    health == PUTTTRACK_SENSOR_QUARANTINED) {
+		return;
+	}
+
+	last_sensor_error_bits = error_bits;
+	last_sensor_error_uptime_ms = (uint64_t)k_uptime_get();
+	increment_saturating(&sensor_fault_count);
+	increment_saturating(&sensor_recovery_generation);
+	sensor_recovery_attempts_in_episode = 0U;
+	next_sensor_recovery_ms = k_uptime_get();
+	current_stream_rate_hz = 0U;
+	active_previous_adxl_valid = false;
+	idle_adxl_baseline_valid = false;
+	idle_wake_samples = 0U;
+
+	if ((error_bits & (SENSOR_ERROR_ADXL367_FETCH |
+			   SENSOR_ERROR_ADXL367_READ)) != 0U) {
+		adxl367_ready = false;
+		adxl367_error_streak = SENSOR_FAILURE_STREAK_LIMIT;
+	}
+	if ((error_bits & (SENSOR_ERROR_BMI270_FETCH |
+			   SENSOR_ERROR_BMI270_ACCEL |
+			   SENSOR_ERROR_BMI270_GYRO)) != 0U) {
+		bmi270_ready = false;
+		bmi270_error_streak = SENSOR_FAILURE_STREAK_LIMIT;
+	}
+	if (atomic_get(&idle_wake_interrupt_enabled) != 0 &&
+	    disable_idle_wake_interrupt() != 0) {
+		increment_saturating(&power_management_error_count);
+	}
+	clear_motion_history();
+	atomic_set(&runtime_state, PUTTTRACK_RUNTIME_ACTIVE);
+	atomic_set(&sensor_health, PUTTTRACK_SENSOR_RECOVERING);
+	refresh_advertising();
+}
+
+static void record_sensor_sample_result(uint32_t error_bits)
+{
+	if (error_bits == 0U) {
+		adxl367_error_streak = 0U;
+		bmi270_error_streak = 0U;
+		if (atomic_get(&sensor_health) == PUTTTRACK_SENSOR_SUSPECT) {
+			atomic_set(&sensor_health, PUTTTRACK_SENSOR_HEALTHY);
+			sensor_healthy_since_ms = k_uptime_get();
+		}
+		return;
+	}
+
+	increment_saturating(&sensor_error_count);
+	last_sensor_error_bits = error_bits;
+	last_sensor_error_uptime_ms = (uint64_t)k_uptime_get();
+	if ((error_bits & (SENSOR_ERROR_ADXL367_FETCH |
+			   SENSOR_ERROR_ADXL367_READ)) != 0U) {
+		increment_saturating(&adxl367_error_streak);
+	} else {
+		adxl367_error_streak = 0U;
+	}
+	if ((error_bits & (SENSOR_ERROR_BMI270_FETCH |
+			   SENSOR_ERROR_BMI270_ACCEL |
+			   SENSOR_ERROR_BMI270_GYRO)) != 0U) {
+		increment_saturating(&bmi270_error_streak);
+	} else {
+		bmi270_error_streak = 0U;
+	}
+
+	if (adxl367_error_streak >= SENSOR_FAILURE_STREAK_LIMIT ||
+	    bmi270_error_streak >= SENSOR_FAILURE_STREAK_LIMIT) {
+		begin_sensor_recovery(error_bits);
+	} else if (atomic_get(&sensor_health) == PUTTTRACK_SENSOR_HEALTHY) {
+		atomic_set(&sensor_health, PUTTTRACK_SENSOR_SUSPECT);
+	}
+}
+
+static uint32_t verify_active_sensor_samples(void)
+{
+	struct sensor_value adxl_accel[3];
+	struct sensor_value bmi_accel[3];
+	struct sensor_value bmi_gyro[3];
+	uint32_t errors = 0U;
+
+	if (!device_is_ready(adxl367) || sensor_sample_fetch(adxl367) != 0) {
+		errors |= SENSOR_ERROR_ADXL367_FETCH;
+	} else if (sensor_channel_get(adxl367, SENSOR_CHAN_ACCEL_XYZ,
+				      adxl_accel) != 0) {
+		errors |= SENSOR_ERROR_ADXL367_READ;
+	}
+
+	if (!device_is_ready(bmi270) || sensor_sample_fetch(bmi270) != 0) {
+		errors |= SENSOR_ERROR_BMI270_FETCH;
+	} else {
+		if (sensor_channel_get(bmi270, SENSOR_CHAN_ACCEL_XYZ,
+				       bmi_accel) != 0) {
+			errors |= SENSOR_ERROR_BMI270_ACCEL;
+		}
+		if (sensor_channel_get(bmi270, SENSOR_CHAN_GYRO_XYZ,
+				       bmi_gyro) != 0) {
+			errors |= SENSOR_ERROR_BMI270_GYRO;
+		}
+	}
+	return errors;
+}
+
 static int configure_active_sensors(void)
 {
 	int failures = 0;
@@ -1151,10 +1391,29 @@ static int configure_active_sensors(void)
 		}
 	}
 	if (failures != 0) {
-		sensor_error_count += failures;
+		for (int failure = 0; failure < failures; failure++) {
+			increment_saturating(&sensor_error_count);
+		}
 		return -EIO;
 	}
 	return 0;
+}
+
+static int configure_bmi270_full_scale(void)
+{
+	struct sensor_value value;
+
+	if (!bmi270_ready) {
+		return -ENODEV;
+	}
+	value = (struct sensor_value){.val1 = BMI270_ACCEL_RANGE_G, .val2 = 0};
+	if (sensor_attr_set(bmi270, SENSOR_CHAN_ACCEL_XYZ,
+			    SENSOR_ATTR_FULL_SCALE, &value) != 0) {
+		return -EIO;
+	}
+	value = (struct sensor_value){.val1 = BMI270_GYRO_RANGE_DPS, .val2 = 0};
+	return sensor_attr_set(bmi270, SENSOR_CHAN_GYRO_XYZ,
+			       SENSOR_ATTR_FULL_SCALE, &value);
 }
 
 static int configure_idle_sensors(void)
@@ -1185,7 +1444,9 @@ static int configure_idle_sensors(void)
 		}
 	}
 	if (failures != 0) {
-		sensor_error_count += failures;
+		for (int failure = 0; failure < failures; failure++) {
+			increment_saturating(&sensor_error_count);
+		}
 		return -EIO;
 	}
 	return 0;
@@ -1193,26 +1454,145 @@ static int configure_idle_sensors(void)
 
 static void initialize_sensors(void)
 {
-	struct sensor_value value;
+	uint32_t errors = 0U;
 
 	adxl367_ready = device_is_ready(adxl367);
 	bmi270_ready = device_is_ready(bmi270);
 
-	if (bmi270_ready) {
-		value = (struct sensor_value){.val1 = 16, .val2 = 0};
-		if (sensor_attr_set(bmi270, SENSOR_CHAN_ACCEL_XYZ,
-				    SENSOR_ATTR_FULL_SCALE, &value) != 0) {
-			sensor_error_count++;
+	if (!adxl367_ready) {
+		errors |= SENSOR_ERROR_ADXL367_FETCH;
+	}
+	if (!bmi270_ready || configure_bmi270_full_scale() != 0) {
+		errors |= SENSOR_ERROR_BMI270_FETCH;
+	}
+	if (configure_active_sensors() != 0) {
+		errors |= SENSOR_ERROR_ADXL367_FETCH | SENSOR_ERROR_BMI270_FETCH;
+	}
+	for (size_t sample = 0U; errors == 0U && sample < 3U; sample++) {
+		errors = verify_active_sensor_samples();
+		if (errors == 0U && sample < 2U) {
+			k_sleep(K_MSEC(20));
 		}
-		value = (struct sensor_value){.val1 = 2000, .val2 = 0};
-		if (sensor_attr_set(bmi270, SENSOR_CHAN_GYRO_XYZ,
-				    SENSOR_ATTR_FULL_SCALE, &value) != 0) {
-			sensor_error_count++;
+	}
+	if (errors != 0U) {
+		increment_saturating(&sensor_error_count);
+		begin_sensor_recovery(errors);
+	} else {
+		atomic_set(&sensor_health, PUTTTRACK_SENSOR_HEALTHY);
+		sensor_healthy_since_ms = k_uptime_get();
+	}
+
+	last_active_motion_ms = k_uptime_get();
+}
+
+static uint32_t recovery_retry_delay_ms(uint8_t attempts)
+{
+	return attempts <= 1U ? SENSOR_RECOVERY_RETRY_INITIAL_MS :
+		SENSOR_RECOVERY_RETRY_SECOND_MS;
+}
+
+static void attempt_sensor_recovery(void)
+{
+	uint32_t errors;
+	int rc;
+
+	if (atomic_get(&sensor_health) != PUTTTRACK_SENSOR_RECOVERING ||
+	    k_uptime_get() < next_sensor_recovery_ms) {
+		return;
+	}
+
+	increment_saturating(&sensor_recovery_attempt_count);
+	sensor_recovery_attempts_in_episode++;
+	if (atomic_get(&bmi270_spi_suspended) != 0) {
+		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_RESUME);
+		if (rc == 0) {
+			atomic_clear(&bmi270_spi_suspended);
+		} else {
+			increment_saturating(&power_management_error_count);
 		}
 	}
 
-	(void)configure_active_sensors();
-	last_active_motion_ms = k_uptime_get();
+	adxl367_ready = device_is_ready(adxl367);
+	bmi270_ready = device_is_ready(bmi270);
+	errors = 0U;
+	if (!adxl367_ready) {
+		errors |= SENSOR_ERROR_ADXL367_FETCH;
+	}
+	if (!bmi270_ready || configure_bmi270_full_scale() != 0) {
+		errors |= SENSOR_ERROR_BMI270_FETCH;
+	}
+	if (errors == 0U && configure_active_sensors() != 0) {
+		errors |= SENSOR_ERROR_ADXL367_FETCH | SENSOR_ERROR_BMI270_FETCH;
+	}
+	for (size_t sample = 0U; errors == 0U && sample < 3U; sample++) {
+		errors = verify_active_sensor_samples();
+		if (errors == 0U && sample < 2U) {
+			k_sleep(K_MSEC(20));
+		}
+	}
+
+	if (errors == 0U) {
+		adxl367_ready = true;
+		bmi270_ready = true;
+		adxl367_error_streak = 0U;
+		bmi270_error_streak = 0U;
+		increment_saturating(&sensor_recovery_success_count);
+		atomic_set(&sensor_health, PUTTTRACK_SENSOR_HEALTHY);
+		sensor_healthy_since_ms = k_uptime_get();
+		last_active_motion_ms = k_uptime_get();
+		current_stream_rate_hz = MOTION_STREAM_RATE_HZ;
+		clear_motion_history();
+		return;
+	}
+
+	increment_saturating(&sensor_recovery_failure_count);
+	last_sensor_error_bits = errors;
+	last_sensor_error_uptime_ms = (uint64_t)k_uptime_get();
+	adxl367_ready = (errors & (SENSOR_ERROR_ADXL367_FETCH |
+				  SENSOR_ERROR_ADXL367_READ)) == 0U;
+	bmi270_ready = (errors & (SENSOR_ERROR_BMI270_FETCH |
+				SENSOR_ERROR_BMI270_ACCEL |
+				SENSOR_ERROR_BMI270_GYRO)) == 0U;
+	if (sensor_recovery_attempts_in_episode >= SENSOR_RECOVERY_MAX_ATTEMPTS) {
+		atomic_set(&sensor_health, PUTTTRACK_SENSOR_DEGRADED);
+		refresh_advertising();
+		return;
+	}
+	next_sensor_recovery_ms = k_uptime_get() +
+		recovery_retry_delay_ms(sensor_recovery_attempts_in_episode);
+}
+
+static void service_sensor_recovery_policy(void)
+{
+	enum putttrack_sensor_health health = atomic_get(&sensor_health);
+	int64_t now_ms = k_uptime_get();
+
+	if (health == PUTTTRACK_SENSOR_RECOVERING) {
+		attempt_sensor_recovery();
+		return;
+	}
+	if (health == PUTTTRACK_SENSOR_HEALTHY) {
+		if (sensor_reboot_retention.guard != 0U &&
+		    now_ms - sensor_healthy_since_ms >= SENSOR_REBOOT_GUARD_CLEAR_MS) {
+			sensor_reboot_retention.guard = 0U;
+		}
+		return;
+	}
+	if (health != PUTTTRACK_SENSOR_DEGRADED ||
+	    now_ms - last_active_motion_ms < SENSOR_REBOOT_QUIET_MS ||
+	    atomic_get(&ble_connected) != 0) {
+		return;
+	}
+	if (sensor_reboot_retention.guard != 0U) {
+		atomic_set(&sensor_health, PUTTTRACK_SENSOR_QUARANTINED);
+		refresh_advertising();
+		return;
+	}
+
+	sensor_reboot_retention.guard = 1U;
+	increment_saturating(&sensor_reboot_retention.reboot_count);
+	sensor_reboot_retention.last_fault_bits = last_sensor_error_bits;
+	sys_reboot(SYS_REBOOT_WARM);
 }
 
 static bool vector_delta_exceeds(const struct sensor_value values[3],
@@ -1277,6 +1657,8 @@ static bool sample_motion(void)
 		} else {
 			flags |= MOTION_FLAG_ADXL367_VALID;
 		}
+	} else {
+		errors |= SENSOR_ERROR_ADXL367_FETCH;
 	}
 
 	if (bmi270_ready) {
@@ -1297,12 +1679,10 @@ static bool sample_motion(void)
 				flags |= MOTION_FLAG_BMI270_VALID;
 			}
 		}
+	} else {
+		errors |= SENSOR_ERROR_BMI270_FETCH;
 	}
 
-	if (errors != 0U) {
-		sensor_error_count++;
-		motion_detected = true;
-	}
 	if ((flags & MOTION_FLAG_ADXL367_VALID) != 0U) {
 		motion_detected |= vector_delta_exceeds(
 			adxl_accel, active_previous_adxl,
@@ -1357,6 +1737,7 @@ static bool sample_motion(void)
 			notify_drop_count++;
 		}
 	}
+	record_sensor_sample_result(errors);
 
 	return motion_detected;
 }
@@ -1369,11 +1750,15 @@ static bool sample_idle_wake_sensor(void)
 	const int64_t squared_threshold =
 		(int64_t)IDLE_WAKE_DELTA_MICRO_MS2 * IDLE_WAKE_DELTA_MICRO_MS2;
 
-	if (!adxl367_ready || sensor_sample_fetch(adxl367) != 0 ||
-	    sensor_channel_get(adxl367, SENSOR_CHAN_ACCEL_XYZ, adxl_accel) != 0) {
-		sensor_error_count++;
+	if (!adxl367_ready || sensor_sample_fetch(adxl367) != 0) {
+		record_sensor_sample_result(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
 	}
+	if (sensor_channel_get(adxl367, SENSOR_CHAN_ACCEL_XYZ, adxl_accel) != 0) {
+		record_sensor_sample_result(SENSOR_ERROR_ADXL367_READ);
+		return false;
+	}
+	record_sensor_sample_result(0U);
 	for (size_t index = 0; index < 3; index++) {
 		current[index] = sensor_value_to_i32_micro(&adxl_accel[index]);
 	}
@@ -1410,29 +1795,39 @@ static bool enter_idle_state(void)
 		return true;
 	}
 	if (configure_idle_sensors() != 0) {
+		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH |
+				      SENSOR_ERROR_BMI270_FETCH);
 		return false;
 	}
 	if (adxl367_ready) {
 		rc = enable_idle_wake_interrupt();
 		if (rc != 0) {
-			power_management_error_count++;
+			increment_saturating(&power_management_error_count);
+			begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
+			return false;
 		}
 		rc = set_adxl367_wakeup_mode(true);
 		if (rc != 0) {
-			power_management_error_count++;
+			increment_saturating(&power_management_error_count);
+			begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
+			return false;
 		}
+	} else {
+		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
+		return false;
 	}
 	if (bmi270_ready && atomic_get(&bmi270_spi_suspended) == 0) {
 		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_SUSPEND);
 		if (rc == 0) {
 			atomic_set(&bmi270_spi_suspended, 1);
 		} else {
-			power_management_error_count++;
+			increment_saturating(&power_management_error_count);
 		}
 	}
 	current_stream_rate_hz = 0U;
 	idle_adxl_baseline_valid = false;
 	idle_wake_samples = 0U;
+	last_idle_sensor_health_check_ms = k_uptime_get();
 	atomic_set(&runtime_state, PUTTTRACK_RUNTIME_IDLE);
 	current_adv_interval_min_ms = IDLE_ADV_INTERVAL_MIN_MS;
 	current_adv_interval_max_ms = IDLE_ADV_INTERVAL_MAX_MS;
@@ -1449,28 +1844,30 @@ static bool enter_active_state(void)
 		return true;
 	}
 	if (disable_idle_wake_interrupt() != 0) {
-		power_management_error_count++;
+		increment_saturating(&power_management_error_count);
+		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
 	}
 	if (adxl367_ready && set_adxl367_wakeup_mode(false) != 0) {
-		power_management_error_count++;
+		increment_saturating(&power_management_error_count);
+		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
 	}
 	if (bmi270_ready && atomic_get(&bmi270_spi_suspended) != 0) {
 		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_RESUME);
 		if (rc != 0) {
-			power_management_error_count++;
+			increment_saturating(&power_management_error_count);
+			begin_sensor_recovery(SENSOR_ERROR_BMI270_FETCH);
 			return false;
 		}
 		atomic_clear(&bmi270_spi_suspended);
 	}
 	if (configure_active_sensors() != 0) {
+		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH |
+				      SENSOR_ERROR_BMI270_FETCH);
 		return false;
 	}
-	k_mutex_lock(&packet_mutex, K_FOREVER);
-	motion_ring_write_index = 0U;
-	motion_ring_count = 0U;
-	k_mutex_unlock(&packet_mutex);
+	clear_motion_history();
 	current_stream_rate_hz = MOTION_STREAM_RATE_HZ;
 	active_previous_adxl_valid = false;
 	last_active_motion_ms = k_uptime_get();
@@ -1558,17 +1955,19 @@ int main(void)
 	int64_t next_sample_ms;
 	uint32_t previous_period_ms = 0U;
 
+	initialize_sensor_reboot_retention();
 	initialize_identity();
 	initialize_advertising_name();
 	scan_response_data[0].data_len = (uint8_t)strlen(advertising_name);
-	initialize_sensors();
 	k_work_init_delayable(&advertise_work, advertise);
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	k_work_init(&nfc_service_window_open_work, open_nfc_service_window);
 	k_work_init_delayable(&nfc_service_window_close_work,
 			      close_nfc_service_window);
 #endif
+	initialize_sensors();
 	if (bt_enable(NULL) == 0) {
+		atomic_set(&bluetooth_ready, 1);
 		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 	}
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
@@ -1580,8 +1979,23 @@ int main(void)
 	while (true) {
 		enum putttrack_power_policy policy = atomic_get(&power_policy);
 		enum putttrack_runtime_state state = atomic_get(&runtime_state);
+		enum putttrack_sensor_health health;
 		uint32_t period_ms;
+		uint32_t idle_health_interval_ms;
 		int64_t now_ms;
+		int64_t guard_wait_ms;
+		int64_t idle_health_wait_ms;
+		int64_t event_wait_ms;
+
+		service_sensor_recovery_policy();
+		health = atomic_get(&sensor_health);
+		if (health == PUTTTRACK_SENSOR_RECOVERING ||
+		    health == PUTTTRACK_SENSOR_DEGRADED ||
+		    health == PUTTTRACK_SENSOR_QUARANTINED) {
+			previous_period_ms = 250U;
+			k_sleep(K_MSEC(250));
+			continue;
+		}
 
 		if (policy == PUTTTRACK_POWER_IDLE &&
 		    state != PUTTTRACK_RUNTIME_IDLE) {
@@ -1597,6 +2011,7 @@ int main(void)
 				last_active_motion_ms = k_uptime_get();
 			}
 			if (policy == PUTTTRACK_POWER_AUTO &&
+			    atomic_get(&sensor_health) == PUTTTRACK_SENSOR_HEALTHY &&
 			    k_uptime_get() - last_active_motion_ms >= AUTO_IDLE_TIMEOUT_MS) {
 				(void)enter_idle_state();
 			}
@@ -1604,6 +2019,19 @@ int main(void)
 			if (atomic_cas(&idle_wake_requested, 1, 0) &&
 			    policy == PUTTTRACK_POWER_AUTO) {
 				(void)enter_active_state();
+			} else {
+				idle_health_interval_ms =
+					atomic_get(&sensor_health) == PUTTTRACK_SENSOR_SUSPECT ?
+					SUSPECT_SENSOR_HEALTH_CHECK_MS :
+					IDLE_SENSOR_HEALTH_CHECK_MS;
+				if (k_uptime_get() - last_idle_sensor_health_check_ms >=
+				    idle_health_interval_ms) {
+					last_idle_sensor_health_check_ms = k_uptime_get();
+					if (sample_idle_wake_sensor() &&
+					    policy == PUTTTRACK_POWER_AUTO) {
+						(void)enter_active_state();
+					}
+				}
 			}
 		} else if (sample_idle_wake_sensor() &&
 			   policy == PUTTTRACK_POWER_AUTO) {
@@ -1614,7 +2042,25 @@ int main(void)
 		if (state == PUTTTRACK_RUNTIME_IDLE &&
 		    atomic_get(&idle_wake_interrupt_enabled) != 0) {
 			previous_period_ms = 0U;
-			k_sem_take(&power_event_sem, K_FOREVER);
+			health = atomic_get(&sensor_health);
+			idle_health_interval_ms =
+				health == PUTTTRACK_SENSOR_SUSPECT ?
+				SUSPECT_SENSOR_HEALTH_CHECK_MS :
+				IDLE_SENSOR_HEALTH_CHECK_MS;
+			idle_health_wait_ms = idle_health_interval_ms -
+				(k_uptime_get() - last_idle_sensor_health_check_ms);
+			event_wait_ms = idle_health_wait_ms;
+			guard_wait_ms = SENSOR_REBOOT_GUARD_CLEAR_MS -
+				(k_uptime_get() - sensor_healthy_since_ms);
+			if (sensor_reboot_retention.guard != 0U && guard_wait_ms > 0 &&
+			    guard_wait_ms < event_wait_ms) {
+				event_wait_ms = guard_wait_ms;
+			}
+			if (event_wait_ms > 0) {
+				(void)k_sem_take(&power_event_sem, K_MSEC(event_wait_ms));
+			} else {
+				k_yield();
+			}
 			continue;
 		}
 		period_ms = state == PUTTTRACK_RUNTIME_ACTIVE ?
