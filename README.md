@@ -209,6 +209,17 @@ customer flow while physical mechanisms are still being built:
 - SSE hole-screen feedback and local leaderboard;
 - append-only local Gameplay audit and audited operator correction endpoint.
 
+Run the deterministic no-CS one-hole fault-injection soak with:
+
+```bash
+PYTHONPATH=src python tools/soak_no_cs_hole.py --rounds 1000 --players 4
+```
+
+The checked baseline completed all 1,000 rounds with 20,000 injected faults and
+zero invariant failures. This is a software gate, not a physical sensor
+reliability claim; see
+[`docs/verification/NO_CS_ONE_HOLE_SOAK.md`](docs/verification/NO_CS_ONE_HOLE_SOAK.md).
+
 Run it with:
 
 ```bash

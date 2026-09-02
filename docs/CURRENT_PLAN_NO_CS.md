@@ -106,6 +106,11 @@ position, cup entry or every valid stroke.
   already-confirmed stroke. The policy, HTTP path, audit, idempotency and
   deterministic replay tests pass. No physical tee/cup mechanism has been
   selected or validated yet.
+- The deterministic no-CS one-hole software soak completed 1,000 four-player
+  rounds with 20,000 injected identity/order/premature-cup/retry faults and zero
+  invariant failures. This closes the software-only soak gate; ADR-009's
+  physical 1,000-round/mechanism reliability gate remains open. See
+  [`verification/NO_CS_ONE_HOLE_SOAK.md`](verification/NO_CS_ONE_HOLE_SOAK.md).
 
 ## 3. Active milestones
 
@@ -208,6 +213,8 @@ Motion still cannot confirm a stroke on its own. Real BLE identity correlation,
 tee/cup mechanisms, feature hardware and physical false-positive/latency tests
 remain. See
 [`hardware/PHYSICAL_TEE_CUP_INGRESS.md`](hardware/PHYSICAL_TEE_CUP_INGRESS.md).
+The same boundary has passed a seeded 1,000-round software fault-injection soak;
+this is not a substitute for physical sensor trials.
 
 ### M5 — Gateway, enclosure and service evidence
 

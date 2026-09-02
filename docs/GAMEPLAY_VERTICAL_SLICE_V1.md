@@ -187,6 +187,11 @@ The `/api/sim/*` surface is **not** a production sensor API; it is an evidence s
   cup sequences fail closed;
 - identical physical input sequences replay to identical decisions.
 
+`tools/soak_no_cs_hole.py` extends these checks across fresh sessions. The
+2026-09-03 baseline completed 1,000 four-player rounds with 20,000 injected
+faults and zero score/state invariant failures. See
+[`verification/NO_CS_ONE_HOLE_SOAK.md`](verification/NO_CS_ONE_HOLE_SOAK.md).
+
 The implementation was developed against the merged Evidence Foundation. Existing Gameplay authority was not redesigned.
 
 ## What remains unverified
@@ -198,5 +203,8 @@ The implementation was developed against the merged Evidence Foundation. Existin
 - real motion candidate + independent sensor to confirmed-event latency;
 - physical Channel Sounding accuracy or update rate;
 - one-hole 1,000-round soak.
+
+The last item means a **physical** mechanism/human-play soak. The software-only
+1,000-round fault-injection gate has passed.
 
 Those remain in Issue #1 and Issue #12. This slice should not be used to mark physical UX or scoring-sensor gates as passed.
