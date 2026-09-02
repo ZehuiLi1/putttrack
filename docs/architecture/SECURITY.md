@@ -116,6 +116,7 @@ Guest networks cannot address control devices. HMI can consume only required pre
 | Threat | Control |
 |---|---|
 | BLE spoofed ball ID | authenticated association; opaque provisioned identity |
+| Spoofed connectionless Ball beacon | no score authority; provisioned device mapping, boot/sequence anti-replay and authenticated payload/MIC before production |
 | replayed sensor packet | boot ID + sequence + event idempotency/anti-replay |
 | compromised display | read-only presentation authority |
 | malicious score edit | role auth + explicit operator event + audit |

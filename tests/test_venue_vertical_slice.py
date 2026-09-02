@@ -78,6 +78,38 @@ class SessionTests(unittest.TestCase):
         with self.assertRaises(CheckInError):
             service.create_session(["A", "B"])
 
+    def test_device_identity_resolves_only_inside_its_assignment(self) -> None:
+        balls = [
+            BallAsset("b1", "Blue 07", "blue", "07", device_id="device-a"),
+            BallAsset("b2", "Orange 12", "orange", "12", device_id="device-b"),
+        ]
+        service = CheckInService(course_from_dict(COURSE), balls)
+        first = service.create_session(["Alex"])
+
+        self.assertEqual(service.device_to_ball, {"device-a": "b1", "device-b": "b2"})
+        self.assertEqual(
+            service.assigned_ball_for_device(first.session_id, "device-a"),
+            "b1",
+        )
+        with self.assertRaisesRegex(CheckInError, "not assigned"):
+            service.assigned_ball_for_device(first.session_id, "device-b")
+        with self.assertRaisesRegex(CheckInError, "not registered"):
+            service.assigned_ball_for_device(first.session_id, "unknown")
+
+    def test_duplicate_ball_or_device_identity_is_rejected(self) -> None:
+        duplicate_ball = [
+            BallAsset("b1", "Blue", "blue", "01"),
+            BallAsset("b1", "Orange", "orange", "02"),
+        ]
+        duplicate_device = [
+            BallAsset("b1", "Blue", "blue", "01", device_id="same-device"),
+            BallAsset("b2", "Orange", "orange", "02", device_id="same-device"),
+        ]
+        with self.assertRaisesRegex(CheckInError, "Ball IDs"):
+            CheckInService(course_from_dict(COURSE), duplicate_ball)
+        with self.assertRaisesRegex(CheckInError, "device IDs"):
+            CheckInService(course_from_dict(COURSE), duplicate_device)
+
 
 class RuntimeTests(unittest.TestCase):
     def make_runtime(self, temp_dir: str):

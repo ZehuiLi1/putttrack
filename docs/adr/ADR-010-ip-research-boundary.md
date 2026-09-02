@@ -36,5 +36,7 @@ Maintain separate namespaces/config/release flags, architecture ADRs, code owner
 - relevant claims/status/licensing change;
 - 2032/2033 landscape review;
 - planned rechargeable/inductive charging or detector/activator design;
+- planned movement/proximity-dependent RF power, multi-detector Ball tracking
+  or coded magnetic tee activation;
 - movement-signature research proposed for production authority;
 - entry into a new jurisdiction.

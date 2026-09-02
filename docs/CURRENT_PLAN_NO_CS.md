@@ -49,6 +49,11 @@ position, cup entry or every valid stroke.
   sequence/time and health-counter continuity. Build-only candidate `0.1.14`
   adds a per-device advertising suffix; it has not replaced the confirmed
   physical `0.1.13` image.
+- A primary-source Trackaball review confirmed the relevance of distributed
+  BLE reception, local buffering and state-sensitive radio operation. A
+  hardware-neutral multi-receiver observation/aggregation contract is now
+  implemented without granting RSSI position or scoring authority. Dynamic TX
+  power remains research-only behind FTO and physical RF/current gates.
 - Stable device ID, per-boot ID, health and encrypted raw motion telemetry.
 - ADXL367 + BMI270 valid at a measured 50.0 Hz source rate with a 64-sample live
   window and an atomic 1024-sample/20.48-second frozen history.
@@ -319,6 +324,10 @@ Re-open the CS track only when at least one is true:
    service wake plus BLE handoff; BLE remains the authenticated communication
    and OTA channel.
 10. Decide the pilot gateway and feature-sensor I/O from measured needs.
+11. After FTO review, test the documented connectionless multi-receiver BLE
+    ladder with explicit TX-power metadata. Do not treat receiver RSSI as
+    authoritative position. See
+    [`research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md`](research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md).
 
 The next physical action is to define and assemble the repeatable research-ball
 carrier. Its measured keep-in and roller matrix are now defined in

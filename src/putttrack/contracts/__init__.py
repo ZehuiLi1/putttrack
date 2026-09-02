@@ -14,6 +14,7 @@ from .records import (
     GameplayEvent,
     MotionObservation,
     PhysicalSensorObservation,
+    RadioReceptionObservation,
     RangeObservation,
     TrackUpdate,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "GameplayEvent",
     "MotionObservation",
     "PhysicalSensorObservation",
+    "RadioReceptionObservation",
     "RangeObservation",
     "RecordCodecError",
     "SchemaVersion",

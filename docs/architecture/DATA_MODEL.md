@@ -11,6 +11,7 @@
 | Raw CS observation | source Anchor/Gateway record | Anchor | short production; research archive | raw reference/sequence |
 | Range estimate | Localisation ingestion | Anchor/algorithm | short/incident/research | observation stream |
 | IMU sample/window | Ball source record | Ball | research/incident; selective production | sequence + raw reference |
+| Radio reception | Receiver source record | Gateway/Anchor | short/session/research | receiver boot/sequence + Ball packet key |
 | Motion state | Motion module | Ball/Edge | session evidence | derived from raw/model version |
 | Physical sensor event | Sensor/Gateway record | tee/cup/feature node | session/audit | event sequence |
 | Position/trajectory | Localisation module | Edge | session summary + incident window | observations + algorithm version |

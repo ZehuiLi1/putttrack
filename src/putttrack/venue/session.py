@@ -21,6 +21,17 @@ class BallAsset:
     color: str
     number: str
     enabled: bool = True
+    device_id: str | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("ball_id", "label", "color", "number"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise CheckInError(f"{name} must be non-empty")
+        if self.device_id is not None and (
+            not isinstance(self.device_id, str) or not self.device_id.strip()
+        ):
+            raise CheckInError("device_id must be non-empty when supplied")
 
 
 @dataclass(frozen=True)
@@ -73,7 +84,18 @@ class CheckInService:
 
     def __init__(self, course: CourseDefinition, balls: Iterable[BallAsset]) -> None:
         self.course = course
-        self._balls = {ball.ball_id: ball for ball in balls if ball.enabled}
+        enabled_balls = [ball for ball in balls if ball.enabled]
+        if len({ball.ball_id for ball in enabled_balls}) != len(enabled_balls):
+            raise CheckInError("enabled Ball IDs must be unique")
+        device_ids = [ball.device_id for ball in enabled_balls if ball.device_id is not None]
+        if len(set(device_ids)) != len(device_ids):
+            raise CheckInError("enabled Ball device IDs must be unique")
+        self._balls = {ball.ball_id: ball for ball in enabled_balls}
+        self._device_to_ball = {
+            ball.device_id: ball.ball_id
+            for ball in enabled_balls
+            if ball.device_id is not None
+        }
         if not self._balls:
             raise CheckInError("at least one enabled Ball is required")
         self._ball_in_use: dict[str, str] = {}
@@ -83,6 +105,27 @@ class CheckInService:
     @property
     def available_ball_count(self) -> int:
         return len(self._balls) - len(self._ball_in_use)
+
+    @property
+    def device_to_ball(self) -> dict[str, str]:
+        """Return the immutable-identity inventory mapping as a defensive copy."""
+
+        return dict(self._device_to_ball)
+
+    def assigned_ball_for_device(
+        self,
+        session_id: str,
+        device_id: str,
+    ) -> str:
+        """Resolve a provisioned device only within its current assignment."""
+
+        session = self.lookup(session_id)
+        ball_id = self._device_to_ball.get(device_id)
+        if ball_id is None:
+            raise CheckInError("device is not registered to an enabled Ball")
+        if ball_id not in {assignment.ball_id for assignment in session.assignments}:
+            raise CheckInError("device Ball is not assigned to this session")
+        return ball_id
 
     def create_session(
         self,

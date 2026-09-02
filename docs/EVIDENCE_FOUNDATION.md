@@ -28,6 +28,7 @@ RF / IMU / physical sensor
 - `RangeObservation`
 - `MotionObservation`
 - `PhysicalSensorObservation`
+- `RadioReceptionObservation`
 - `TrackUpdate`
 - `EvidenceEvent`
 - persistable boundary `GameplayEvent`

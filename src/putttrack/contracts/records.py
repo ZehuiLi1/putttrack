@@ -225,6 +225,50 @@ class PhysicalSensorObservation(BaseRecord):
 
 
 @dataclass(frozen=True, kw_only=True)
+class RadioReceptionObservation(BaseRecord):
+    """One receiver's report of one connectionless Ball radio emission.
+
+    ``source_device_id``/``source_boot_id``/``sequence`` identify and order the
+    receiver. The Ball emission has a separate identity and sequence so several
+    receivers can report the same packet without pretending to be the Ball.
+    """
+
+    RECORD_TYPE: ClassVar[str] = "radio_reception_observation"
+
+    ball_device_id: str
+    ball_boot_id: str
+    ball_radio_sequence: int
+    payload_digest: str
+    rssi_dbm: int
+    tx_power_dbm: int
+    channel_index: int | None = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.ball_id is None:
+            raise ValueError("ball_id is required")
+        _require_non_empty("ball_device_id", self.ball_device_id)
+        _require_non_empty("ball_boot_id", self.ball_boot_id)
+        _require_non_negative("ball_radio_sequence", self.ball_radio_sequence)
+        if (
+            not isinstance(self.payload_digest, str)
+            or len(self.payload_digest) != 64
+            or any(character not in "0123456789abcdef" for character in self.payload_digest)
+        ):
+            raise ValueError("payload_digest must be a lowercase SHA-256 hexadecimal digest")
+        for name in ("rssi_dbm", "tx_power_dbm"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or not -127 <= value <= 20:
+                raise ValueError(f"{name} must be an integer between -127 and 20 dBm")
+        if self.channel_index is not None and (
+            not isinstance(self.channel_index, int)
+            or isinstance(self.channel_index, bool)
+            or not 0 <= self.channel_index <= 39
+        ):
+            raise ValueError("channel_index must be an integer between 0 and 39 or None")
+
+
+@dataclass(frozen=True, kw_only=True)
 class TrackUpdate(BaseRecord):
     RECORD_TYPE: ClassVar[str] = "track_update"
 
@@ -327,6 +371,7 @@ RECORD_CLASSES: tuple[type[BaseRecord], ...] = (
     RangeObservation,
     MotionObservation,
     PhysicalSensorObservation,
+    RadioReceptionObservation,
     TrackUpdate,
     EvidenceEvent,
     GameplayEvent,

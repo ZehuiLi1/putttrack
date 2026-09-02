@@ -181,6 +181,7 @@ def main() -> int:
             "putttrack.evidence",
             "putttrack.cs",
             "putttrack.motion",
+            "putttrack.radio",
             "putttrack.tag",
             "putttrack.gameplay",
             "putttrack.venue",

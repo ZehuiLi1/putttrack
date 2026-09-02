@@ -51,6 +51,13 @@ occupancy within 3 seconds and an already-confirmed stroke. It is covered by
 ordering, health, idempotency, replay and HTTP end-to-end tests, but no physical
 tee/cup mechanism has yet passed. See
 [`docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md`](docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md).
+A primary-source Trackaball comparison has also produced a fail-closed
+multi-receiver BLE observation layer and a research-only state/RF policy. It
+does not turn RSSI into position or score authority and does not change the
+physical Tag; see
+[`docs/research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md`](docs/research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md).
+The authority decision is locked in
+[`ADR-014`](docs/adr/ADR-014-multi-receiver-ble-is-non-authoritative.md).
 
 ## Product logic
 
@@ -129,7 +136,9 @@ CS Reflector + BLE control/health
 
 Issue #6 turns the architecture contracts into executable software:
 
-- typed `RangeObservation`, `MotionObservation`, `PhysicalSensorObservation`, `TrackUpdate`, `EvidenceEvent` and persistable `GameplayEvent` records;
+- typed `RangeObservation`, `MotionObservation`, `PhysicalSensorObservation`,
+  `RadioReceptionObservation`, `TrackUpdate`, `EvidenceEvent` and persistable
+  `GameplayEvent` records;
 - compatible schema-version handling and fail-closed unknown majors;
 - append-only, crash-aware canonical JSONL capture;
 - immutable SHA-256-verified run manifests;

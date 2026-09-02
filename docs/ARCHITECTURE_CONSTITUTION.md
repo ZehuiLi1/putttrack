@@ -218,6 +218,20 @@ Any operational state may enter:
 - `LOW_BATTERY`: finish current round if safe, prevent new assignment below service threshold.
 - `SERVICE_DFU`: not entered during an active player action.
 
+### 4.5 No-CS multi-receiver BLE boundary
+
+During the active no-CS milestone, a compact connectionless Ball event/health
+packet may be observed by several registered receivers. Each receiver records
+its own identity, boot, sequence and receive time plus the Ball device, boot,
+radio sequence, packet digest, RSSI and actual TX power. Edge may use the
+result for redundant delivery and bounded RF research only.
+
+Receiver count or RSSI does not grant position, tee, stroke, feature, cup or
+score authority. Connected encrypted BLE remains the channel for detailed
+history, configuration, diagnostics and signed OTA. State-based TX power is a
+research candidate gated by FTO, shell RF/current, coverage, coexistence and
+many-Ball tests. See ADR-014.
+
 ### 4.5 Ball data boundary
 
 The ball may hold a bounded transport/event FIFO for resilience. It must not be the long-term game-history database and must not store per-hole score rules or player personal data.

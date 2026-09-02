@@ -17,6 +17,7 @@ ADRs record decisions that architecture work must not silently reverse. Each ADR
 | [ADR-011](ADR-011-primary-cell-first-ball-power.md) | Primary-cell-first Ball power architecture |
 | [ADR-012](ADR-012-signed-staged-ota.md) | Signed staged OTA with rollback/quarantine |
 | [ADR-013](ADR-013-defer-cs-for-ble-motion-mvp.md) | Defer CS; execute the BLE + motion + physical-sensor MVP first |
+| [ADR-014](ADR-014-multi-receiver-ble-is-non-authoritative.md) | Multi-receiver BLE is redundant evidence, not position or score authority |
 
 ## ADR lifecycle
 
