@@ -99,6 +99,23 @@ scripts/nrf54l15_tag/build_tag_app.sh
 The BLE OTA input is
 `build/nrf54l15-tag-app/nrf54l15_tag_app/zephyr/zephyr.signed.bin`.
 
+An optional build-only NFC service variant keeps the default configuration
+unchanged and applies the NFCT pin overlay consistently to MCUboot and the
+application:
+
+```bash
+SIGNING_KEY=/absolute/private/key.pem \
+scripts/nrf54l15_tag/build_tag_nfc_service.sh
+```
+
+It exposes a read-only
+`putttrack://service/tag/<opaque-device-id>?fw=<version>` Type 2 Tag URI and
+adds NFC setup/field counters to encrypted mcumgr status. NFC field presence is
+not authentication, and the variant does not replace BLE SMP or signed OTA.
+It must not be installed until the external loop and C17/C19 matching network
+have passed the hardware checks in
+[`NRF54L15_TAG_NFC.md`](../../docs/hardware/NRF54L15_TAG_NFC.md).
+
 Capture and inspect a stationary window through the XIAO adapter:
 
 ```bash

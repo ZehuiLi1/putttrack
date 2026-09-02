@@ -3,9 +3,10 @@
 ## Status
 
 The physical NFC path on PCA20072 is **present but unpopulated and not yet
-validated**. The confirmed `0.1.13` Tag image remains unchanged. NFC is a
-bounded service/provisioning experiment, not a new gameplay dependency and not
-a replacement for BLE telemetry or signed BLE OTA.
+validated**. The build-only software proof now passes, but the candidate has
+not been uploaded to the Tag. The confirmed `0.1.13` Tag image remains
+unchanged. NFC is a bounded service/provisioning experiment, not a new gameplay
+dependency and not a replacement for BLE telemetry or signed BLE OTA.
 
 ## Hardware evidence
 
@@ -74,10 +75,58 @@ Keep `0.1.13` confirmed as the rollback image. Any NFC candidate is uploaded as
 an unconfirmed signed test image and is confirmed only after BLE/SMP, motion
 wake, automatic idle and rollback access still pass.
 
+### Build-only result — 2026-09-02
+
+The repository now contains an explicitly optional Type 2 Tag service variant:
+
+```bash
+SIGNING_KEY=/absolute/private/key.pem \
+scripts/nrf54l15_tag/build_tag_nfc_service.sh
+```
+
+The build applies `nfc_service.overlay` to both MCUboot and the application,
+removes `nfct-pins-as-gpios`, enables the NFCT node and applies NFC Kconfig only
+to the application image. Generated DTS inspection confirms the GPIO property
+is absent and `nfct@d6000` is `okay` in both images. MCUboot itself does not
+link the NFC Type 2 library.
+
+The optional application also explicitly restores NFCT `PADCONFIG` immediately
+before library initialization. This is required for the first application-only
+BLE OTA test because the MCUboot already installed on the physical Tag was
+built from the original GPIO-mode board definition. It lets the NFC candidate
+remain an ordinary signed application OTA; DAPLink is not required merely to
+change the pin mode. The dual-image overlay keeps future first-install images
+internally consistent.
+
+The application exposes a read-only URI:
+
+```text
+putttrack://service/tag/<opaque-device-id>?fw=0.1.13
+```
+
+It counts NFC field-on/field-off events and reports those plus initialization
+status through the existing encrypted mcumgr status response. A field does not
+change identity, configuration or firmware.
+
+NCS v3.4.0 build evidence:
+
+- application RRAM: `189,128 / 696,176 bytes` (`27.17%`);
+- application RAM: `210,316 / 262,144 bytes` (`80.23%`);
+- signed application image version: `0.1.13+0`;
+- signed image passed `imgtool verify` with the existing lab Ed25519 key;
+- signed OTA and first-install artifacts were produced successfully;
+- a separate default build kept NFC disabled/GPIO pin mode and also passed
+  signature verification;
+- no image was installed on physical hardware.
+
+The roughly 19.8% remaining RAM is enough for this bounded proof but argues
+against adding a larger NFC application protocol before a physical NDEF read
+establishes value.
+
 ## Experiment ladder
 
 1. **Build-only proof:** compile a minimal Type 2 Tag NDEF text/URI image for
-   PCA20072 without installing it.
+   PCA20072 without installing it. **Passed 2026-09-02.**
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a
    firmware/version marker; count field-detected, field-lost and read events.
 3. **NFC-to-BLE handoff:** an NFC touch opens a bounded connectable BLE service

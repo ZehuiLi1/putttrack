@@ -27,6 +27,13 @@ PCA20072 design review also confirms an unpopulated optional NFC path on
 P1.02/NFC1 and P1.03/NFC2 with C17/C19 tuning footprints. It remains an
 unvalidated, time-boxed service/provisioning experiment; see
 [`docs/hardware/NRF54L15_TAG_NFC.md`](docs/hardware/NRF54L15_TAG_NFC.md).
+The optional NFC Type 2 service image now passes build and signature
+verification but has not been installed. Nordic's official STEP assembly was
+also reduced to a reproducible populated-board envelope and conservative
+research-core keep-in; see
+[`docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md`](docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md)
+and
+[`docs/hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md`](docs/hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md).
 Physical stationary and continuous hand-motion windows now separate as
 `STATIONARY_CANDIDATE` and `ACTIVE_MOTION_CANDIDATE`. Two natural-pickup and two
 desk-handling repetitions also show that stronger handling overlaps pickup at

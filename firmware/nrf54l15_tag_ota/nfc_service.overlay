@@ -1,0 +1,9 @@
+/* Select the dedicated NFCT function on P1.02/NFC1 and P1.03/NFC2. */
+
+&uicr {
+	/delete-property/ nfct-pins-as-gpios;
+};
+
+&nfct {
+	status = "okay";
+};

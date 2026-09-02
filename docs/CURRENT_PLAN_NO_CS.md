@@ -91,6 +91,14 @@ position, cup entry or every valid stroke.
   P1.02/NFC1 and P1.03/NFC2 reach accessible pads and C17/C19 provide
   unpopulated `TBD` tuning footprints. The default board DTS selects GPIO mode;
   the hardware route is present but has not yet been populated or validated.
+- The optional NFC Type 2 service variant now passes a complete NCS v3.4.0
+  MCUboot + application build. Both generated images select NFCT pad mode; the
+  signed OTA image verifies and retains BLE/SMP/motion at link time. It has not
+  been installed, so antenna read, coexistence and power remain physical gates.
+- Nordic's official `nrf54l15_tag_v1.0.step` has been measured into a
+  reproducible `33.10 × 33.00 × 8.48 mm` populated-board envelope. A
+  conservative `34.0 mm × 9.2 mm` removable carrier keep-in and a controlled
+  programmable-roller protocol are documented for the first research ball.
 
 ## 3. Active milestones
 
@@ -274,16 +282,23 @@ Re-open the CS track only when at least one is true:
    impact, rolling, settling and post-stop episodes. Then extend the implemented
    feature extractor into the measured deterministic generic-motion FSM; do not
    invent action thresholds from additional bare-Tag hand movement.
+   The official STEP envelope and initial roller matrix are now documented;
+   CAD adaptation, printing and physical captures are pending.
 7. Connect physical tee and cup evidence to the existing one-hole vertical
    slice and complete an automatic real one-hole path.
 8. Run the time-boxed NFC feasibility spike after antenna identity and matching
-   are known, or during mechanical waiting time. NFC remains service wake plus
-   BLE handoff; BLE remains the authenticated communication and OTA channel.
+   are known, or during mechanical waiting time. The build-only rung is now
+   complete; do not install until the antenna/tuning checks pass. NFC remains
+   service wake plus BLE handoff; BLE remains the authenticated communication
+   and OTA channel.
 9. Decide the pilot gateway and feature-sensor I/O from measured needs.
 
 The next physical action is to define and assemble the repeatable research-ball
-carrier. Once it exists, capture metadata and episode discipline continue to
-follow
+carrier. Its measured keep-in and roller matrix are now defined in
+[`hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md`](hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md)
+and
+[`hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md`](hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md).
+Once it exists, capture metadata and episode discipline continue to follow
 [`hardware/TAG_MOTION_EPISODE_RUNBOOK.md`](hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
 
 ## 8. Current priority decision

@@ -18,6 +18,8 @@ OTA_DIR="$REPO_DIR/firmware/nrf54l15_tag_ota"
 APP_OVERLAY="$OTA_DIR/nrf54l15tag_ota.overlay"
 MCUBOOT_OVERLAY="$OTA_DIR/mcuboot.overlay"
 MCUBOOT_CONF="$OTA_DIR/mcuboot.conf"
+PUTTTRACK_EXTRA_CONF_FILE="${PUTTTRACK_EXTRA_CONF_FILE:-}"
+PUTTTRACK_EXTRA_DTC_OVERLAY_FILE="${PUTTTRACK_EXTRA_DTC_OVERLAY_FILE:-}"
 
 [ -x "$NRFUTIL" ] || {
   echo "nrfutil not found at $NRFUTIL" >&2
@@ -34,6 +36,14 @@ for required_file in "$APP_DIR/CMakeLists.txt" "$APP_DIR/prj.conf" \
     exit 2
   }
 done
+if [[ -n "$PUTTTRACK_EXTRA_CONF_FILE" && ! -f "$PUTTTRACK_EXTRA_CONF_FILE" ]]; then
+  echo "Extra application config not found: $PUTTTRACK_EXTRA_CONF_FILE" >&2
+  exit 2
+fi
+if [[ -n "$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE" && ! -f "$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE" ]]; then
+  echo "Extra devicetree overlay not found: $PUTTTRACK_EXTRA_DTC_OVERLAY_FILE" >&2
+  exit 2
+fi
 [ -n "$SIGNING_KEY" ] || {
   echo "SIGNING_KEY is required for the physical Tag application." >&2
   exit 2
@@ -45,6 +55,27 @@ done
 
 cd "$NCS_DIR"
 
+APP_OVERLAYS="$APP_OVERLAY"
+MCUBOOT_OVERLAYS="$APP_OVERLAY;$MCUBOOT_OVERLAY"
+BUILD_CMAKE_ARGS=(
+  "-DDTC_OVERLAY_FILE=$APP_OVERLAYS"
+  "-Dmcuboot_DTC_OVERLAY_FILE=$MCUBOOT_OVERLAYS"
+  "-Dmcuboot_EXTRA_CONF_FILE=$MCUBOOT_CONF"
+  -DSB_CONFIG_BOOTLOADER_MCUBOOT=y
+  "-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"$SIGNING_KEY\""
+)
+if [[ -n "$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE" ]]; then
+  APP_OVERLAYS="$APP_OVERLAYS;$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE"
+  MCUBOOT_OVERLAYS="$MCUBOOT_OVERLAYS;$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE"
+  BUILD_CMAKE_ARGS[0]="-DDTC_OVERLAY_FILE=$APP_OVERLAYS"
+  BUILD_CMAKE_ARGS[1]="-Dmcuboot_DTC_OVERLAY_FILE=$MCUBOOT_OVERLAYS"
+fi
+if [[ -n "$PUTTTRACK_EXTRA_CONF_FILE" ]]; then
+  BUILD_CMAKE_ARGS+=(
+    "-Dnrf54l15_tag_app_EXTRA_CONF_FILE=$PUTTTRACK_EXTRA_CONF_FILE"
+  )
+fi
+
 "$NRFUTIL" sdk-manager toolchain launch \
   --ncs-version "$NCS_VERSION" \
   -- \
@@ -53,11 +84,7 @@ cd "$NCS_DIR"
   "$APP_DIR" \
   -d "$BUILD_DIR" \
   -- \
-  "-DDTC_OVERLAY_FILE=$APP_OVERLAY" \
-  "-Dmcuboot_DTC_OVERLAY_FILE=$APP_OVERLAY;$MCUBOOT_OVERLAY" \
-  "-Dmcuboot_EXTRA_CONF_FILE=$MCUBOOT_CONF" \
-  -DSB_CONFIG_BOOTLOADER_MCUBOOT=y \
-  "-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"$SIGNING_KEY\""
+  "${BUILD_CMAKE_ARGS[@]}"
 
 "$NRFUTIL" sdk-manager toolchain launch \
   --ncs-version "$NCS_VERSION" \

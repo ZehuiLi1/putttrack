@@ -30,6 +30,13 @@
 #include <zephyr/sys/util.h>
 #include <zcbor_encode.h>
 
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+#include <stdio.h>
+#include <hal/nrf_nfct.h>
+#include <nfc_t2t_lib.h>
+#include <nfc/ndef/uri_msg.h>
+#endif
+
 #define PUTTTRACK_PROTOCOL_VERSION 1U
 #define PUTTTRACK_FIRMWARE_VERSION "0.1.13"
 
@@ -185,6 +192,16 @@ static bool idle_adxl_baseline_valid;
 static uint8_t idle_wake_samples;
 static struct k_work_delayable advertise_work;
 
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+#define NFC_NDEF_BUFFER_SIZE 160U
+#define NFC_URI_BUFFER_SIZE 96U
+
+static uint8_t nfc_ndef_buffer[NFC_NDEF_BUFFER_SIZE];
+static atomic_t nfc_field_on_count;
+static atomic_t nfc_field_off_count;
+static int32_t nfc_setup_error;
+#endif
+
 K_MUTEX_DEFINE(packet_mutex);
 K_SEM_DEFINE(power_event_sem, 0, 1);
 
@@ -327,6 +344,18 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_bool_put(zse, atomic_get(&bmi270_spi_suspended) != 0) &&
 	     zcbor_tstr_put_lit(zse, "battery_supported") &&
 	     zcbor_bool_put(zse, false);
+
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+	ok = ok &&
+	     zcbor_tstr_put_lit(zse, "nfc_enabled") &&
+	     zcbor_bool_put(zse, true) &&
+	     zcbor_tstr_put_lit(zse, "nfc_setup_error") &&
+	     zcbor_int32_put(zse, nfc_setup_error) &&
+	     zcbor_tstr_put_lit(zse, "nfc_field_on") &&
+	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_on_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_field_off") &&
+	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_off_count));
+#endif
 
 	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
 }
@@ -1384,6 +1413,71 @@ static bool enter_active_state(void)
 	return true;
 }
 
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+static void nfc_callback(void *context, nfc_t2t_event_t event,
+			 const uint8_t *data, size_t data_length)
+{
+	ARG_UNUSED(context);
+	ARG_UNUSED(data);
+	ARG_UNUSED(data_length);
+
+	switch (event) {
+	case NFC_T2T_EVENT_FIELD_ON:
+		atomic_inc(&nfc_field_on_count);
+		break;
+	case NFC_T2T_EVENT_FIELD_OFF:
+		atomic_inc(&nfc_field_off_count);
+		break;
+	default:
+		break;
+	}
+}
+
+static int initialize_nfc_service(void)
+{
+	char device_id_hex[DEVICE_ID_MAX_SIZE * 2U + 1U];
+	char uri[NFC_URI_BUFFER_SIZE];
+	uint32_t ndef_length = sizeof(nfc_ndef_buffer);
+	int uri_length;
+	int rc;
+
+	bytes_to_hex(device_id, device_id_len, device_id_hex);
+	device_id_hex[device_id_len * 2U] = '\0';
+	uri_length = snprintf(uri, sizeof(uri),
+			      "putttrack://service/tag/%s?fw=%s",
+			      device_id_hex, PUTTTRACK_FIRMWARE_VERSION);
+	if (uri_length < 0 || (size_t)uri_length >= sizeof(uri)) {
+		nfc_setup_error = -ENOSPC;
+		return nfc_setup_error;
+	}
+
+	/*
+	 * An OTA candidate may boot through the already-installed v0.1.13
+	 * MCUboot image, whose board definition selects these pads as GPIO. Restore
+	 * NFCT mode before nrfx validates PADCONFIG so the first NFC experiment does
+	 * not require replacing MCUboot over SWD.
+	 */
+	nrf_nfct_pad_config_enable_set(NRF_NFCT, true);
+	rc = nfc_t2t_setup(nfc_callback, NULL);
+	if (rc == 0) {
+		rc = nfc_ndef_uri_msg_encode(NFC_URI_NONE,
+					     (const uint8_t *)uri,
+					     (uint16_t)uri_length,
+					     nfc_ndef_buffer,
+					     &ndef_length);
+	}
+	if (rc == 0) {
+		rc = nfc_t2t_payload_set(nfc_ndef_buffer, ndef_length);
+	}
+	if (rc == 0) {
+		rc = nfc_t2t_emulation_start();
+	}
+	nfc_setup_error = rc;
+
+	return rc;
+}
+#endif
+
 int main(void)
 {
 	int64_t next_sample_ms;
@@ -1391,6 +1485,9 @@ int main(void)
 
 	initialize_identity();
 	initialize_sensors();
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+	(void)initialize_nfc_service();
+#endif
 	build_status_packet();
 
 	k_work_init_delayable(&advertise_work, advertise);
