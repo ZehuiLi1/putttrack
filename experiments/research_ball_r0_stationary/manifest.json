@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r0-stationary-20260903-a",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "session": "20260903-A",
+    "label": "stationary",
+    "notes": "Assembled printed two-half golf-ball shell; Tag mechanically restrained; both halves fully closed. Mass and shell material were not measured in this session."
+  },
+  "episodes": [
+    {
+      "episode_id": "stationary-o1-r01",
+      "capture": "raw/stationary-o1-r01.jsonl",
+      "trial": "001",
+      "orientation": "static-o1"
+    },
+    {
+      "episode_id": "stationary-o2-r01",
+      "capture": "raw/stationary-o2-r01.jsonl",
+      "trial": "002",
+      "orientation": "static-o2; approximately 130 degrees from o1 by both accelerometers"
+    }
+  ]
+}

@@ -56,7 +56,11 @@ def main() -> int:
     rows = [item.to_flat_dict() for item in analyses]
     summary_csv = args.output_dir / "dataset_summary.csv"
     with summary_csv.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -70,7 +74,9 @@ def main() -> int:
     if not args.no_svg:
         plot_dir = args.output_dir / "plots"
         for analysis in analyses:
-            capture = read_capture(Path(analysis.capture_path))
+            capture = read_capture(
+                (args.manifest.parent / analysis.metadata.capture).resolve()
+            )
             subtitle_parts = [analysis.metadata.label, analysis.quality_status]
             if analysis.metadata.core_revision:
                 subtitle_parts.append(f"core={analysis.metadata.core_revision}")

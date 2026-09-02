@@ -75,10 +75,13 @@ position, cup entry or every valid stroke.
   connect/disconnect cycles passed before confirmation, and two more passed
   after confirmation, reset and automatic idle. Advertising start errors and
   sensor errors remained zero.
-- The first mechanically assembled ball closes fully and restrains the Tag. Its
-  first post-reset stationary history contained 1,024 contiguous dual-IMU
-  samples over 20.46 seconds at exactly 50 Hz with zero error, gap or clipping
-  deltas. Before that reset, status exposed one ADXL367 boot-initialization
+- The first mechanically assembled ball closes fully and restrains the Tag. Two
+  distinct post-reset stationary orientations each contained 1,024 contiguous
+  dual-IMU samples over 20.46 seconds at exactly 50 Hz with zero error, gap or
+  capture-time clipping deltas. BMI270 and ADXL367 independently measured about
+  130° separation between their mean gravity vectors; the checked-in physical
+  dataset is `experiments/research_ball_r0_stationary`. Before that reset,
+  status exposed one ADXL367 boot-initialization
   failure that had been counted every 160 ms for almost the full 3.2-hour boot.
 - Build-only candidate `0.1.16` now detects consecutive failures, invalidates
   capture history across recovery, tries local reconfiguration three times,
@@ -171,7 +174,8 @@ event log.
 **Exit:** stationary, pickup, putter impact, rolling and settling episodes can be
 captured and replayed without gaps being silently hidden.
 
-**Current result:** stationary, unmistakably active generic motion and two
+**Current result:** two distinct assembled-ball stationary orientations,
+unmistakably active generic motion and two
 natural pickup/carry episodes with pre/post rest pass through atomic
 frozen-history capture and replay. Two ordinary handling controls also fail
 closed at the semantic boundary: one remains unclassified and the stronger one

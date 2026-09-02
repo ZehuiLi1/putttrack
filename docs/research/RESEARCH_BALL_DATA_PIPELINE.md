@@ -2,7 +2,10 @@
 
 ## Purpose
 
-This pipeline is intentionally usable before the Research Ball is assembled. It validates the experiment metadata, batch-analysis and reporting path using synthetic captures and the existing canonical Tag JSONL format.
+This pipeline was designed to be usable before the Research Ball was assembled.
+It now also validates the first checked-in physical two-orientation stationary
+dataset at `experiments/research_ball_r0_stationary`, while synthetic captures
+continue to exercise the path in CI.
 
 It does **not** define impact, rolling, pickup or settling thresholds. Those remain evidence-gated until mechanically repeatable Research Ball data exists.
 
@@ -127,4 +130,9 @@ A `PASS` does **not** mean the physical label is classified correctly. A `WARN` 
 - dependency-free SVG generation;
 - the end-to-end CLI outputs.
 
-This is the highest-value code that can be completed before the Research Ball exists. Once the core is printed and mechanically restrained, real data should replace synthetic fixtures for threshold/model decisions.
+The mechanically restrained Research Ball now has two immutable 1,024-sample
+stationary captures and generated reports under
+`experiments/research_ball_r0_stationary`. Both physical episodes pass integrity
+and provisional stationary checks. They establish static transport/noise only;
+controlled impact, rolling, settling and stop episodes must provide the evidence
+for any threshold or model decision.

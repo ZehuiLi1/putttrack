@@ -269,7 +269,9 @@ def analyze_episode(manifest_path: Path, metadata: EpisodeMetadata) -> EpisodeAn
 
     return EpisodeAnalysis(
         metadata=metadata,
-        capture_path=str(capture_path),
+        # Keep generated reports portable across checkouts. The resolved path is
+        # used only while reading; provenance remains relative to the manifest.
+        capture_path=metadata.capture,
         device_id=_optional_text(status.get("device_id")),
         boot_id=_optional_text(status.get("boot_id")),
         firmware_version=_optional_text(status.get("firmware_version")),

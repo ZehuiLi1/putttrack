@@ -15,8 +15,8 @@ in the architecture, ADR and hardware documents. Status labels mean:
 ## Current result
 
 The repository has a reliable smart-Tag development baseline, a mechanically
-assembled first research ball and a complete software-only one-hole scoring
-path. It does **not** yet have a characterized rolling/impact dataset or a
+assembled first research ball, a checked-in two-orientation stationary baseline
+and a complete software-only one-hole scoring path. It does **not** yet have a characterized rolling/impact dataset or a
 physically automatic hole. The largest remaining uncertainty is the IMU signal
 while the assembled ball rolls and is struck; the next product uncertainty is
 real tee/cup evidence.
@@ -31,7 +31,7 @@ real tee/cup evidence.
 | NFC Tag/service | Software + build-only pass | Signed `0.1.16` Type 2 URI plus one-shot 10 s fast-BLE window; host planner fails closed on identity, session, quarantine, compatibility and release policy | Antenna identity, C17/C19 tuning, powered read, then NFC field/window regression |
 | NFC System OFF wake | Pending physical | Architecture and test order are defined; no product claim | Attempt only after powered reads and ordinary handoff are reliable |
 | Bare-Tag motion data | Physical pass, limited scope | Stationary, handling and pickup datasets show generic motion separation and semantic overlap | Do not tune putt/roll logic from more hand-held Tag data |
-| Research-ball mechanics | Physical pass, limited | Printed halves close fully, carrier is restrained, and the first 1,024-sample assembled stationary capture passed | Repeat orientations, then controlled impact/roll/settle/stop captures |
+| Research-ball mechanics | Physical pass, limited | Printed halves close fully, carrier is restrained, and two distinct 1,024-sample assembled stationary captures passed with approximately 130° gravity-vector separation | Controlled impact/roll/settle/stop captures |
 | Sensor fault recovery | Build-only pass | A real assembled-ball ADXL367 boot-init fault was diagnosed; `0.1.16` separates samples from fault episodes, retries, invalidates capture generations, allows one quiet reboot and then quarantines | Fault injection, ten sealed reset cycles, then guarded physical candidate test |
 | Motion analysis pipeline | Software pass | Strict dataset/session validation, deterministic features and fail-closed generic candidates | Fit only from controlled in-ball episodes |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
@@ -57,8 +57,8 @@ BLE transport, signed images or DAPLink recovery.
 
 ## Immediate order
 
-1. Complete assembled-ball stationary orientations, then collect the roller and
-   putter episode matrix on confirmed `0.1.13`.
+1. Collect the roller and putter impact/roll/settle/stop episode matrix on
+   confirmed `0.1.13`; the two-orientation stationary baseline is complete.
 2. Build the simplest real tee-presence and independent entry-plus-occupancy cup
    mechanisms, then connect them to the implemented ingress.
 3. In parallel, identify the NFC loop and tune C17/C19 in the actual mechanical

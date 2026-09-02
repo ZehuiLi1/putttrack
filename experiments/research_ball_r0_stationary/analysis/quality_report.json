@@ -1,0 +1,20 @@
+{
+  "dataset_id": "research-ball-r0-stationary-20260903-a",
+  "episodes": 2,
+  "episodes_by_label": {
+    "stationary": 2
+  },
+  "episodes_with_clipping": {
+    "adxl367": 0,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 0
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 2,
+    "WARN": 0
+  },
+  "warning_episode_ids": []
+}
