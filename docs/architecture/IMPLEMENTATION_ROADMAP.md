@@ -1,5 +1,30 @@
 # Dependency-Ordered Implementation Roadmap
 
+## Active execution override — 2026-09-02
+
+[ADR-013](../adr/ADR-013-defer-cs-for-ble-motion-mvp.md) removes Channel
+Sounding from the current MVP critical path. The detailed CS workstreams below
+remain a dormant research backlog, not prerequisites for the active sequence:
+
+```text
+verified SWD backup + signed BLE OTA
+                  |
+repository-owned Tag identity/health firmware
+                  |
+ADXL367/BMI270 raw capture -> generic motion V0
+                  |                    |
+physical tee/cup/feature sensors -------+
+                  |
+sensor-independent evidence adapter
+                  |
+one-hole Gameplay Engine + HMI + audit
+                  |
+gateway/enclosure/power evidence
+```
+
+The authoritative near-term milestones, capability boundary and CS revisit
+triggers are in [`CURRENT_PLAN_NO_CS.md`](../CURRENT_PLAN_NO_CS.md).
+
 ## Principle
 
 Do not design the final ball PCB or venue network before the sensing/scheduling gates establish the real requirements. Build thin vertical slices and preserve raw evidence.
@@ -13,7 +38,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** gameplay baseline green and repeatable.
 
-## Workstream 1 — Phase 0 CS rig (existing Issue #1)
+## Workstream 1 — Phase 0 CS rig (deferred by ADR-013)
 
 1. Archive Bbo schematic, pin map, boot/recovery image and vendor tools.
 2. Freeze NCS/toolchain version manifest.
@@ -33,7 +58,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** one captured run can be replayed deterministically.
 
-## Workstream 3 — Ranging and static localisation
+## Workstream 3 — Ranging and static localisation (deferred by ADR-013)
 
 1. Single-link test matrix.
 2. Per-Anchor/per-antenna calibration registry.
@@ -43,7 +68,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** representative static XY gate and Anchor ADR validated/revised.
 
-## Workstream 4 — Dynamic tracking
+## Workstream 4 — Dynamic tracking (deferred by ADR-013)
 
 1. Asynchronous range-domain EKF.
 2. Reorder/late observation policy.
@@ -54,7 +79,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** dynamic gate and UWB trigger decision.
 
-## Workstream 5 — Generic motion and evidence fusion
+## Workstream 5 — Generic motion and evidence fusion (active)
 
 1. Ball motion-state logger and labelled dataset.
 2. Impact/rolling/settling/pickup/drop classifiers.
@@ -64,7 +89,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** Phase 4 evidence gates.
 
-## Workstream 6 — Gameplay vertical slice (existing Issue #3)
+## Workstream 6 — Gameplay vertical slice (active)
 
 1. Local check-in/guest session and ball assignment.
 2. Course/rule config loader.
@@ -87,7 +112,7 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 **Exit:** Gateway/fault/timing gates.
 
-## Workstream 8 — Multi-ball / venue simulation
+## Workstream 8 — CS multi-ball / venue simulation (deferred by ADR-013)
 
 1. CS airtime/energy model from measured procedures.
 2. 4-player/hole scheduling.
@@ -100,20 +125,24 @@ Do not design the final ball PCB or venue network before the sensing/scheduling 
 
 ## Workstream 9 — Custom ball EVT
 
-Starts only after Workstreams 1–5 yield measured requirements.
+Starts only after active M1–M3 work yields measured motion, BLE, power,
+mechanical and service requirements. Deferred CS Workstreams 1, 3 and 4 are not
+prerequisites unless ADR-013 is revisited.
 
-1. Mechanical/RF concept and two-antenna experiment.
+1. Mechanical/RF concept and repeatable instrumented core.
 2. nRF54L15 + candidate nPM2100/CR2447 design.
 3. Wake sensor + six-axis IMU retained for EVT.
 4. Secure provisioning/test pads/DFU.
 5. RF-in-shell, current, impact, balance and environmental tests.
 6. Reduce sensor/antenna BOM only after ablation.
+7. Add CS-specific antenna diversity only if the CS track is reactivated.
 
 **Exit:** Phase 8/9 gates.
 
 ## Workstream 10 — DVT / pilot venue
 
-1. Production-like Anchors/Gateways/enclosures/HMI.
+1. Production-like physical sensors/Gateways/enclosures/HMI; add Anchors only
+   if a spatial track has been reactivated.
 2. 3–6-hole outdoor pilot.
 3. Managed PoE/24 V/RS-485/UPS installation.
 4. Staff usability, spares and maintenance procedures.
@@ -121,7 +150,16 @@ Starts only after Workstreams 1–5 yield measured requirements.
 6. Scale to 18 holes only after pilot acceptance.
 7. Architecture-specific FTO/regulatory review before commercial launch.
 
-## Proposed next Issues / PRs
+## Active next Issues / PRs
+
+1. **Repository-owned Tag app:** identity, health, signed SMP OTA and version reporting.
+2. **Tag raw sensor capture:** ADXL367/BMI270 timestamps, sequence, clipping and dropped samples.
+3. **Generic motion V0:** replay-first deterministic state/candidate baseline.
+4. **Physical one-hole inputs:** tee and cup sensor adapters into semantic evidence.
+5. **No-CS one-hole soak:** identity isolation, ambiguous evidence and recovery paths.
+6. **Gateway evidence:** measured BLE reliability, physical I/O and local buffering before hardware selection.
+
+## Dormant CS Issues / PRs
 
 1. **Architecture schema foundation:** typed envelopes, event IDs, source clock/sequence and replay fixtures.
 2. **Phase 0 logger:** Bbo/Nordic CS parser + run manifest.
@@ -134,7 +172,7 @@ Starts only after Workstreams 1–5 yield measured requirements.
 9. **One-hole vertical slice:** update existing Issue #3 after evidence interface exists.
 10. **Custom ball EVT gate:** design begins only after measurements.
 
-## Critical dependency graph
+## Historical CS dependency graph (dormant)
 
 ```text
 Gameplay baseline
@@ -158,19 +196,19 @@ Motion dataset ------------------------------+
 
 ## Three-month objective
 
-- Phase 0 hardware working;
-- replayable range/IMU/camera data;
-- 3/4/5 Anchor static comparison;
-- first asynchronous EKF result;
-- simulated evidence -> Gameplay Engine -> hole screen flow.
+- repository-owned Tag firmware with identity, health and preserved signed OTA;
+- replayable ADXL367/BMI270 raw captures and labelled motion dataset;
+- deterministic generic-motion V0 baseline;
+- physical tee/cup evidence -> Gameplay Engine -> hole screen flow;
+- controlled research-ball core and initial BLE/power measurements.
 
 ## Six-month objective
 
-- dynamic and generic-motion gates;
-- physical one-hole vertical slice;
-- pilot Gateway/field bus;
-- 4-player and neighbouring-cell scheduler evidence;
-- UWB go/no-go decision based on measured CS performance.
+- generic-motion and false-stroke gates;
+- physical no-CS one-hole vertical slice and soak test;
+- pilot Gateway/field bus selected from measured BLE and I/O needs;
+- multi-ball identity/evidence isolation test;
+- evidence-backed decision whether any spatial technology is required.
 
 ## Twelve-month objective
 

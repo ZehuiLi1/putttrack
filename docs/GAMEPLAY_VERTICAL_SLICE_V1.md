@@ -2,7 +2,11 @@
 
 ## Status
 
-This is a **local/simulated player-experience slice** built on top of the locked Gameplay Engine and Evidence Foundation. It does not claim that Channel Sounding, IMU, tee sensors or cup sensors have been physically validated.
+This is a **local player-experience slice** built on top of the locked Gameplay
+Engine and Evidence Foundation. The nRF54L15 Tag stationary telemetry and the
+generic-motion candidate ingress are physically/software validated; tee, cup,
+feature and stroke confirmation remain simulated until independent sensors and
+labelled motion evidence exist.
 
 The purpose is to prove that the player-facing flow can remain stable while real sensing work proceeds through Issue #1 and later localisation/evidence Issues.
 
@@ -42,6 +46,22 @@ CS / IMU / physical sensor / UWB / camera (future)
 
 The simulated HTTP endpoints generate the same Gameplay events only for development.
 
+The no-CS motion path now ends one layer earlier by design:
+
+```text
+physical Tag window
+ -> canonical MotionObservation
+ -> NoCsMotionCandidatePolicy
+ -> motion.stationary / stroke.candidate / pickup.candidate / ...
+ -> observed, pending or rejected + operational audit
+ -> no score mutation
+```
+
+An impact observation can therefore reach the live one-hole runtime and screen
+as `evidence_pending`, but this policy is structurally unable to emit
+`stroke.confirmed`, `feature.confirmed` or `cup.confirmed`. Independent evidence
+and a later measured fusion policy are required.
+
 ## Components
 
 - `src/putttrack/venue/course.py`
@@ -60,6 +80,11 @@ The simulated HTTP endpoints generate the same Gameplay events only for developm
   - READY/PLAYING presentation state;
   - in-process presentation broker;
   - append-only local operational audit.
+- `src/putttrack/evidence/motion_policy.py`
+  - generic state-to-candidate routing;
+  - active/assigned Ball isolation;
+  - fail-closed no-score authority boundary;
+  - idempotent runtime decision handling.
 - `src/putttrack/venue/web.py`
   - standard-library local HTTP server;
   - tee screen and check-in pages;
@@ -105,6 +130,11 @@ Development/simulation paths:
 - `POST /api/sim/pickup`
 - `POST /api/operator/adjust`
 
+Canonical non-authoritative evidence ingress:
+
+- `POST /api/evidence/motion` — accepts a typed `motion_observation`, returns
+  HTTP 202 with an observed/pending/rejected policy decision.
+
 The `/api/sim/*` surface is **not** a production sensor API; it is an evidence simulator for this slice.
 
 ## Tests
@@ -121,6 +151,9 @@ The `/api/sim/*` surface is **not** a production sensor API; it is an evidence s
 - duplicate Gameplay event idempotency;
 - local audit persistence;
 - complete HTTP flow from check-in through stroke, feature and cup.
+- canonical motion HTTP ingress;
+- impact remains pending with zero stroke mutation;
+- duplicate, foreign and inactive-Ball motion isolation.
 
 The implementation was developed against the merged Evidence Foundation. Existing Gameplay authority was not redesigned.
 
@@ -129,7 +162,8 @@ The implementation was developed against the merged Evidence Foundation. Existin
 - first-time-player usability with real people;
 - sunlight readability, outdoor display and audio hardware;
 - physical tee/cup integration;
-- real sensing-to-EvidenceEvent latency;
+- labelled impact/rolling/pickup distributions and calibrated confidence;
+- real motion candidate + independent sensor to confirmed-event latency;
 - physical Channel Sounding accuracy or update rate;
 - one-hole 1,000-round soak.
 

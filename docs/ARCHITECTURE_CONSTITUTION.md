@@ -4,6 +4,13 @@
 **Applies to:** Research rig, one-hole pilot, 18-hole venue architecture and production evolution  
 **Product-behaviour authority:** [`PRODUCT_LOGIC_LOCK.md`](PRODUCT_LOGIC_LOCK.md)
 
+> **Current execution note (2026-09-02):**
+> [ADR-013](adr/ADR-013-defer-cs-for-ble-motion-mvp.md) defers Channel
+> Sounding, Anchors and continuous localisation for the active BLE + motion +
+> physical-sensor MVP. The CS architecture below is retained as a conditional
+> future system hypothesis, not the present implementation dependency order.
+> See [`CURRENT_PLAN_NO_CS.md`](CURRENT_PLAN_NO_CS.md).
+
 This document is the technical source of truth for PuttTrack after the player journey and gameplay authority were locked. It replaces the current draft architecture as the preferred system direction while preserving empirical gates for decisions that cannot yet be proven.
 
 It is not a freedom-to-operate opinion. Patent-sensitive movement-signature work remains isolated from production authority until a claims-based legal review is completed.

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from putttrack.contracts import MotionObservation, record_from_dict
 from putttrack.gameplay import EventType, GameplayError, GameplayEvent
 
 from .course import CourseDefinition
@@ -174,6 +175,14 @@ class VenueApplication:
         )
         return self.runtime.process_gameplay(event)[-1].text
 
+    def observe_motion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self.runtime is None:
+            raise CheckInError("check in first")
+        observation = record_from_dict(payload)
+        if not isinstance(observation, MotionObservation):
+            raise ValueError("record_type must be motion_observation")
+        return self.runtime.process_motion_observation(observation).to_dict()
+
 
 def make_handler(app: VenueApplication):
     class Handler(BaseHTTPRequestHandler):
@@ -297,6 +306,13 @@ def make_handler(app: VenueApplication):
                     self._send_json(
                         200,
                         {"ok": True, "message": message, "state": app.state()},
+                    )
+                    return
+                if path == "/api/evidence/motion":
+                    decision = app.observe_motion(body)
+                    self._send_json(
+                        202,
+                        {"ok": True, "decision": decision, "state": app.state()},
                     )
                     return
                 self._send_json(404, {"error": "not found"})

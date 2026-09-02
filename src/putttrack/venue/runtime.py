@@ -8,6 +8,12 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from putttrack.contracts import MotionObservation, record_to_dict
+from putttrack.evidence import (
+    MotionCandidateDecision,
+    MotionEvidenceContext,
+    NoCsMotionCandidatePolicy,
+)
 from putttrack.gameplay import EventType, GameplayEngine, GameplayError, GameplayEvent
 from putttrack.gameplay.models import PlayerHoleStatus, SessionState
 
@@ -111,10 +117,13 @@ class LocalRoundRuntime:
         *,
         audit_path: str | Path | None = None,
         broker: PresentationBroker | None = None,
+        motion_policy: NoCsMotionCandidatePolicy | None = None,
     ) -> None:
         self.engine = GameplayEngine(state)
         self.broker = broker or PresentationBroker()
         self.audit = RoundAuditLog(audit_path) if audit_path else None
+        self.motion_policy = motion_policy or NoCsMotionCandidatePolicy()
+        self._motion_decisions: dict[str, MotionCandidateDecision] = {}
         self._lock = threading.RLock()
 
     @property
@@ -194,6 +203,76 @@ class LocalRoundRuntime:
         from putttrack.evidence import EvidenceToGameplayAdapter
 
         return self.process_gameplay(EvidenceToGameplayAdapter().from_evidence(evidence))
+
+    def process_motion_observation(
+        self,
+        observation: MotionObservation,
+    ) -> MotionCandidateDecision:
+        """Route generic motion without allowing it to mutate score directly."""
+
+        with self._lock:
+            previous = self._motion_decisions.get(observation.event_id)
+            if previous is not None:
+                return previous
+
+            runtime = self.state.current_runtime
+            active_player_id = runtime.active_player_id
+            active_ball_id = (
+                self.state.players[active_player_id].ball_id
+                if active_player_id is not None
+                else None
+            )
+            active_state = (
+                runtime.players[active_player_id].status.value
+                if active_player_id is not None
+                else None
+            )
+            decision = self.motion_policy.evaluate(
+                observation,
+                MotionEvidenceContext(
+                    session_id=self.state.session_id,
+                    hole_id=self.state.current_hole.hole_id,
+                    assigned_ball_ids=tuple(sorted(self.state.ball_to_player)),
+                    active_ball_id=active_ball_id,
+                    active_player_id=active_player_id,
+                    active_player_state=active_state,
+                ),
+            )
+            self._motion_decisions[observation.event_id] = decision
+
+            if self.audit is not None:
+                self.audit.append(
+                    {
+                        "kind": "motion_candidate_decision",
+                        "observation": record_to_dict(observation),
+                        "decision": decision.to_dict(),
+                        "snapshot": self.engine.evidence_snapshot(),
+                    }
+                )
+
+            if decision.status == "pending":
+                self.broker.publish(
+                    "evidence_pending",
+                    "Motion candidate is waiting for independent evidence.",
+                    player_id=active_player_id,
+                    metadata={
+                        **decision.to_dict(),
+                        "ball_id": observation.ball_id,
+                        "confidence": observation.confidence,
+                    },
+                    timestamp_ms=observation.edge_received_ns // 1_000_000,
+                )
+            elif decision.status == "rejected":
+                self.broker.publish(
+                    "motion_rejected",
+                    "Motion observation was not eligible for this active hole.",
+                    metadata={
+                        **decision.to_dict(),
+                        "ball_id": observation.ball_id,
+                    },
+                    timestamp_ms=observation.edge_received_ns // 1_000_000,
+                )
+            return decision
 
     def present_ball(
         self,

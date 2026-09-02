@@ -2,6 +2,11 @@
 
 from .adapter import EvidenceAdapterError, EvidenceToGameplayAdapter
 from .ordering import OrderingStatus, OrderingTracker
+from .motion_policy import (
+    MotionCandidateDecision,
+    MotionEvidenceContext,
+    NoCsMotionCandidatePolicy,
+)
 from .replay import (
     DeterministicReplay,
     ReplayQuarantine,
@@ -16,6 +21,9 @@ __all__ = [
     "EvidenceToGameplayAdapter",
     "OrderingStatus",
     "OrderingTracker",
+    "MotionCandidateDecision",
+    "MotionEvidenceContext",
+    "NoCsMotionCandidatePolicy",
     "ReplayQuarantine",
     "ReplayReport",
     "engine_from_session_file",

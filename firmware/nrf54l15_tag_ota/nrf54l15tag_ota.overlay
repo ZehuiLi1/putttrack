@@ -1,0 +1,43 @@
+/* nRF54L15 Tag layout for MCUboot swap-based OTA. */
+
+/*
+ * Nordic PCA20072 revision 1.0.0 schematic sheet 4 connects ADXL367 INT1 to
+ * ADXL_IRQ; sheet 2 connects ADXL_IRQ to nRF54L15 P0.03.  The upstream board
+ * DTS omits this physical connection, so declare it here for sensor triggers.
+ */
+&adxl367 {
+	int1-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+};
+
+/delete-node/ &boot_partition;
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+/delete-node/ &storage_partition;
+
+&cpuapp_rram {
+	partitions {
+		boot_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(68)>;
+		};
+
+		slot0_partition: partition@11000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x11000 DT_SIZE_K(696)>;
+		};
+
+		slot1_partition: partition@bf000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0xbf000 DT_SIZE_K(696)>;
+		};
+
+		storage_partition: partition@16d000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x16d000 DT_SIZE_K(64)>;
+		};
+	};
+};

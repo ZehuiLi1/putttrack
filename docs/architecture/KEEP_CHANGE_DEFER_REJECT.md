@@ -4,12 +4,12 @@
 |---|---|---|---|
 | nRF54L15 | KEEP | Ball/Anchor research and first custom-ball candidate | EVT RF/power/security |
 | Nordic nRF54L15 Tag | KEEP — research | moving golden reference | custom EVT parity |
-| Bbo nRF54L15 | KEEP — research | five homogeneous Anchor rig + spare | production Anchor design |
-| Five Anchors | CHANGE | research ablation only | Phase 2 P95/no-fix |
-| Centre Anchor | CHANGE | optional RF-optimal/elevated reference | site heatmap |
-| Ball Reflector | KEEP | low-power endpoint | Phase 5 link/energy |
-| Anchor Initiator | KEEP | powered infrastructure owns procedure | Phase 5 scheduler |
-| Bluetooth CS | KEEP — conditional | Production V1 candidate | accuracy/NLOS/load/energy |
+| Bbo nRF54L15 | DEFER — retain research | dormant Anchor rig assets | ADR-013 revisit trigger |
+| Five Anchors | DEFER | research ablation only | CS track reactivated |
+| Centre Anchor | DEFER | optional RF-optimal/elevated reference | CS track reactivated |
+| Ball Reflector | DEFER | possible later low-power ranging endpoint | CS track reactivated |
+| Anchor Initiator | DEFER | possible later powered infrastructure role | CS track reactivated |
+| Bluetooth CS | DEFER — retain option | not an active MVP dependency | ADR-013 spatial/economic trigger |
 | Dual antenna | DEFER | retain in research/EVT | P95/no-fix ablation |
 | IMU | KEEP | generic states/scheduling/evidence | sensor/power ablation |
 | Separate wake sensor | DEFER | retain in EVT | energy/classification |

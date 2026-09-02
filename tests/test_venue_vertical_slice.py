@@ -7,6 +7,7 @@ import threading
 import unittest
 from pathlib import Path
 
+from putttrack.contracts import MotionObservation, record_to_dict
 from putttrack.gameplay import EventType, GameplayEvent
 from putttrack.venue import (
     BallAsset,
@@ -134,6 +135,49 @@ class RuntimeTests(unittest.TestCase):
             self.assertTrue(audit.exists())
             self.assertGreater(len(audit.read_text().splitlines()), 1)
 
+    def test_motion_impact_stays_pending_and_cannot_increment_strokes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            runtime, session = self.make_runtime(temp_dir)
+            assignment = session.assignments[0]
+            runtime.present_ball(
+                assignment.ball_id,
+                event_id="tee-motion",
+                timestamp_ms=1000,
+            )
+            motion = MotionObservation(
+                event_id="motion-impact-1",
+                event_type="ball.motion_observed",
+                source_device_id="tag-hardware-1",
+                source_boot_id="boot-1",
+                sequence=20,
+                source_monotonic_ns=2_000_000_000,
+                edge_received_ns=2_010_000_000,
+                trace_id="trace-motion-1",
+                hole_id="H01",
+                ball_id=assignment.ball_id,
+                firmware_version="0.1.5",
+                model_version="motion-v0",
+                raw_evidence_refs=("runs/impact-001.jsonl",),
+                motion_state="IMPACT_CANDIDATE",
+                confidence=0.8,
+                raw_window_ref="runs/impact-001.jsonl",
+            )
+
+            decision = runtime.process_motion_observation(motion)
+            repeated = runtime.process_motion_observation(motion)
+
+            self.assertEqual(decision.status, "pending")
+            self.assertEqual(decision.candidate_type, "stroke.candidate")
+            self.assertIs(decision, repeated)
+            self.assertEqual(runtime.state.stats[assignment.player_id].total_strokes, 0)
+            self.assertEqual(runtime.presentation()["cue"]["state"], "READY")
+            self.assertEqual(runtime.broker.after(0)[-1].kind, "evidence_pending")
+            audit_lines = (Path(temp_dir) / "audit.jsonl").read_text().splitlines()
+            self.assertEqual(
+                sum("motion_candidate_decision" in line for line in audit_lines),
+                1,
+            )
+
 
 class PresentationSecurityTests(unittest.TestCase):
     def test_dynamic_player_and_ball_content_uses_text_content_not_inner_html(self) -> None:
@@ -187,6 +231,36 @@ class HttpTests(unittest.TestCase):
                 self.assertEqual(
                     self.request(port, "POST", "/api/sim/tee", {"ball_id": ball_id})[0],
                     200,
+                )
+                motion = MotionObservation(
+                    event_id="http-motion-impact-1",
+                    event_type="ball.motion_observed",
+                    source_device_id="tag-http-1",
+                    source_boot_id="boot-http-1",
+                    sequence=1,
+                    source_monotonic_ns=100,
+                    edge_received_ns=200,
+                    trace_id="trace-http-motion",
+                    hole_id="H01",
+                    ball_id=ball_id,
+                    firmware_version="0.1.5",
+                    model_version="motion-v0",
+                    motion_state="IMPACT_CANDIDATE",
+                    confidence=0.8,
+                )
+                motion_status, motion_result = self.request(
+                    port,
+                    "POST",
+                    "/api/evidence/motion",
+                    record_to_dict(motion),
+                )
+                self.assertEqual(motion_status, 202)
+                self.assertEqual(motion_result["decision"]["status"], "pending")
+                self.assertEqual(
+                    motion_result["state"]["player_hole_state"][
+                        session["players"][1]["player_id"]
+                    ]["strokes"],
+                    0,
                 )
                 self.assertEqual(
                     self.request(

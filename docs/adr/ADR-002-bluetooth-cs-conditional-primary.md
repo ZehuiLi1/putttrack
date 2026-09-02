@@ -1,5 +1,9 @@
 # ADR-002 — Bluetooth Channel Sounding as Conditional Primary Ranging
 
+**Execution note (2026-09-02):** deferred for the active MVP by
+[ADR-013](ADR-013-defer-cs-for-ble-motion-mvp.md). This record is retained as
+the historical conditional-ranging decision, not the current dependency order.
+
 ## Context
 
 PuttTrack needs sub-metre localisation in a rotating, ground-level, multipath object while keeping the ball small and low power. Bluetooth CS reuses the nRF54L15 radio; UWB offers stronger native precision but adds a second radio/antenna/system.

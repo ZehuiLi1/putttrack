@@ -1,8 +1,14 @@
 # Smart Ball Architecture
 
+**Current execution note:** ADR-013 defers Channel Sounding. The active Tag role
+is BLE identity/health, generic motion research and signed OTA. Ranging-related
+content below is retained for a possible later CS track.
+
 ## 1. Role
 
-The ball is a low-power authenticated sensing/ranging endpoint. It owns physical device identity and measurements; it does not own player identity, hole rules, final position, score or game outcome.
+The ball is a low-power authenticated sensing endpoint and a possible future
+ranging endpoint. It owns physical device identity and measurements; it does not
+own player identity, hole rules, final position, score or game outcome.
 
 ## 2. Stage decisions
 
@@ -17,8 +23,9 @@ The XIAO candidate is not a replacement for the Nordic Tag reference by declarat
 
 ## 3. Why nRF54L15 remains the leading candidate
 
-- Official Bluetooth Channel Sounding support in the nRF54L family.
-- One device handles BLE control, CS Reflector, motion processing, security and OTA.
+- BLE, motion processing, security and OTA are integrated on one device.
+- Official Bluetooth Channel Sounding support preserves a later research option
+  without making CS an MVP dependency.
 - 1.5 MB NVM / 256 KB RAM provides enough margin for product firmware and secure update.
 - Low radio and sleep current support a multi-year primary-cell target.
 - Nordic Tag and SDK provide a direct reference path.

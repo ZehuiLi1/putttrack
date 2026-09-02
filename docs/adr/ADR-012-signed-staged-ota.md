@@ -30,6 +30,11 @@ Boot/key/provisioning complexity; flash constraints; a badly designed release pr
 
 Unsigned/downgrade rejection, failed-image rollback, power-loss during update, cohort canary, version mismatch quarantine, spare replacement and credential revocation tests.
 
+Physical positive-path status on 2026-09-02: the nRF54L15 Tag accepted a signed
+BLE image into its secondary slot, test-booted it, was remotely confirmed and
+remained active after a second reboot. Deliberate rollback, interrupted upload,
+unsigned/downgrade rejection and production-key lifecycle tests remain open.
+
 ## Revisit trigger
 
 - selected hardware cannot support safe dual-image/recovery design;

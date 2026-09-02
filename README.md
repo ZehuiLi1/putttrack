@@ -2,6 +2,34 @@
 
 PuttTrack is a research and product-development repository for a smart mini-golf ball and an 18-hole, automatic-scoring venue platform.
 
+## Current execution direction
+
+Bluetooth Channel Sounding is deferred for the current MVP. The active path is
+nRF54L15 Tag identity/health/generic motion over BLE, signed OTA, physical
+tee/cup/feature sensors and the existing sensor-independent Gameplay Engine.
+There is no near-term continuous-XY claim. See
+[`docs/CURRENT_PLAN_NO_CS.md`](docs/CURRENT_PLAN_NO_CS.md) and
+[`ADR-013`](docs/adr/ADR-013-defer-cs-for-ble-motion-mvp.md).
+
+The physical Tag currently runs confirmed repository firmware `0.1.13` from a
+CR2032: signed BLE OTA, stable identity/health, ADXL367 + BMI270 telemetry,
+explicit ODR/range metadata, clipping counters and an atomic
+1024-sample/20.48-second frozen history are validated. Its automatic power
+policy stops BMI270 and the motion stream after 30 seconds at rest, retains
+ADXL367 in hardware wake-up mode with INT1 connected to nRF54L15 P0.03, stops
+MCU polling, suspends the BMI270 SPI controller, slows BLE advertising, and
+restores the full 50 Hz path after physical motion. Repeated interrupt
+wake/re-sleep cycles and a post-confirm reboot are validated with zero reported
+sensor, power-management or advertising errors.
+See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
+and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
+Physical stationary and continuous hand-motion windows now separate as
+`STATIONARY_CANDIDATE` and `ACTIVE_MOTION_CANDIDATE`. Two natural-pickup and two
+desk-handling repetitions also show that stronger handling overlaps pickup at
+generic activity intensity. The resulting canonical motion record can enter
+the one-hole runtime as an observed/pending/rejected candidate, but cannot
+infer pickup/impact semantics or directly mutate score.
+
 ## Product logic
 
 The locked player experience is defined in [`docs/PRODUCT_LOGIC_LOCK.md`](docs/PRODUCT_LOGIC_LOCK.md):
@@ -32,7 +60,7 @@ The end-to-end architecture is defined in:
 
 The former [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is retained as the pre-convergence hypothesis and research history.
 
-## Converged direction
+## Longer-term architecture hypothesis (CS currently deferred)
 
 ```text
                             CLOUD (non-authoritative)
@@ -169,7 +197,10 @@ PYTHONPATH=src python tools/run_hole_demo.py
 
 Then open `http://127.0.0.1:8080/checkin`. The simulation controls exist only to exercise the UI while Issue #1 remains a real-hardware gate. See [`docs/GAMEPLAY_VERTICAL_SLICE_V1.md`](docs/GAMEPLAY_VERTICAL_SLICE_V1.md).
 
-## Research Rig
+## Deferred CS Research Rig
+
+This rig is retained for a bounded future experiment under ADR-013. It is not a
+dependency of the active BLE + motion MVP.
 
 ### Moving target
 
@@ -187,6 +218,9 @@ The research count does not freeze production Anchor quantity.
 
 ## Validation before production hardware
 
+The spatial/Anchor gates below apply only if the CS track is reactivated. Motion,
+identity isolation, gameplay, OTA and endurance gates remain active.
+
 See [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_MATRIX.md). Headline candidate gates include:
 
 - single-link LOS P90 <=0.5 m;
@@ -199,7 +233,9 @@ See [`docs/architecture/VERIFICATION_MATRIX.md`](docs/architecture/VERIFICATION_
 - 20/40/80-ball scheduling simulation with bounded queues and measured headroom;
 - custom-ball conservative service-life projection >=2 years, stretch >=5 years.
 
-Do not start the final Ball PCB until measured CS, IMU, dual-antenna, scheduling and power requirements exist.
+Do not start the final Ball PCB until measured IMU, BLE, power, mechanics, OTA
+and service requirements exist. If CS is reactivated, its RF, antenna and
+scheduling requirements must also be measured before that design freeze.
 
 ## Gameplay demo and tests
 
@@ -251,14 +287,14 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 ## Immediate dependency order
 
-1. Maintain the software/pre-hardware verifiers and pinned source-build baseline.
-2. Bring up Bbo <-> Bbo and Bbo <-> Nordic Tag CS using exact NCS/toolchain manifests and `tools/capture_cs.py`.
-3. Collect single-link surveyed-distance data, then 3/4/5-Anchor surveyed-grid data; use calibrated low/oblique video for continuous dynamic truth when needed.
-4. Implement robust WLS plus asynchronous range-domain EKF only after real range evidence exists.
-5. Add generic motion dataset and evidence policies.
-6. Replace simulated one-hole events with confirmed physical evidence while preserving the existing venue/UI boundary.
-7. Build Zone Gateway/field-bus and multi-ball scheduler simulation after measured procedure timing exists.
-8. Start custom Ball EVT only after power/RF/scheduling gates.
+1. Preserve the verified Tag backup, DAPLink recovery and signed OTA baseline.
+2. Replace the generic SMP sample with a repository-owned Tag identity/health application.
+3. Bring up ADXL367 and BMI270 and capture replayable raw BLE telemetry.
+4. Collect labelled bare-Tag and controlled-ball-core motion episodes.
+5. Implement deterministic generic motion candidates without putting score logic in the Ball.
+6. Replace simulated one-hole events with physical tee/cup/feature evidence plus Ball context.
+7. Select pilot Gateway hardware only after the BLE contract and physical I/O count are measured.
+8. Re-open CS/ranging only on the explicit triggers in ADR-013.
 9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
 
 ## IP / legal note

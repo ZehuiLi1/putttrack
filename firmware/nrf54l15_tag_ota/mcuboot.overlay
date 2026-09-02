@@ -1,0 +1,7 @@
+/* Link MCUboot into its own partition instead of the application slot. */
+
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
