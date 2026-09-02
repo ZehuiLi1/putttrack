@@ -177,6 +177,11 @@ def read_capture(path: Path) -> CaptureData:
             first_status = payload
         elif record_type == "tag_status_final":
             final_status = payload
+        elif record_type == "tag_capture_result" and payload.get("status") != "PASS":
+            raise ValueError(
+                f"{path}:{line_number}: capture continuity failed: "
+                f"{payload.get('issues', [])}"
+            )
 
         label = payload.get("episode_label")
         if isinstance(label, str) and label.strip():

@@ -126,11 +126,11 @@ def parse_status(data: bytes | bytearray | memoryview) -> StatusRecord:
         _,
     ) = struct.unpack_from("<BBHIQIII4B", packet)
 
-    if device_id_len > 16:
+    if not 1 <= device_id_len <= 16:
         raise TelemetryProtocolError(f"invalid device ID length {device_id_len}")
-    if boot_id_len > 8:
+    if boot_id_len != 8:
         raise TelemetryProtocolError(f"invalid boot ID length {boot_id_len}")
-    if firmware_len > 8:
+    if not 1 <= firmware_len <= 8:
         raise TelemetryProtocolError(f"invalid firmware length {firmware_len}")
 
     try:
@@ -192,6 +192,13 @@ def _required_int(payload: Mapping[str, Any], name: str) -> int:
     return value
 
 
+def _required_non_negative_int(payload: Mapping[str, Any], name: str) -> int:
+    value = _required_int(payload, name)
+    if value < 0:
+        raise TelemetryProtocolError(f"SMP field {name!r} must be non-negative")
+    return value
+
+
 def _required_bool(payload: Mapping[str, Any], name: str) -> bool:
     value = payload.get(name)
     if not isinstance(value, bool):
@@ -212,6 +219,13 @@ def _optional_int(payload: Mapping[str, Any], name: str) -> int | None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
         raise TelemetryProtocolError(f"SMP field {name!r} must be an integer")
+    return value
+
+
+def _optional_non_negative_int(payload: Mapping[str, Any], name: str) -> int | None:
+    value = _optional_int(payload, name)
+    if value is not None and value < 0:
+        raise TelemetryProtocolError(f"SMP field {name!r} must be non-negative")
     return value
 
 
@@ -244,10 +258,18 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
     device_id = _required_text(payload, "device_id")
     boot_id = _required_text(payload, "boot_id")
     try:
-        bytes.fromhex(device_id)
-        bytes.fromhex(boot_id)
+        device_id_bytes = bytes.fromhex(device_id)
+        boot_id_bytes = bytes.fromhex(boot_id)
     except ValueError as exc:
         raise TelemetryProtocolError("SMP device_id and boot_id must be hexadecimal") from exc
+    if not 1 <= len(device_id_bytes) <= 16:
+        raise TelemetryProtocolError("SMP device_id must contain 1..16 bytes")
+    if len(boot_id_bytes) != 8:
+        raise TelemetryProtocolError("SMP boot_id must contain exactly 8 bytes")
+
+    firmware_version = _required_text(payload, "fw")
+    if len(firmware_version) > 8 or not firmware_version.isascii():
+        raise TelemetryProtocolError("SMP firmware version must be 1..8 ASCII characters")
 
     power_policy = _optional_text(payload, "power_policy")
     runtime_state = _optional_text(payload, "runtime_state")
@@ -258,36 +280,50 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
 
     return StatusRecord(
         protocol_version=version,
-        sequence=_required_int(payload, "seq"),
-        uptime_ms=_required_int(payload, "uptime_ms"),
-        reset_cause=_required_int(payload, "reset"),
-        sensor_error_count=_required_int(payload, "sensor_errors"),
-        notify_drop_count=_required_int(payload, "notify_drops"),
+        sequence=_required_non_negative_int(payload, "seq"),
+        uptime_ms=_required_non_negative_int(payload, "uptime_ms"),
+        reset_cause=_required_non_negative_int(payload, "reset"),
+        sensor_error_count=_required_non_negative_int(payload, "sensor_errors"),
+        notify_drop_count=_required_non_negative_int(payload, "notify_drops"),
         adxl367_ready=_required_bool(payload, "adxl_ready"),
         bmi270_ready=_required_bool(payload, "bmi_ready"),
         notify_active=False,
         device_id=device_id.lower(),
         boot_id=boot_id.lower(),
-        firmware_version=_required_text(payload, "fw"),
-        stream_rate_hz=_optional_int(payload, "stream_hz"),
-        adxl367_odr_hz=_optional_int(payload, "adxl_odr_hz"),
-        adxl367_range_g=_optional_int(payload, "adxl_range_g"),
-        bmi270_accel_odr_hz=_optional_int(payload, "bmi_accel_odr_hz"),
-        bmi270_accel_range_g=_optional_int(payload, "bmi_accel_range_g"),
-        bmi270_gyro_odr_hz=_optional_int(payload, "bmi_gyro_odr_hz"),
-        bmi270_gyro_range_dps=_optional_int(payload, "bmi_gyro_range_dps"),
-        adxl367_clip_count=_optional_int(payload, "adxl_clips") or 0,
-        bmi270_accel_clip_count=_optional_int(payload, "bmi_accel_clips") or 0,
-        bmi270_gyro_clip_count=_optional_int(payload, "bmi_gyro_clips") or 0,
+        firmware_version=firmware_version,
+        stream_rate_hz=_optional_non_negative_int(payload, "stream_hz"),
+        adxl367_odr_hz=_optional_non_negative_int(payload, "adxl_odr_hz"),
+        adxl367_range_g=_optional_non_negative_int(payload, "adxl_range_g"),
+        bmi270_accel_odr_hz=_optional_non_negative_int(payload, "bmi_accel_odr_hz"),
+        bmi270_accel_range_g=_optional_non_negative_int(payload, "bmi_accel_range_g"),
+        bmi270_gyro_odr_hz=_optional_non_negative_int(payload, "bmi_gyro_odr_hz"),
+        bmi270_gyro_range_dps=_optional_non_negative_int(payload, "bmi_gyro_range_dps"),
+        adxl367_clip_count=_optional_non_negative_int(payload, "adxl_clips") or 0,
+        bmi270_accel_clip_count=(
+            _optional_non_negative_int(payload, "bmi_accel_clips") or 0
+        ),
+        bmi270_gyro_clip_count=(
+            _optional_non_negative_int(payload, "bmi_gyro_clips") or 0
+        ),
         power_policy=power_policy,
         runtime_state=runtime_state,
-        power_transition_count=_optional_int(payload, "power_transitions") or 0,
-        idle_timeout_ms=_optional_int(payload, "idle_timeout_ms"),
-        wake_poll_ms=_optional_int(payload, "wake_poll_ms"),
-        advertising_interval_min_ms=_optional_int(payload, "adv_interval_min_ms"),
-        advertising_interval_max_ms=_optional_int(payload, "adv_interval_max_ms"),
-        advertising_start_error_count=_optional_int(payload, "adv_start_errors") or 0,
-        power_management_error_count=_optional_int(payload, "pm_errors") or 0,
+        power_transition_count=(
+            _optional_non_negative_int(payload, "power_transitions") or 0
+        ),
+        idle_timeout_ms=_optional_non_negative_int(payload, "idle_timeout_ms"),
+        wake_poll_ms=_optional_non_negative_int(payload, "wake_poll_ms"),
+        advertising_interval_min_ms=_optional_non_negative_int(
+            payload, "adv_interval_min_ms"
+        ),
+        advertising_interval_max_ms=_optional_non_negative_int(
+            payload, "adv_interval_max_ms"
+        ),
+        advertising_start_error_count=(
+            _optional_non_negative_int(payload, "adv_start_errors") or 0
+        ),
+        power_management_error_count=(
+            _optional_non_negative_int(payload, "pm_errors") or 0
+        ),
         bmi270_spi_suspended=_optional_bool(payload, "bmi_spi_suspended") or False,
         idle_wake_interrupt_enabled=_optional_bool(payload, "wake_interrupt") or False,
         adxl367_wakeup_mode_enabled=_optional_bool(payload, "adxl_wakeup_mode") or False,
@@ -305,8 +341,8 @@ def motion_from_smp(payload: Mapping[str, Any]) -> MotionRecord:
         )
     return MotionRecord(
         protocol_version=version,
-        sequence=_required_int(payload, "seq"),
-        source_monotonic_us=_required_int(payload, "t_us"),
+        sequence=_required_non_negative_int(payload, "seq"),
+        source_monotonic_us=_required_non_negative_int(payload, "t_us"),
         adxl367_valid=_required_bool(payload, "adxl_valid"),
         bmi270_valid=_required_bool(payload, "bmi_valid"),
         adxl367_accel_micro_ms2=tuple(
@@ -318,7 +354,7 @@ def motion_from_smp(payload: Mapping[str, Any]) -> MotionRecord:
         bmi270_gyro_micro_rads=tuple(
             _required_int(payload, name) for name in ("bmi_gx", "bmi_gy", "bmi_gz")
         ),
-        sensor_error_bits=_required_int(payload, "errors"),
+        sensor_error_bits=_required_non_negative_int(payload, "errors"),
     )
 
 

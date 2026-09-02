@@ -88,6 +88,7 @@ After each profile and its final stationary period:
 ```bash
 python tools/capture_tag_smp.py \
   --mode frozen \
+  --expected-device-id f383571202836e6f \
   --label rolling \
   --notes "roller R1; CW; slow; carrier r1; repetition 01" \
   --output runs/roller-r1-cw-slow-r01.jsonl

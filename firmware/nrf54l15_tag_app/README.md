@@ -23,8 +23,9 @@ XIAO USB HCI development bridge:
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
   that frozen capture.
 
-Firmware `0.1.13` provides three remotely selectable power policies while
-preserving the signed OTA and frozen-history protocol:
+Confirmed firmware `0.1.13` and build-only candidate `0.1.14` provide three
+remotely selectable power policies while preserving the signed OTA and
+frozen-history protocol:
 
 - `auto` (boot default): full 50 Hz dual-IMU capture while active, then enter
   idle after 30 seconds without measured motion;
@@ -64,6 +65,11 @@ passed two repeatable ADXL367 INT1 wake/re-sleep cycles, extended idle without
 false wakes, remote confirmation and a post-confirm reset/idle cycle. DAPLink
 is therefore a commissioning and recovery tool, not part of ordinary
 application updates or operation.
+
+Candidate `0.1.14` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
+scan response to distinguish multiple boards. This is only a selector: capture
+must still lock the full encrypted `DEVICE_ID`. The candidate has passed signed
+default and NFC-variant builds but has not been installed on the physical Tag.
 
 Encrypted custom mcumgr writes select the policy: command `20` is `auto`, `21`
 is `research`, and `22` is `idle`. Use:
@@ -121,6 +127,7 @@ Capture and inspect a stationary window through the XIAO adapter:
 ```bash
 python tools/capture_tag_smp.py \
   --mode frozen --label stationary \
+  --expected-device-id f383571202836e6f \
   --output runs/tag-stationary.jsonl
 python tools/analyze_tag_capture.py runs/tag-stationary.jsonl
 ```
@@ -128,6 +135,10 @@ python tools/analyze_tag_capture.py runs/tag-stationary.jsonl
 Select `research` before collecting a labelled full-rate episode. In `auto`,
 the active ring is cleared on wake so a frozen record never mixes idle timing
 with 50 Hz samples; it can initially contain fewer than 1024 samples.
+
+For confirmed `0.1.13`, keep other same-name Tags off or also pass
+`--ble-address` and the correct `--address-type`. See
+[`TAG_MULTI_DEVICE_IDENTITY.md`](../../docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md).
 
 `--mode snapshot` remains available for firmware `0.1.2` and older, but it is a
 low-rate diagnostic path and must not be used for impact/rolling datasets.

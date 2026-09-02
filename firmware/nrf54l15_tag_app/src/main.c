@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -31,14 +32,13 @@
 #include <zcbor_encode.h>
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
-#include <stdio.h>
 #include <hal/nrf_nfct.h>
 #include <nfc_t2t_lib.h>
 #include <nfc/ndef/uri_msg.h>
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.13"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.14"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -98,6 +98,10 @@
 #define BMI270_GYRO_CLIP_MICRO_RADS 34208453
 #define DEVICE_ID_MAX_SIZE 16U
 #define BOOT_ID_SIZE 8U
+#define ADVERTISING_NAME_PREFIX "PuttTrack-"
+#define ADVERTISING_NAME_SUFFIX_BYTES 4U
+#define ADVERTISING_NAME_BUFFER_SIZE \
+	(sizeof(ADVERTISING_NAME_PREFIX) + ADVERTISING_NAME_SUFFIX_BYTES * 2U)
 
 #define STATUS_FLAG_ADXL367_READY BIT(0)
 #define STATUS_FLAG_BMI270_READY  BIT(1)
@@ -158,6 +162,7 @@ static uint32_t frozen_capture_id;
 static uint8_t device_id[DEVICE_ID_MAX_SIZE];
 static uint8_t device_id_len;
 static uint8_t boot_id[BOOT_ID_SIZE];
+static char advertising_name[ADVERTISING_NAME_BUFFER_SIZE];
 static uint32_t reset_cause;
 static uint32_t sequence;
 static uint32_t sensor_error_count;
@@ -233,6 +238,17 @@ static void bytes_to_hex(const uint8_t *input, size_t input_len, char *output)
 		output[index * 2] = digits[input[index] >> 4];
 		output[index * 2 + 1] = digits[input[index] & 0x0f];
 	}
+}
+
+static void initialize_advertising_name(void)
+{
+	const size_t prefix_len = sizeof(ADVERTISING_NAME_PREFIX) - 1U;
+	const size_t suffix_len = MIN((size_t)device_id_len,
+				      (size_t)ADVERTISING_NAME_SUFFIX_BYTES);
+
+	memcpy(advertising_name, ADVERTISING_NAME_PREFIX, prefix_len);
+	bytes_to_hex(device_id, suffix_len, &advertising_name[prefix_len]);
+	advertising_name[prefix_len + suffix_len * 2U] = '\0';
 }
 
 static int putttrack_mgmt_status(struct smp_streamer *ctxt)
@@ -812,9 +828,12 @@ static const struct bt_data advertising_data[] = {
 	BT_DATA_BYTES(BT_DATA_UUID128_ALL, SMP_BT_SVC_UUID_VAL),
 };
 
-static const struct bt_data scan_response_data[] = {
-	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME,
-		sizeof(CONFIG_BT_DEVICE_NAME) - 1),
+static struct bt_data scan_response_data[] = {
+	{
+		.type = BT_DATA_NAME_COMPLETE,
+		.data_len = 0U,
+		.data = (const uint8_t *)advertising_name,
+	},
 };
 
 static const struct bt_le_adv_param active_advertising = BT_LE_ADV_PARAM_INIT(
@@ -1484,6 +1503,8 @@ int main(void)
 	uint32_t previous_period_ms = 0U;
 
 	initialize_identity();
+	initialize_advertising_name();
+	scan_response_data[0].data_len = (uint8_t)strlen(advertising_name);
 	initialize_sensors();
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	(void)initialize_nfc_service();

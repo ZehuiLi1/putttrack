@@ -6,6 +6,11 @@ This pipeline is intentionally usable before the Research Ball is assembled. It 
 
 It does **not** define impact, rolling, pickup or settling thresholds. Those remain evidence-gated until mechanically repeatable Research Ball data exists.
 
+New captures must use the full expected Tag device ID. The capture session now
+checks device, boot, firmware, sequence/time continuity and health-counter
+deltas before the offline dataset accepts the file; see
+[`TAG_MULTI_DEVICE_IDENTITY.md`](../hardware/TAG_MULTI_DEVICE_IDENTITY.md).
+
 ## Dataset layout
 
 Keep raw captures immutable and describe the physical setup in a separate versioned manifest:

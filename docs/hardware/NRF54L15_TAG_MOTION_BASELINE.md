@@ -177,6 +177,7 @@ Use:
 ```bash
 python tools/capture_tag_smp.py \
   --mode frozen --label stationary \
+  --expected-device-id f383571202836e6f \
   --output runs/tag-motion.jsonl
 python tools/analyze_tag_capture.py runs/tag-motion.jsonl
 ```

@@ -30,6 +30,7 @@ class MotionDatasetTests(unittest.TestCase):
         label: str,
         active: bool,
         clipped: bool = False,
+        capture_status: str = "PASS",
     ) -> None:
         records = [
             {
@@ -66,6 +67,13 @@ class MotionDatasetTests(unittest.TestCase):
                 "device_id": "ball-fixture-01",
                 "boot_id": "boot-fixture-01",
                 "firmware_version": "fixture-0.1",
+            }
+        )
+        records.append(
+            {
+                "record_type": "tag_capture_result",
+                "status": capture_status,
+                "issues": [] if capture_status == "PASS" else ["device_id_changed"],
             }
         )
         path.write_text(
@@ -182,6 +190,18 @@ class MotionDatasetTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "duplicate episode_id"):
                 load_dataset_manifest(manifest)
+
+    def test_failed_capture_continuity_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "mixed-tag.jsonl"
+            self._write_capture(
+                path,
+                label="rolling",
+                active=True,
+                capture_status="FAIL",
+            )
+            with self.assertRaisesRegex(ValueError, "capture continuity failed"):
+                read_capture(path)
 
     def test_svg_report_is_dependency_free(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

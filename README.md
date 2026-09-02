@@ -23,6 +23,11 @@ wake/re-sleep cycles and a post-confirm reboot are validated with zero reported
 sensor, power-management or advertising errors.
 See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
 and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
+A build-only `0.1.14` candidate adds per-device advertising names, while the
+capture tools now lock the full encrypted device ID and boot/session
+continuity so a future second Tag cannot be silently mixed into a dataset. The
+physical Tag remains on confirmed `0.1.13`; see
+[`docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md`](docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md).
 PCA20072 design review also confirms an unpopulated optional NFC path on
 P1.02/NFC1 and P1.03/NFC2 with C17/C19 tuning footprints. It remains an
 unvalidated, time-boxed service/provisioning experiment; see

@@ -45,6 +45,10 @@ position, cup entry or every valid stroke.
 - XIAO nRF52840 Sense running as a USB HCI controller for Mac development.
 - Repository-owned Tag firmware `0.1.13` installed over BLE while powered from
   CR2032, remotely confirmed and verified after a further reboot.
+- Multi-Tag capture now locks the full encrypted device ID plus boot/firmware,
+  sequence/time and health-counter continuity. Build-only candidate `0.1.14`
+  adds a per-device advertising suffix; it has not replaced the confirmed
+  physical `0.1.13` image.
 - Stable device ID, per-boot ID, health and encrypted raw motion telemetry.
 - ADXL367 + BMI270 valid at a measured 50.0 Hz source rate with a 64-sample live
   window and an atomic 1024-sample/20.48-second frozen history.
@@ -297,20 +301,24 @@ Re-open the CS track only when at least one is true:
    Complete functionally in battery-powered `0.1.13`, including event-driven
    ADXL367 INT1 wake, repeated wake/re-sleep, slow-advertising access and
    post-confirm reset. Measured coin-cell current remains a separate gate.
-6. Build a repeatable, restrained research-ball core and record labelled putter
+6. ~~Make capture safe before a second Tag is powered.~~ Complete: full
+   `DEVICE_ID` locking, address pinning, boot/session continuity and strict
+   malformed/error handling are implemented. Candidate `0.1.14` provides a
+   human-readable short-ID advertising suffix but remains build-only.
+7. Build a repeatable, restrained research-ball core and record labelled putter
    impact, rolling, settling and post-stop episodes. Then extend the implemented
    feature extractor into the measured deterministic generic-motion FSM; do not
    invent action thresholds from additional bare-Tag hand movement.
    The official STEP envelope and initial roller matrix are now documented;
    CAD adaptation, printing and physical captures are pending.
-7. Connect physical tee and cup evidence to the existing one-hole vertical
+8. Connect physical tee and cup evidence to the existing one-hole vertical
    slice and complete an automatic real one-hole path.
-8. Run the time-boxed NFC feasibility spike after antenna identity and matching
+9. Run the time-boxed NFC feasibility spike after antenna identity and matching
    are known, or during mechanical waiting time. The build-only rung is now
    complete; do not install until the antenna/tuning checks pass. NFC remains
    service wake plus BLE handoff; BLE remains the authenticated communication
    and OTA channel.
-9. Decide the pilot gateway and feature-sensor I/O from measured needs.
+10. Decide the pilot gateway and feature-sensor I/O from measured needs.
 
 The next physical action is to define and assemble the repeatable research-ball
 carrier. Its measured keep-in and roller matrix are now defined in

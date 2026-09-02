@@ -109,6 +109,7 @@ def main() -> int:
     final_status = None
     edge_received_ns = 0
     episode_labels: set[str] = set()
+    capture_result = None
     for line_number, line in enumerate(args.capture.read_text(encoding="utf-8").splitlines(), 1):
         payload = json.loads(line)
         if not isinstance(payload, dict):
@@ -120,9 +121,17 @@ def main() -> int:
             status = status_from_json(payload)
         elif payload.get("record_type") == "tag_status_final":
             final_status = status_from_json(payload)
+        elif payload.get("record_type") == "tag_capture_result":
+            capture_result = payload
         label = payload.get("episode_label")
         if isinstance(label, str) and label.strip():
             episode_labels.add(label.strip().lower())
+
+    if capture_result is not None and capture_result.get("status") != "PASS":
+        issues = capture_result.get("issues", [])
+        raise SystemExit(
+            f"capture continuity failed ({issues}); refusing motion analysis"
+        )
 
     features = extract_window_features(records)
     diagnostic = provisional_generic_motion_check(features)

@@ -19,6 +19,8 @@ if str(SRC) not in sys.path:
 from putttrack.tag import (  # noqa: E402
     MOTION_CHARACTERISTIC_UUID,
     STATUS_CHARACTERISTIC_UUID,
+    TagCaptureSession,
+    TelemetryProtocolError,
     parse_motion,
     parse_status,
 )
@@ -26,7 +28,15 @@ from putttrack.tag import (  # noqa: E402
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--device-name", default="PuttTrack-Tag-v0.1")
+    parser.add_argument("--device-name", default="PuttTrack-")
+    parser.add_argument(
+        "--ble-address",
+        help="optional OS BLE address/identifier used to select one same-name Tag",
+    )
+    parser.add_argument(
+        "--expected-device-id",
+        help="stable hexadecimal Tag DEVICE_ID; capture aborts before writing if different",
+    )
     parser.add_argument("--scan-timeout", type=float, default=15.0)
     parser.add_argument("--duration", type=float, default=5.0)
     parser.add_argument("--output", type=Path)
@@ -41,23 +51,28 @@ async def capture(args: argparse.Namespace) -> int:
             "bleak is required; install the project hardware dependency in a Python >=3.11 venv"
         ) from exc
 
+    requested_address = args.ble_address.casefold() if args.ble_address else None
+
+    def matches(candidate: Any, advertisement: Any) -> bool:
+        if requested_address is not None:
+            return str(candidate.address).casefold() == requested_address
+        return bool(
+            advertisement.local_name and args.device_name in advertisement.local_name
+        )
+
     device = await BleakScanner.find_device_by_filter(
-        lambda candidate, advertisement: bool(
-            advertisement.local_name
-            and args.device_name in advertisement.local_name
-        ),
+        matches,
         timeout=args.scan_timeout,
     )
     if device is None:
-        raise SystemExit(f"Tag containing name {args.device_name!r} was not found")
+        selector = (
+            f"BLE address/identifier {args.ble_address!r}"
+            if args.ble_address
+            else f"name containing {args.device_name!r}"
+        )
+        raise SystemExit(f"Tag matching {selector} was not found")
 
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-    output = args.output.open("x", encoding="utf-8") if args.output else None
-    records = 0
-    first_sequence: int | None = None
-    last_sequence: int | None = None
-    gaps = 0
+    output = None
 
     def emit(payload: dict[str, Any]) -> None:
         line = json.dumps(payload, separators=(",", ":"), sort_keys=True)
@@ -67,59 +82,84 @@ async def capture(args: argparse.Namespace) -> int:
         else:
             print(line)
 
-    async with BleakClient(device) as client:
-        raw_status = await client.read_gatt_char(STATUS_CHARACTERISTIC_UUID)
-        status = parse_status(raw_status)
-        emit({"record_type": "tag_status", "host_received_ns": time.time_ns(), **status.to_dict()})
-
-        def on_motion(_: Any, data: bytearray) -> None:
-            nonlocal records, first_sequence, last_sequence, gaps
-            motion = parse_motion(data)
-            if first_sequence is None:
-                first_sequence = motion.sequence
-            if last_sequence is not None and motion.sequence != last_sequence + 1:
-                gaps += max(0, motion.sequence - last_sequence - 1)
-            last_sequence = motion.sequence
-            records += 1
+    try:
+        async with BleakClient(device) as client:
+            raw_status = await client.read_gatt_char(STATUS_CHARACTERISTIC_UUID)
+            status = parse_status(raw_status)
+            capture_session = TagCaptureSession(
+                expected_device_id=args.expected_device_id,
+            )
+            capture_session.start(status)
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                output = args.output.open("x", encoding="utf-8")
             emit(
                 {
-                    "record_type": "tag_motion",
+                    "record_type": "tag_status",
                     "host_received_ns": time.time_ns(),
-                    **motion.to_dict(),
+                    **status.to_dict(),
                 }
             )
 
-        if args.duration > 0:
-            await client.start_notify(MOTION_CHARACTERISTIC_UUID, on_motion)
-            await asyncio.sleep(args.duration)
-            await client.stop_notify(MOTION_CHARACTERISTIC_UUID)
+            def on_motion(_: Any, data: bytearray) -> None:
+                try:
+                    motion = parse_motion(data)
+                except TelemetryProtocolError as exc:
+                    capture_session.record_malformed_motion()
+                    emit(
+                        {
+                            "record_type": "tag_motion_error",
+                            "host_received_ns": time.time_ns(),
+                            "error": str(exc),
+                            "raw_hex": bytes(data).hex(),
+                        }
+                    )
+                    return
+                capture_session.observe_motion(motion)
+                emit(
+                    {
+                        "record_type": "tag_motion",
+                        "host_received_ns": time.time_ns(),
+                        **motion.to_dict(),
+                    }
+                )
 
-        final_status = parse_status(await client.read_gatt_char(STATUS_CHARACTERISTIC_UUID))
-        emit(
-            {
-                "record_type": "tag_status_final",
-                "host_received_ns": time.time_ns(),
-                **final_status.to_dict(),
-            }
-        )
+            if args.duration > 0:
+                await client.start_notify(MOTION_CHARACTERISTIC_UUID, on_motion)
+                await asyncio.sleep(args.duration)
+                await client.stop_notify(MOTION_CHARACTERISTIC_UUID)
 
-    if output:
-        output.close()
+            final_status = parse_status(
+                await client.read_gatt_char(STATUS_CHARACTERISTIC_UUID)
+            )
+            emit(
+                {
+                    "record_type": "tag_status_final",
+                    "host_received_ns": time.time_ns(),
+                    **final_status.to_dict(),
+                }
+            )
+            report = capture_session.finalize(final_status)
+            emit(
+                {
+                    "record_type": "tag_capture_result",
+                    "host_received_ns": time.time_ns(),
+                    **report.to_dict(),
+                }
+            )
+    finally:
+        if output:
+            output.close()
+    summary = {
+        **report.to_dict(),
+        "ble_address": str(device.address),
+        "output": str(args.output) if args.output else None,
+    }
     print(
-        json.dumps(
-            {
-                "status": "PASS",
-                "motion_records": records,
-                "first_sequence": first_sequence,
-                "last_sequence": last_sequence,
-                "sequence_gaps": gaps,
-                "output": str(args.output) if args.output else None,
-            },
-            sort_keys=True,
-        ),
+        json.dumps(summary, sort_keys=True),
         file=sys.stderr,
     )
-    return 0
+    return 0 if report.passed else 1
 
 
 def main() -> int:

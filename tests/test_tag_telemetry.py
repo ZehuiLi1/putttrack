@@ -77,6 +77,36 @@ class TagTelemetryTests(unittest.TestCase):
         with self.assertRaises(TelemetryProtocolError):
             parse_status(packet)
 
+    def test_status_rejects_missing_device_or_wrong_boot_id_size(self) -> None:
+        packet = bytearray(64)
+        struct.pack_into(
+            "<BBHIQIII4B",
+            packet,
+            0,
+            1,
+            0x03,
+            64,
+            1,
+            10,
+            0,
+            0,
+            0,
+            0,
+            8,
+            5,
+            0,
+        )
+        packet[48:56] = bytes.fromhex("8899aabbccddeeff")
+        packet[56:61] = b"0.1.0"
+        with self.assertRaisesRegex(TelemetryProtocolError, "device ID length"):
+            parse_status(packet)
+
+        packet[28] = 8
+        packet[29] = 7
+        packet[32:40] = bytes.fromhex("0011223344556677")
+        with self.assertRaisesRegex(TelemetryProtocolError, "boot ID length"):
+            parse_status(packet)
+
     def test_normalizes_smp_status(self) -> None:
         status = status_from_smp(
             {
@@ -157,6 +187,28 @@ class TagTelemetryTests(unittest.TestCase):
             "power_policy": "magic",
         }
         with self.assertRaises(TelemetryProtocolError):
+            status_from_smp(payload)
+
+    def test_smp_status_rejects_short_boot_id_and_negative_counters(self) -> None:
+        payload = {
+            "proto": 1,
+            "seq": 1,
+            "uptime_ms": 2,
+            "reset": 0,
+            "sensor_errors": 0,
+            "notify_drops": 0,
+            "adxl_ready": True,
+            "bmi_ready": True,
+            "device_id": "0011223344556677",
+            "boot_id": "00",
+            "fw": "0.1.13",
+        }
+        with self.assertRaisesRegex(TelemetryProtocolError, "exactly 8 bytes"):
+            status_from_smp(payload)
+
+        payload["boot_id"] = "8899aabbccddeeff"
+        payload["sensor_errors"] = -1
+        with self.assertRaisesRegex(TelemetryProtocolError, "non-negative"):
             status_from_smp(payload)
 
     def test_normalizes_smp_motion(self) -> None:

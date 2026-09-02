@@ -239,3 +239,19 @@ revalidate the sequence.
 
 Future ordinary application updates use BLE OTA; DAPLink is retained only for
 first commissioning or recovery from a damaged boot/update path.
+
+## Build-only multi-device identity candidate
+
+Repository candidate `0.1.14+0` was built and signature-verified on 2026-09-03
+but was not uploaded. It adds a per-device scan-response name while the host
+capture tools enforce the full `DEVICE_ID`, boot, firmware, sequence/time and
+health-counter continuity. The default signed OTA BIN SHA-256 is:
+
+```text
+fb89e5f7f93787cd86b49af7610c67eec0bf5cdbbdb9ff9ee5c7e4541b857b3a
+```
+
+The optional NFC variant was also rebuilt and verified. These artifacts do not
+supersede the physical evidence: the active Tag remains confirmed `0.1.13` and
+is the known-good rollback baseline. See
+[`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).

@@ -21,6 +21,7 @@ incorrect bounds or source-sequence gaps.
 ```bash
 python tools/capture_tag_smp.py \
   --mode frozen \
+  --expected-device-id f383571202836e6f \
   --label pickup_carry \
   --notes "bare Tag; desk to hand and held for two seconds" \
   --output runs/pickup-carry-001.jsonl
@@ -36,6 +37,11 @@ path as the primary labelled-episode record when frozen history is available.
 The output path is exclusive: the tool will not overwrite an existing episode.
 `runs/` is intentionally ignored by Git because raw experiments can be large;
 promote selected immutable evidence separately after review.
+
+The commissioned Tag's full ID is `f383571202836e6f`. Always lock it for its
+captures. While it runs confirmed `0.1.13`, keep any other same-name Tag powered
+off or additionally pin `--ble-address` and `--address-type`; see
+[`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).
 
 The command fails closed when a sensor is not ready, a pre-existing/new sensor
 error is reported, a record is invalid, or the merged source sequence contains

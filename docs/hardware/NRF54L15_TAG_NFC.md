@@ -75,7 +75,7 @@ Keep `0.1.13` confirmed as the rollback image. Any NFC candidate is uploaded as
 an unconfirmed signed test image and is confirmed only after BLE/SMP, motion
 wake, automatic idle and rollback access still pass.
 
-### Build-only result — 2026-09-02
+### Build-only result — revalidated 2026-09-03
 
 The repository now contains an explicitly optional Type 2 Tag service variant:
 
@@ -101,19 +101,21 @@ internally consistent.
 The application exposes a read-only URI:
 
 ```text
-putttrack://service/tag/<opaque-device-id>?fw=0.1.13
+putttrack://service/tag/<opaque-device-id>?fw=0.1.14
 ```
 
 It counts NFC field-on/field-off events and reports those plus initialization
 status through the existing encrypted mcumgr status response. A field does not
 change identity, configuration or firmware.
 
-NCS v3.4.0 build evidence:
+Latest NCS v3.4.0 build evidence for candidate `0.1.14+0`:
 
-- application RRAM: `189,128 / 696,176 bytes` (`27.17%`);
-- application RAM: `210,316 / 262,144 bytes` (`80.23%`);
-- signed application image version: `0.1.13+0`;
+- application RRAM: `189,204 / 696,176 bytes` (`27.18%`);
+- application RAM: `210,340 / 262,144 bytes` (`80.24%`);
+- signed application image version: `0.1.14+0`;
 - signed image passed `imgtool verify` with the existing lab Ed25519 key;
+- signed OTA BIN SHA-256:
+  `a64f643fa256147c185cb023de1e209c3160d83109bd93747d116a6a1f49bd45`;
 - signed OTA and first-install artifacts were produced successfully;
 - a separate default build kept NFC disabled/GPIO pin mode and also passed
   signature verification;

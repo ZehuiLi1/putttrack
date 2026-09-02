@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture low-rate Tag health and motion snapshots through a USB HCI adapter."""
+"""Capture identity-locked Tag status and motion through a USB HCI adapter."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from putttrack.tag import (  # noqa: E402
+    TagCaptureSession,
     frozen_history_from_smp,
     frozen_history_metadata_from_smp,
     motion_from_smp,
@@ -31,7 +32,20 @@ from putttrack.tag import (  # noqa: E402
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--device-name", default="PuttTrack-Tag-v0.1")
+    parser.add_argument("--device-name", default="PuttTrack-")
+    parser.add_argument(
+        "--ble-address",
+        help="pin every nrfutil request to one BLE address instead of scanning by name",
+    )
+    parser.add_argument(
+        "--address-type",
+        choices=("public", "random", "public-identity", "random-identity"),
+        help="optional nrfutil address type; valid only with --ble-address",
+    )
+    parser.add_argument(
+        "--expected-device-id",
+        help="stable hexadecimal Tag DEVICE_ID; abort before output if different",
+    )
     parser.add_argument("--hci-port", default="/dev/cu.usbmodem101")
     parser.add_argument(
         "--mode",
@@ -76,30 +90,7 @@ def request(
     args: argparse.Namespace,
     command_id: int,
 ) -> dict[str, Any]:
-    command = [
-        str(nrfutil),
-        "mcu-manager",
-        "ble",
-        "--hci-serial-port",
-        args.hci_port,
-        "--timeout",
-        str(args.timeout),
-        "--log-output=stdout",
-        "--log-level=warn",
-        "raw-smp-request",
-        "--device-name",
-        args.device_name,
-        "--scan-timeout",
-        str(args.scan_timeout),
-        "--pair",
-        "--secure-connection",
-        "--operation",
-        "0",
-        "--group-id",
-        "64",
-        "--command-id",
-        str(command_id),
-    ]
+    command = build_request_command(nrfutil, args, command_id)
     last_detail = "no response"
     for attempt in range(1, args.request_retries + 1):
         result = subprocess.run(
@@ -133,6 +124,47 @@ def request(
     )
 
 
+def build_request_command(
+    nrfutil: Path,
+    args: argparse.Namespace,
+    command_id: int,
+) -> list[str]:
+    command = [
+        str(nrfutil),
+        "mcu-manager",
+        "ble",
+        "--hci-serial-port",
+        args.hci_port,
+        "--timeout",
+        str(args.timeout),
+        "--log-output=stdout",
+        "--log-level=warn",
+        "raw-smp-request",
+        "--pair",
+        "--secure-connection",
+        "--operation",
+        "0",
+        "--group-id",
+        "64",
+        "--command-id",
+        str(command_id),
+    ]
+    if args.ble_address:
+        command.extend(("--address", args.ble_address))
+        if args.address_type:
+            command.extend(("--address-type", args.address_type))
+    else:
+        command.extend(
+            (
+                "--device-name",
+                args.device_name,
+                "--scan-timeout",
+                str(args.scan_timeout),
+            )
+        )
+    return command
+
+
 def vector_norm(values: tuple[int, int, int]) -> float:
     return math.sqrt(sum(value * value for value in values)) / 1_000_000.0
 
@@ -151,9 +183,15 @@ def main() -> int:
         raise SystemExit("--until-enter is unnecessary with the always-on frozen history")
     if not Path(args.hci_port).exists():
         raise SystemExit(f"HCI serial port does not exist: {args.hci_port}")
+    if args.address_type and not args.ble_address:
+        raise SystemExit("--address-type requires --ble-address")
 
     nrfutil = find_nrfutil(args.nrfutil)
     status = status_from_smp(request(nrfutil, args, 0))
+    capture_session = TagCaptureSession(
+        expected_device_id=args.expected_device_id,
+    )
+    capture_session.start(status)
     if not status.adxl367_ready or not status.bmi270_ready:
         raise RuntimeError("Tag reports that one or more motion sensors are not ready")
     if status.sensor_error_count != 0:
@@ -195,7 +233,9 @@ def main() -> int:
         threading.Thread(target=wait_for_enter, daemon=True).start()
 
     motions_by_sequence = {}
+    motions_in_receive_order = []
     final_status = status
+    capture_report = None
     request_failures_total = 0
     consecutive_request_failures = 0
     try:
@@ -221,6 +261,7 @@ def main() -> int:
             received_ns = time.time_ns()
             for motion in batch:
                 motions_by_sequence[motion.sequence] = motion
+                motions_in_receive_order.append(motion)
                 emit(
                     {
                         "record_type": "tag_motion",
@@ -261,6 +302,7 @@ def main() -> int:
                     if motion.sequence in motions_by_sequence:
                         continue
                     motions_by_sequence[motion.sequence] = motion
+                    motions_in_receive_order.append(motion)
                     emit(
                         {
                             "record_type": "tag_motion",
@@ -274,11 +316,6 @@ def main() -> int:
                 if index + 1 < args.count and args.interval:
                     time.sleep(args.interval)
         final_status = status_from_smp(request(nrfutil, args, 0))
-        if (
-            final_status.device_id != status.device_id
-            or final_status.boot_id != status.boot_id
-        ):
-            raise RuntimeError("Tag identity or boot changed during capture")
         emit(
             {
                 "record_type": "tag_status_final",
@@ -289,6 +326,19 @@ def main() -> int:
                 **final_status.to_dict(),
             }
         )
+        for motion in motions_in_receive_order:
+            capture_session.observe_motion(motion)
+        capture_report = capture_session.finalize(final_status)
+        emit(
+            {
+                "record_type": "tag_capture_result",
+                "transport": f"smp_{args.mode}",
+                "host_received_ns": time.time_ns(),
+                "episode_label": args.label,
+                "episode_notes": args.notes,
+                **capture_report.to_dict(),
+            }
+        )
     finally:
         if output is not None:
             output.close()
@@ -296,6 +346,8 @@ def main() -> int:
     motions = [motions_by_sequence[key] for key in sorted(motions_by_sequence)]
     if not motions:
         raise RuntimeError("Tag returned no motion samples")
+    if capture_report is None:
+        raise RuntimeError("Tag capture continuity report was not produced")
     bmi_accel_norms = [vector_norm(item.bmi270_accel_micro_ms2) for item in motions]
     gyro_norms = [vector_norm(item.bmi270_gyro_micro_rads) for item in motions]
     sequence_gaps = sum(
@@ -314,6 +366,7 @@ def main() -> int:
         )
         and sequence_gaps == 0
         and sensor_error_count_delta == 0
+        and capture_report.passed
     )
     summary = {
         "status": "PASS" if valid else "FAIL",
@@ -374,6 +427,7 @@ def main() -> int:
         "first_sequence": motions[0].sequence,
         "last_sequence": motions[-1].sequence,
         "sequence_gaps_expected": sequence_gaps,
+        "capture_continuity": capture_report.to_dict(),
         "bmi_accel_norm_mean_mps2": statistics.fmean(bmi_accel_norms),
         "bmi_accel_norm_stdev_mps2": statistics.pstdev(bmi_accel_norms),
         "bmi_gyro_norm_rms_rads": math.sqrt(statistics.fmean(value * value for value in gyro_norms)),
