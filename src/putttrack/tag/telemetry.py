@@ -56,6 +56,15 @@ class StatusRecord:
     idle_wake_interrupt_enabled: bool = False
     adxl367_wakeup_mode_enabled: bool = False
     battery_supported: bool | None = None
+    nfc_enabled: bool | None = None
+    nfc_setup_error: int | None = None
+    nfc_field_on_count: int = 0
+    nfc_field_off_count: int = 0
+    nfc_field_present: bool = False
+    nfc_service_window_active: bool = False
+    nfc_service_window_ms: int | None = None
+    nfc_service_window_open_count: int = 0
+    nfc_service_window_suppressed_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -328,6 +337,24 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
         idle_wake_interrupt_enabled=_optional_bool(payload, "wake_interrupt") or False,
         adxl367_wakeup_mode_enabled=_optional_bool(payload, "adxl_wakeup_mode") or False,
         battery_supported=_optional_bool(payload, "battery_supported"),
+        nfc_enabled=_optional_bool(payload, "nfc_enabled"),
+        nfc_setup_error=_optional_int(payload, "nfc_setup_error"),
+        nfc_field_on_count=_optional_non_negative_int(payload, "nfc_field_on") or 0,
+        nfc_field_off_count=_optional_non_negative_int(payload, "nfc_field_off") or 0,
+        nfc_field_present=_optional_bool(payload, "nfc_field_present") or False,
+        nfc_service_window_active=(
+            _optional_bool(payload, "nfc_service_window") or False
+        ),
+        nfc_service_window_ms=_optional_non_negative_int(
+            payload, "nfc_service_window_ms"
+        ),
+        nfc_service_window_open_count=(
+            _optional_non_negative_int(payload, "nfc_service_window_opens") or 0
+        ),
+        nfc_service_window_suppressed_count=(
+            _optional_non_negative_int(payload, "nfc_service_window_suppressed")
+            or 0
+        ),
     )
 
 

@@ -72,7 +72,7 @@ The device-ID check prevents silent mislabelling even in that fallback. With
 multiple powered `0.1.13` boards, however, repeated name-based SMP requests can
 alternate between boards and should not be used.
 
-## Build-only firmware 0.1.14
+## Build-only firmware 0.1.14 and later
 
 Repository candidate `0.1.14` adds a per-device scan-response name:
 
@@ -96,6 +96,12 @@ and verified with the lab Ed25519 key on 2026-09-03:
 These are build artifacts, not physical validation or authorization to install
 them. A future ordinary update can still use signed BLE OTA; DAPLink is needed
 only for first commissioning or recovery.
+
+Candidate `0.1.15` retains the identical per-device name and capture contract.
+It supersedes the build-only binaries because the optional NFC variant adds a
+bounded service window; it does not add new physical multi-Tag evidence. The
+latest hashes and memory figures are recorded in
+[`NRF54L15_TAG_OTA_BASELINE.md`](NRF54L15_TAG_OTA_BASELINE.md).
 
 ## Second Tag commissioning
 

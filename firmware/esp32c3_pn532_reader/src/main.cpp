@@ -15,6 +15,8 @@ struct NdefResult {
   String ball_id;
   String uri;
   String device_id;
+  String firmware_version;
+  bool service_uri = false;
   String error;
 };
 
@@ -88,22 +90,66 @@ String extractBallId(const String &text) {
   return ball_id;
 }
 
-String extractDeviceId(const String &uri) {
+bool isHexDeviceId(const String &value) {
+  if (value.length() < 2U || value.length() > 32U ||
+      (value.length() % 2U) != 0U) {
+    return false;
+  }
+  for (size_t i = 0; i < value.length(); ++i) {
+    const char ch = value[i];
+    if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') ||
+          (ch >= 'A' && ch <= 'F'))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool isFirmwareVersion(const String &value) {
+  if (value.isEmpty() || value.length() > 8U) {
+    return false;
+  }
+  for (size_t i = 0; i < value.length(); ++i) {
+    const char ch = value[i];
+    if (!((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') ||
+          (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '-' || ch == '+')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool parseServiceUri(const String &uri, String &device_id,
+                     String &firmware_version, String &error) {
   static const String PREFIX = "putttrack://service/tag/";
   if (!uri.startsWith(PREFIX)) {
-    return "";
+    return false;
   }
 
   const size_t value_start = PREFIX.length();
-  size_t end = value_start;
-  while (end < uri.length()) {
-    const char ch = uri[end];
-    if (ch == '?' || ch == '#' || ch == '/') {
-      break;
-    }
-    ++end;
+  const int query_index = uri.indexOf("?fw=", value_start);
+  if (query_index < 0) {
+    error = "service_uri_missing_firmware";
+    return false;
   }
-  return uri.substring(value_start, end);
+  const size_t value_end = static_cast<size_t>(query_index);
+  device_id = uri.substring(value_start, value_end);
+  if (!isHexDeviceId(device_id)) {
+    error = "service_uri_invalid_device_id";
+    device_id = "";
+    return false;
+  }
+  device_id.toLowerCase();
+
+  const size_t firmware_start = value_end + 4U;
+  firmware_version = uri.substring(firmware_start);
+  if (!isFirmwareVersion(firmware_version)) {
+    error = "service_uri_invalid_firmware";
+    device_id = "";
+    firmware_version = "";
+    return false;
+  }
+  return true;
 }
 
 bool decodeUriPrefix(uint8_t identifier_code, String &prefix) {
@@ -227,7 +273,13 @@ bool parseNdefRecords(const uint8_t *message, size_t message_length,
         for (size_t i = 1; i < payload_length; ++i) {
           result.uri += static_cast<char>(payload[i]);
         }
-        result.device_id = extractDeviceId(result.uri);
+        if (result.uri.startsWith("putttrack://service/tag/")) {
+          if (!parseServiceUri(result.uri, result.device_id,
+                               result.firmware_version, result.error)) {
+            return false;
+          }
+          result.service_uri = true;
+        }
         found_supported_record = true;
       }
     }
@@ -342,10 +394,16 @@ void printTagEvent(const String &uid, const NdefResult &ndef) {
     if (!ndef.uri.isEmpty()) {
       Serial.print(F(",\"ndef_uri\":"));
       printJsonString(ndef.uri);
+      Serial.print(F(",\"service_uri_ok\":"));
+      Serial.print(ndef.service_uri ? F("true") : F("false"));
     }
     if (!ndef.device_id.isEmpty()) {
       Serial.print(F(",\"device_id\":"));
       printJsonString(ndef.device_id);
+    }
+    if (!ndef.firmware_version.isEmpty()) {
+      Serial.print(F(",\"firmware_version\":"));
+      printJsonString(ndef.firmware_version);
     }
   } else {
     Serial.print(F(",\"ndef_error\":"));

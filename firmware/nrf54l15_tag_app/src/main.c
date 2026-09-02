@@ -38,7 +38,7 @@
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.14"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.15"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -200,11 +200,18 @@ static struct k_work_delayable advertise_work;
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #define NFC_NDEF_BUFFER_SIZE 160U
 #define NFC_URI_BUFFER_SIZE 96U
+#define NFC_SERVICE_DISCOVERY_WINDOW_MS 10000U
 
 static uint8_t nfc_ndef_buffer[NFC_NDEF_BUFFER_SIZE];
 static atomic_t nfc_field_on_count;
 static atomic_t nfc_field_off_count;
+static atomic_t nfc_field_present;
+static atomic_t nfc_service_window_active;
+static atomic_t nfc_service_window_open_count;
+static atomic_t nfc_service_window_suppressed_count;
 static int32_t nfc_setup_error;
+static struct k_work nfc_service_window_open_work;
+static struct k_work_delayable nfc_service_window_close_work;
 #endif
 
 K_MUTEX_DEFINE(packet_mutex);
@@ -370,7 +377,20 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_tstr_put_lit(zse, "nfc_field_on") &&
 	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_on_count)) &&
 	     zcbor_tstr_put_lit(zse, "nfc_field_off") &&
-	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_off_count));
+	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_off_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_field_present") &&
+	     zcbor_bool_put(zse, atomic_get(&nfc_field_present) != 0) &&
+	     zcbor_tstr_put_lit(zse, "nfc_service_window") &&
+	     zcbor_bool_put(zse, atomic_get(&nfc_service_window_active) != 0) &&
+	     zcbor_tstr_put_lit(zse, "nfc_service_window_ms") &&
+	     zcbor_uint32_put(zse, NFC_SERVICE_DISCOVERY_WINDOW_MS) &&
+	     zcbor_tstr_put_lit(zse, "nfc_service_window_opens") &&
+	     zcbor_uint32_put(zse,
+			       (uint32_t)atomic_get(&nfc_service_window_open_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_service_window_suppressed") &&
+	     zcbor_uint32_put(zse,
+			       (uint32_t)atomic_get(
+				       &nfc_service_window_suppressed_count));
 #endif
 
 	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
@@ -849,7 +869,11 @@ static void advertise(struct k_work *work)
 	int rc;
 
 	ARG_UNUSED(work);
-	if (atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_IDLE) {
+	if (atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_IDLE
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+	    && atomic_get(&nfc_service_window_active) == 0
+#endif
+	) {
 		parameters = &idle_advertising;
 		current_adv_interval_min_ms = IDLE_ADV_INTERVAL_MIN_MS;
 		current_adv_interval_max_ms = IDLE_ADV_INTERVAL_MAX_MS;
@@ -876,6 +900,32 @@ static void refresh_advertising(void)
 	(void)bt_le_adv_stop();
 	(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 }
+
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+static void close_nfc_service_window(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (atomic_cas(&nfc_service_window_active, 1, 0)) {
+		refresh_advertising();
+	}
+}
+
+static void open_nfc_service_window(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	/* A held field must not extend or repeatedly reopen the bounded window. */
+	if (!atomic_cas(&nfc_service_window_active, 0, 1)) {
+		atomic_inc(&nfc_service_window_suppressed_count);
+		return;
+	}
+	atomic_inc(&nfc_service_window_open_count);
+	refresh_advertising();
+	(void)k_work_reschedule(&nfc_service_window_close_work,
+				K_MSEC(NFC_SERVICE_DISCOVERY_WINDOW_MS));
+}
+#endif
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -1443,9 +1493,15 @@ static void nfc_callback(void *context, nfc_t2t_event_t event,
 	switch (event) {
 	case NFC_T2T_EVENT_FIELD_ON:
 		atomic_inc(&nfc_field_on_count);
+		if (atomic_cas(&nfc_field_present, 0, 1)) {
+			(void)k_work_submit(&nfc_service_window_open_work);
+		} else {
+			atomic_inc(&nfc_service_window_suppressed_count);
+		}
 		break;
 	case NFC_T2T_EVENT_FIELD_OFF:
 		atomic_inc(&nfc_field_off_count);
+		atomic_clear(&nfc_field_present);
 		break;
 	default:
 		break;
@@ -1506,15 +1562,19 @@ int main(void)
 	initialize_advertising_name();
 	scan_response_data[0].data_len = (uint8_t)strlen(advertising_name);
 	initialize_sensors();
+	k_work_init_delayable(&advertise_work, advertise);
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+	k_work_init(&nfc_service_window_open_work, open_nfc_service_window);
+	k_work_init_delayable(&nfc_service_window_close_work,
+			      close_nfc_service_window);
+#endif
+	if (bt_enable(NULL) == 0) {
+		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
+	}
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	(void)initialize_nfc_service();
 #endif
 	build_status_packet();
-
-	k_work_init_delayable(&advertise_work, advertise);
-	if (bt_enable(NULL) == 0) {
-		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
-	}
 
 	next_sample_ms = k_uptime_get();
 	while (true) {

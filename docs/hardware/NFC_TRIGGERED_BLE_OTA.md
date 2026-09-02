@@ -3,8 +3,10 @@
 ## Decision
 
 Use NFC as a close-proximity service wake and identity-discovery mechanism. Use
-authenticated BLE SMP to transport signed firmware, and retain MCUboot test boot,
-health verification, confirmation and rollback.
+BLE SMP to transport signed firmware, and retain MCUboot test boot, health
+verification, confirmation and rollback. The current lab transport requires an
+encrypted link but uses Just Works pairing; controller-authenticated management
+is a production gate, not a capability of the present image.
 
 This is **NFC-triggered BLE OTA**, not firmware transfer over NFC.
 
@@ -23,6 +25,8 @@ for the first proof.
 | PN532 to NFC-A card and blank NTAG213 | Physical pass | Real 13.56 MHz selection and Type 2 memory access passed repeatedly |
 | PN532 to nRF54L15 NFC target | Not yet tested | No end-to-end Ball NFC claim yet |
 | nRF54L15 Type 2 service image | Build-only pass | Signed candidate exists but has not been installed or antenna-tested |
+| One-shot 10 s NFC-to-fast-BLE window | Build-only pass | Candidate `0.1.15` compiles and reports window/open/suppression state; no field or timing test yet |
+| Host service-touch/update planner | Software pass | URI/JSON identity cross-check, inventory/session/quarantine/version/hardware/release gates fail closed; it does not perform or authorize BLE OTA |
 | nRF54L15 NFC wake from System OFF | Not yet tested | Supported upstream, but not proved on the PuttTrack hardware path |
 | Signed BLE SMP OTA and MCUboot confirmation | Physical pass | Keep this as the firmware transport and recovery contract |
 | ADXL367 interrupt wake and re-sleep | Physical pass | Keep motion wake as the gameplay/handling path |
@@ -46,7 +50,7 @@ ESP32-C3 + PN532                                 nRF54L15 + tuned NFC loop
 Host or Venue Edge
   validates device identity and desired version
         |
-        +---------- authenticated BLE ----------> bounded service window
+        +---------- BLE service link -----------> bounded service window
                     signed SMP image upload
                     MCUboot test boot
                     health check
@@ -76,9 +80,10 @@ the NFC payload.
    assignment state, quarantine state and the desired signed release.
 5. If no update is required, the controller does not connect and the Ball returns
    to its previous low-power state after the discovery timeout.
-6. If an update is required, the controller establishes encrypted/authenticated
-   BLE management access and extends the maintenance window, capped initially at
-   120 seconds per attempt.
+6. If an update is required, the lab controller establishes encrypted BLE
+   management access. Production must additionally authenticate/authorize the
+   service controller before extending a maintenance lease, capped initially at
+   120 seconds per attempt. That lease extension is not implemented in `0.1.15`.
 7. The controller uploads the signed image through SMP. MCUboot starts it in test
    mode. The application verifies boot, storage, sensors, BLE and watchdog health
    before confirmation.
@@ -87,6 +92,11 @@ the NFC payload.
 
 Do not update a Ball during an active session. Service policy must reject or
 explicitly quarantine it before opening an OTA transfer.
+
+The repository implements this advisory decision boundary in
+`putttrack.service`: it cross-checks the URI against the reader's redundant JSON
+fields and can only return reject, no-update or offer-signed-update. An offer is
+not BLE authorization and never bypasses controller credentials or MCUboot.
 
 ## Power-state policy
 
@@ -121,7 +131,8 @@ battery pulse capability, self-discharge and enclosure temperature are included.
 
 - NFC field presence proves proximity only; it is not authentication.
 - Keep signed-image verification, version policy, hardware compatibility checks,
-  encrypted/authenticated BLE and MCUboot rollback.
+  encrypted BLE and MCUboot rollback. Add authenticated controller authorization
+  before treating the service path as production-ready.
 - Do not accept identity reassignment, secrets or unsigned update instructions
   solely from a copied NDEF record.
 - Apply wake-rate limiting and bounded windows so a continuously presented reader
@@ -134,7 +145,7 @@ The nRF54L15 supports NFC Type 2 and Type 4 Tag operation, but not NFC
 Reader/Writer operation. Type 2 read-only is intentionally selected for the first
 proof because it is sufficient for discovery and avoids a larger bidirectional
 NFC command protocol. Revisit Type 4/TNEP only if a later requirement cannot be
-met through the authenticated BLE service channel.
+met through the production-authorized BLE service channel.
 
 ## Hardware constraints
 
@@ -154,7 +165,8 @@ met through the authenticated BLE service channel.
    complete a powered read through the actual external NFC loop.
 3. Correlate reader field presentation with Tag field-on/field-off counters.
 4. Implement the bounded NFC-to-BLE window without System OFF and repeat BLE,
-   sensor, motion-wake and OTA rollback regression tests.
+   sensor, motion-wake and OTA rollback regression tests. **Build-only passed in
+   `0.1.15`; physical timing and regression remain open.**
 5. Complete one end-to-end NFC wake -> identity read -> BLE signed OTA -> health
    check -> confirm flow.
 6. Prove NFC wake from System OFF separately, including reset reason, false wakes,

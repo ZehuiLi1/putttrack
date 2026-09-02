@@ -46,7 +46,7 @@ position, cup entry or every valid stroke.
 - Repository-owned Tag firmware `0.1.13` installed over BLE while powered from
   CR2032, remotely confirmed and verified after a further reboot.
 - Multi-Tag capture now locks the full encrypted device ID plus boot/firmware,
-  sequence/time and health-counter continuity. Build-only candidate `0.1.14`
+  sequence/time and health-counter continuity. Build-only candidate `0.1.15`
   adds a per-device advertising suffix; it has not replaced the confirmed
   physical `0.1.13` image.
 - A primary-source Trackaball review confirmed the relevance of distributed
@@ -101,9 +101,11 @@ position, cup entry or every valid stroke.
   unpopulated `TBD` tuning footprints. The default board DTS selects GPIO mode;
   the hardware route is present but has not yet been populated or validated.
 - The optional NFC Type 2 service variant now passes a complete NCS v3.4.0
-  MCUboot + application build. Both generated images select NFCT pad mode; the
-  signed OTA image verifies and retains BLE/SMP/motion at link time. It has not
-  been installed, so antenna read, coexistence and power remain physical gates.
+  MCUboot + application build. Candidate `0.1.15` adds a one-shot 10-second
+  fast-BLE discovery window on an NFC field edge and exposes window/field
+  diagnostics. Both generated images select NFCT pad mode; the signed OTA image
+  verifies and retains BLE/SMP/motion at link time. It has not been installed,
+  so antenna read, coexistence and power remain physical gates.
 - Nordic's official `nrf54l15_tag_v1.0.step` has been measured into a
   reproducible `33.10 × 33.00 × 8.48 mm` populated-board envelope. A
   conservative `34.0 mm × 9.2 mm` removable carrier keep-in and a controlled
@@ -308,7 +310,7 @@ Re-open the CS track only when at least one is true:
    post-confirm reset. Measured coin-cell current remains a separate gate.
 6. ~~Make capture safe before a second Tag is powered.~~ Complete: full
    `DEVICE_ID` locking, address pinning, boot/session continuity and strict
-   malformed/error handling are implemented. Candidate `0.1.14` provides a
+   malformed/error handling are implemented. Candidate `0.1.15` provides a
    human-readable short-ID advertising suffix but remains build-only.
 7. Build a repeatable, restrained research-ball core and record labelled putter
    impact, rolling, settling and post-stop episodes. Then extend the implemented
@@ -321,8 +323,8 @@ Re-open the CS track only when at least one is true:
 9. Run the time-boxed NFC feasibility spike after antenna identity and matching
    are known, or during mechanical waiting time. The build-only rung is now
    complete; do not install until the antenna/tuning checks pass. NFC remains
-   service wake plus BLE handoff; BLE remains the authenticated communication
-   and OTA channel.
+   service wake plus BLE handoff; BLE remains the encrypted lab communication
+   and OTA channel, with controller authentication still a production gate.
 10. Decide the pilot gateway and feature-sensor I/O from measured needs.
 11. After FTO review, test the documented connectionless multi-receiver BLE
     ladder with explicit TX-power metadata. Do not treat receiver RSSI as

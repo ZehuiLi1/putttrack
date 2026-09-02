@@ -9,7 +9,8 @@ nRF54L15 Tag identity/health/generic motion over BLE, signed OTA, physical
 tee/cup/feature sensors and the existing sensor-independent Gameplay Engine.
 There is no near-term continuous-XY claim. See
 [`docs/CURRENT_PLAN_NO_CS.md`](docs/CURRENT_PLAN_NO_CS.md) and
-[`ADR-013`](docs/adr/ADR-013-defer-cs-for-ble-motion-mvp.md).
+[`ADR-013`](docs/adr/ADR-013-defer-cs-for-ble-motion-mvp.md). The evidence-ranked
+current dashboard is [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md).
 
 The physical Tag currently runs confirmed repository firmware `0.1.13` from a
 CR2032: signed BLE OTA, stable identity/health, ADXL367 + BMI270 telemetry,
@@ -23,7 +24,7 @@ wake/re-sleep cycles and a post-confirm reboot are validated with zero reported
 sensor, power-management or advertising errors.
 See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
 and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
-A build-only `0.1.14` candidate adds per-device advertising names, while the
+A build-only `0.1.15` candidate adds per-device advertising names, while the
 capture tools now lock the full encrypted device ID and boot/session
 continuity so a future second Tag cannot be silently mixed into a dataset. The
 physical Tag remains on confirmed `0.1.13`; see
@@ -33,7 +34,10 @@ P1.02/NFC1 and P1.03/NFC2 with C17/C19 tuning footprints. It remains an
 unvalidated, time-boxed service/provisioning experiment; see
 [`docs/hardware/NRF54L15_TAG_NFC.md`](docs/hardware/NRF54L15_TAG_NFC.md).
 The optional NFC Type 2 service image now passes build and signature
-verification but has not been installed. Nordic's official STEP assembly was
+verification and includes a one-shot 10-second fast-BLE discovery window, but
+has not been installed or antenna-tested. The host-side service planner strictly
+cross-checks reader URI/identity/version and rejects unsafe update eligibility;
+it does not itself authorize or perform OTA. Nordic's official STEP assembly was
 also reduced to a reproducible populated-board envelope and conservative
 research-core keep-in; see
 [`docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md`](docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md)

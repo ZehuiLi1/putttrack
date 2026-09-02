@@ -144,6 +144,15 @@ class TagTelemetryTests(unittest.TestCase):
                 "wake_interrupt": True,
                 "adxl_wakeup_mode": True,
                 "battery_supported": False,
+                "nfc_enabled": True,
+                "nfc_setup_error": 0,
+                "nfc_field_on": 4,
+                "nfc_field_off": 3,
+                "nfc_field_present": True,
+                "nfc_service_window": True,
+                "nfc_service_window_ms": 10000,
+                "nfc_service_window_opens": 2,
+                "nfc_service_window_suppressed": 1,
             }
         )
 
@@ -170,6 +179,37 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertTrue(status.idle_wake_interrupt_enabled)
         self.assertTrue(status.adxl367_wakeup_mode_enabled)
         self.assertFalse(status.battery_supported)
+        self.assertTrue(status.nfc_enabled)
+        self.assertEqual(status.nfc_setup_error, 0)
+        self.assertEqual(status.nfc_field_on_count, 4)
+        self.assertEqual(status.nfc_field_off_count, 3)
+        self.assertTrue(status.nfc_field_present)
+        self.assertTrue(status.nfc_service_window_active)
+        self.assertEqual(status.nfc_service_window_ms, 10000)
+        self.assertEqual(status.nfc_service_window_open_count, 2)
+        self.assertEqual(status.nfc_service_window_suppressed_count, 1)
+
+    def test_old_smp_status_has_no_nfc_claim(self) -> None:
+        status = status_from_smp(
+            {
+                "proto": 1,
+                "seq": 1,
+                "uptime_ms": 2,
+                "reset": 0,
+                "sensor_errors": 0,
+                "notify_drops": 0,
+                "adxl_ready": True,
+                "bmi_ready": True,
+                "device_id": "0011223344556677",
+                "boot_id": "8899aabbccddeeff",
+                "fw": "0.1.13",
+            }
+        )
+
+        self.assertIsNone(status.nfc_enabled)
+        self.assertIsNone(status.nfc_setup_error)
+        self.assertFalse(status.nfc_service_window_active)
+        self.assertEqual(status.nfc_service_window_open_count, 0)
 
     def test_rejects_unknown_power_state(self) -> None:
         payload = {

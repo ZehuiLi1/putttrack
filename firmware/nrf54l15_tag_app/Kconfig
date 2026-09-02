@@ -8,9 +8,9 @@ config PUTTTRACK_NFC_SERVICE
 	bool "Enable the experimental NFC service record"
 	default n
 	help
-	  Build the read-only Type 2 Tag NDEF service record used by the bounded
-	  PCA20072 NFC feasibility experiment. This option does not make NFC an
-	  authenticated transport and does not replace encrypted BLE SMP or signed
-	  OTA.
+	  Build the read-only Type 2 Tag NDEF service record and one-shot bounded
+	  fast-BLE discovery window used by the PCA20072 NFC feasibility experiment.
+	  This option does not make NFC an authenticated transport and does not
+	  replace encrypted BLE SMP or signed OTA.
 
 endmenu

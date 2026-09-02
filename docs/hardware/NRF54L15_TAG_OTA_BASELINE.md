@@ -261,3 +261,20 @@ The optional NFC variant was also rebuilt and verified. These artifacts do not
 supersede the physical evidence: the active Tag remains confirmed `0.1.13` and
 is the known-good rollback baseline. See
 [`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).
+
+## Build-only bounded NFC service candidate
+
+Repository candidate `0.1.15+0` supersedes the build-only artifacts above
+without changing the confirmed physical baseline. It retains the per-device
+scan name and adds the optional one-shot 10-second NFC-to-fast-BLE discovery
+window plus encrypted window diagnostics. Both default and NFC variants built,
+signed and passed `imgtool verify` with NCS v3.4.0 on 2026-09-03:
+
+| Variant | App RRAM | App RAM | signed BIN SHA-256 |
+|---|---:|---:|---|
+| default | 182,520 / 696,176 B | 207,272 / 262,144 B | `6b3a4dba16bbdf663039ccdccbc6f8af43e145c30c79a70ffb7728c6910c5076` |
+| NFC service | 189,736 / 696,176 B | 210,420 / 262,144 B | `d6a996a2c4fc5c10d6c4385e16a0898b6b46ca5b51eeb4ef9b58eb12ea0c47ef` |
+
+Neither image was uploaded. The NFC variant is not authorized for installation
+until the antenna and C17/C19 checks are complete, and the default variant is
+not needed merely because a newer build exists.

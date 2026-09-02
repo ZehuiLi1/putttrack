@@ -23,7 +23,7 @@ XIAO USB HCI development bridge:
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
   that frozen capture.
 
-Confirmed firmware `0.1.13` and build-only candidate `0.1.14` provide three
+Confirmed firmware `0.1.13` and build-only candidate `0.1.15` provide three
 remotely selectable power policies while preserving the signed OTA and
 frozen-history protocol:
 
@@ -66,7 +66,7 @@ false wakes, remote confirmation and a post-confirm reset/idle cycle. DAPLink
 is therefore a commissioning and recovery tool, not part of ordinary
 application updates or operation.
 
-Candidate `0.1.14` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
+Candidate `0.1.15` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
 scan response to distinguish multiple boards. This is only a selector: capture
 must still lock the full encrypted `DEVICE_ID`. The candidate has passed signed
 default and NFC-variant builds but has not been installed on the physical Tag.
@@ -116,8 +116,12 @@ scripts/nrf54l15_tag/build_tag_nfc_service.sh
 
 It exposes a read-only
 `putttrack://service/tag/<opaque-device-id>?fw=<version>` Type 2 Tag URI and
-adds NFC setup/field counters to encrypted mcumgr status. NFC field presence is
-not authentication, and the variant does not replace BLE SMP or signed OTA.
+opens one 10-second fast connectable-BLE discovery window on each NFC field
+rising edge. Keeping a reader continuously present cannot extend the window.
+Encrypted mcumgr status exposes NFC setup/field state, window state, open count
+and suppressed-repeat count. This phase still retains low-duty idle advertising
+and does not implement System OFF. NFC field presence is not authentication,
+and the variant does not replace BLE SMP or signed OTA.
 It must not be installed until the external loop and C17/C19 matching network
 have passed the hardware checks in
 [`NRF54L15_TAG_NFC.md`](../../docs/hardware/NRF54L15_TAG_NFC.md).

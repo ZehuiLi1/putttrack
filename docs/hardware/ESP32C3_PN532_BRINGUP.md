@@ -57,10 +57,15 @@ the repository's current nRF54L15 service identity formats:
 - NFC Forum well-known URI Record containing
   `putttrack://service/tag/<opaque-device-id>?fw=<version>`.
 
-For the URI form, `device_id` is extracted from the path. The RF UID is retained
-for diagnostics but is not authoritative PuttTrack identity. Plain NDEF can be
-copied and therefore does not authorize provisioning, reassignment, secrets or
-firmware changes.
+For the URI form, the current build strictly requires an even-length 1–16 byte
+hexadecimal `device_id` and a bounded `fw` value, normalizes the device ID and
+emits `service_uri_ok=true`. Malformed PuttTrack service URIs fail explicitly;
+ordinary non-PuttTrack URI records remain readable but emit
+`service_uri_ok=false`. This stricter parser passed a PlatformIO build on
+2026-09-03 but has not replaced the physically exercised reader image. The RF
+UID is retained for diagnostics but is not authoritative PuttTrack identity.
+Plain NDEF can be copied and therefore does not authorize provisioning,
+reassignment, secrets or firmware changes.
 
 ## Reproduction
 

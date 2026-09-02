@@ -84,10 +84,15 @@ HW_REV=PROTO01
 putttrack://service/tag/<opaque-device-id>?fw=<version>
 ```
 
-对应输出包含 `ndef_uri` 和从路径中提取的 `device_id`。UID 只作为射频/协议诊断值，不作为 PuttTrack 权威身份。
+对应输出包含 `ndef_uri`、`service_uri_ok`、从路径中提取并规范化的
+`device_id` 以及 `firmware_version`。正式 service URI 必须严格满足：设备
+ID 为 1–16 字节的偶数长度十六进制，且存在 1–8 个安全 ASCII 字符的
+`fw` 参数；格式错误会明确失败，不能进入后续绑定/OTA 决策。普通非
+PuttTrack URI 仍可作为 NDEF bring-up 读取，但 `service_uri_ok=false`。
+UID 只作为射频/协议诊断值，不作为 PuttTrack 权威身份。
 
 ```json
-{"event":"nfc_tag","uid":"...","consecutive_reads":1,"stable_target":50,"ndef_ok":true,"ndef_uri":"putttrack://service/tag/0123456789abcdef?fw=0.1.13","device_id":"0123456789abcdef"}
+{"event":"nfc_tag","uid":"...","consecutive_reads":1,"stable_target":50,"ndef_ok":true,"ndef_uri":"putttrack://service/tag/0123456789abcdef?fw=0.1.15","service_uri_ok":true,"device_id":"0123456789abcdef","firmware_version":"0.1.15"}
 ```
 
 此处的通信链是：
@@ -100,7 +105,7 @@ ESP32-C3 --SPI--> PN532 --13.56 MHz NFC-A--> nRF54L15 NFC Tag
 
 ## 当前边界
 
-- 已实现 PN532 SPI bring-up、UID、50 连读、Type 2 NDEF Text/URI、`BALL_ID` 和 opaque `device_id` 提取。
+- 已实现 PN532 SPI bring-up、UID、50 连读、Type 2 NDEF Text/URI、`BALL_ID`，以及严格的 PuttTrack service URI、opaque `device_id` 和固件版本提取。
 - Wi-Fi/HTTP/MQTT 暂不加入，避免硬件 bring-up 被网络问题干扰。
 - 配套的正式 nRF54L15 NFC service 位于 `../nrf54l15_tag_app/`，硬件和唤醒验证边界见 `../../docs/hardware/NRF54L15_TAG_NFC.md`；它属于 NCS/Zephyr 工程，因此没有混入这个 PlatformIO 环境。
 - 生产绑定不能只信任可复制的 UID/NDEF 明文；后续需要应用层签名/挑战或受控后台授权。当前实现是实验和身份链路 bring-up，不是生产安全方案。

@@ -58,6 +58,20 @@ def require_capture_outputs(run_dir: Path, name: str, report: list[dict[str, Any
 
 
 def main() -> int:
+    if sys.version_info < (3, 11):
+        print(
+            json.dumps(
+                {
+                    "status": "FAIL",
+                    "python": sys.version.split()[0],
+                    "error": "PuttTrack requires Python >=3.11 (see pyproject.toml)",
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 2
+
     report: list[dict[str, Any]] = []
     try:
         run(
@@ -182,6 +196,7 @@ def main() -> int:
             "putttrack.cs",
             "putttrack.motion",
             "putttrack.radio",
+            "putttrack.service",
             "putttrack.tag",
             "putttrack.gameplay",
             "putttrack.venue",

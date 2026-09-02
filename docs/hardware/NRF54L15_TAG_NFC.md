@@ -101,21 +101,25 @@ internally consistent.
 The application exposes a read-only URI:
 
 ```text
-putttrack://service/tag/<opaque-device-id>?fw=0.1.14
+putttrack://service/tag/<opaque-device-id>?fw=0.1.15
 ```
 
 It counts NFC field-on/field-off events and reports those plus initialization
-status through the existing encrypted mcumgr status response. A field does not
-change identity, configuration or firmware.
+status through the existing encrypted mcumgr status response. Each field rising
+edge also opens one 10-second fast connectable-BLE discovery window. Repeated
+field-on events while the same field remains present are counted and suppressed,
+not used to extend the window. The idle 2.0–2.5 second advertisement remains
+enabled after timeout, so this build does not claim System OFF or measured
+energy savings. A field does not change identity, configuration or firmware.
 
-Latest NCS v3.4.0 build evidence for candidate `0.1.14+0`:
+Latest NCS v3.4.0 build evidence for candidate `0.1.15+0`:
 
-- application RRAM: `189,204 / 696,176 bytes` (`27.18%`);
-- application RAM: `210,340 / 262,144 bytes` (`80.24%`);
-- signed application image version: `0.1.14+0`;
+- application RRAM: `189,736 / 696,176 bytes` (`27.25%`);
+- application RAM: `210,420 / 262,144 bytes` (`80.27%`);
+- signed application image version: `0.1.15+0`;
 - signed image passed `imgtool verify` with the existing lab Ed25519 key;
 - signed OTA BIN SHA-256:
-  `a64f643fa256147c185cb023de1e209c3160d83109bd93747d116a6a1f49bd45`;
+  `d6a996a2c4fc5c10d6c4385e16a0898b6b46ca5b51eeb4ef9b58eb12ea0c47ef`;
 - signed OTA and first-install artifacts were produced successfully;
 - a separate default build kept NFC disabled/GPIO pin mode and also passed
   signature verification;
@@ -143,8 +147,9 @@ identity path.
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a
    firmware/version marker; count field-detected, field-lost and read events.
 3. **NFC-to-BLE handoff:** an NFC touch opens a bounded connectable BLE service
-   window. Encrypted BLE remains the channel for configuration, diagnostics and
-   signed OTA.
+   window. **Build-only implementation passed in `0.1.15`; physical timing is
+   pending.** Encrypted BLE remains the lab channel for configuration,
+   diagnostics and signed OTA; production controller authentication is open.
 4. **System OFF proof:** only after ordinary reads are reliable, test NFC field
    detection as a wake source for `SHIPPING`/deep-service state.
 5. **Regression proof:** repeat ADXL367 motion wake/re-sleep, SMP reconnect,
@@ -154,7 +159,9 @@ identity path.
 
 NFC field presence is a wake signal, not authentication. A field detection may
 open a short service window; identity-changing commands, provisioning secrets
-and firmware updates still require an authenticated protocol.
+and firmware updates still require an authorized service controller. The
+current Just Works lab image provides encryption and signed-image verification,
+but not MITM-authenticated controller identity.
 
 ## Product role and priority
 
@@ -163,7 +170,8 @@ The intended division of responsibility is:
 ```text
 ADXL367 motion -> gameplay/handling wake
 NFC touch      -> commissioning, assignment or service wake
-BLE            -> authenticated communication, telemetry and signed OTA
+BLE            -> encrypted lab communication and signed OTA;
+                  authenticated controller required for production
 ```
 
 NFC is useful because it can improve commissioning UX and provide an explicit

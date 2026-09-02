@@ -21,7 +21,7 @@ Each physical device has:
 
 A Ball has a separate human label/colour/number. BLE MAC address and printed label are not authoritative identity.
 
-## 3. Trust relationships
+## 3. Target production trust relationships
 
 ```text
 Ball <encrypted/authenticated BLE> Anchor/RF cell
@@ -55,6 +55,15 @@ nRF54L15 provides TrustZone, KMU/cryptographic facilities, immutable boot-region
 - no shared universal operational key across all devices if avoidable.
 
 ## 5. OTA policy
+
+The current nRF54L15 laboratory image requires BLE link encryption and signed
+MCUboot images, but its Just Works pairing does not authenticate the controller
+or provide MITM protection. NFC proximity is also not authentication. Before a
+production service station can provision, reassign or update a Ball, add an
+explicit controller authorization mechanism (for example provisioned
+credentials with an authenticated application protocol or a suitably verified
+bond/OOB design) and exercise revocation. Signed-image verification remains
+mandatory regardless of transport authorization.
 
 ### Ball
 

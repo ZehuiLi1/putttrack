@@ -165,8 +165,9 @@ prerequisites unless ADR-013 is revisited.
    two-stage cup mechanism next.
 4. **Bounded NFC service spike:** external antenna/matching evidence, NDEF read,
    NFC-to-BLE handoff and finally System OFF wake; no NFC telemetry/OTA scope.
-   The optional MCUboot + application build-only proof has passed; hardware
-   remains unpopulated and untested.
+   The optional MCUboot + application build-only proof and one-shot 10-second
+   fast-BLE discovery window compile have passed; hardware remains unpopulated
+   and untested.
 5. **No-CS one-hole soak:** the seeded 1,000-round software soak passed with
    20,000 injected identity/order/premature-cup/retry faults. Retain it as a
    regression gate; the physical mechanism and human-play soak remain.
