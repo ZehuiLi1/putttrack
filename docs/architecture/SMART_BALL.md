@@ -51,6 +51,8 @@ This decision is conditional on EVT power, RF-in-shell and multi-link scheduling
     /     \
 Antenna A Antenna B
 
+        NFC1/NFC2 -> tuned NFC service loop
+
 SWD/pogo + manufacturing test + battery/health test points
 ```
 
@@ -138,6 +140,12 @@ Deferred. Revisit only if:
 - Assignment to player/session exists only on Venue Edge.
 - Advertising should expose only the minimum discovery alias required; scoring identity is accepted only after authenticated association.
 - Keep manufacturing calibration, service status and revocation state in Device Registry.
+- Reserve NFC1/NFC2 plus a measurable/tunable 13.56 MHz matching network on the
+  EVT PCB. NFC may expose an opaque identity or initiate authenticated BLE
+  pairing/service; it must not expose a permanent player/session identity.
+- Treat NFC field detection as a physical-proximity wake signal, not as
+  authentication. Sensitive provisioning, configuration and signed OTA remain
+  protected by authenticated BLE or an equivalently reviewed protocol.
 
 ## 10. Firmware state machine
 
@@ -165,7 +173,8 @@ side states:
 
 ### State responsibilities
 
-- `SHIPPING`: lowest possible current; authenticated service wake.
+- `SHIPPING`: lowest possible current; NFC field detection is a candidate
+  proximity wake, followed by an authenticated service action.
 - `STORAGE`: periodic minimal health, no venue activity.
 - `IDLE_UNASSIGNED`: discovery/health advertisement.
 - `ASSIGNED`: session alias active; low-rate zone presence.

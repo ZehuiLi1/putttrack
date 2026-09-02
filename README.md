@@ -23,6 +23,10 @@ wake/re-sleep cycles and a post-confirm reboot are validated with zero reported
 sensor, power-management or advertising errors.
 See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
 and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
+PCA20072 design review also confirms an unpopulated optional NFC path on
+P1.02/NFC1 and P1.03/NFC2 with C17/C19 tuning footprints. It remains an
+unvalidated, time-boxed service/provisioning experiment; see
+[`docs/hardware/NRF54L15_TAG_NFC.md`](docs/hardware/NRF54L15_TAG_NFC.md).
 Physical stationary and continuous hand-motion windows now separate as
 `STATIONARY_CANDIDATE` and `ACTIVE_MOTION_CANDIDATE`. Two natural-pickup and two
 desk-handling repetitions also show that stronger handling overlaps pickup at

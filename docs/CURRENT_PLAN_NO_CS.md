@@ -87,6 +87,10 @@ position, cup entry or every valid stroke.
   demonstrates that motion intensity cannot safely identify pickup or impact.
 - `IMPACT_CANDIDATE`/pickup/drop software paths remain pending until independent
   evidence; foreign/inactive Ball observations fail closed.
+- Official PCA20072 revision 1.0.0 design files confirm an optional NFC route:
+  P1.02/NFC1 and P1.03/NFC2 reach accessible pads and C17/C19 provide
+  unpopulated `TBD` tuning footprints. The default board DTS selects GPIO mode;
+  the hardware route is present but has not yet been populated or validated.
 
 ## 3. Active milestones
 
@@ -185,7 +189,7 @@ score mutations.
 Ball isolation are wired. Motion cannot confirm a stroke on its own. Steps 1–2
 and 4–5 still require physical presence/feature/cup hardware and fusion.
 
-### M5 — Gateway and enclosure evidence
+### M5 — Gateway, enclosure and service evidence
 
 - Keep the XIAO nRF52840 Sense as a development USB HCI adapter for now.
 - Do not make DAPLink part of normal operation; retain it for recovery.
@@ -195,6 +199,11 @@ and 4–5 still require physical presence/feature/cup hardware and fusion.
   as production Gateway yet.
 - Build a repeatable instrumented-ball core before treating bare-Tag IMU
   thresholds as product evidence.
+- Treat NFC as a bounded service/provisioning experiment, not a gameplay or OTA
+  transport dependency. After the antenna and C17/C19 matching values are
+  identified, prove NDEF read first, NFC-to-BLE service wake second and System
+  OFF wake last. See
+  [`hardware/NRF54L15_TAG_NFC.md`](hardware/NRF54L15_TAG_NFC.md).
 
 ## 4. Explicitly deferred
 
@@ -261,10 +270,30 @@ Re-open the CS track only when at least one is true:
    Complete functionally in battery-powered `0.1.13`, including event-driven
    ADXL367 INT1 wake, repeated wake/re-sleep, slow-advertising access and
    post-confirm reset. Measured coin-cell current remains a separate gate.
-6. Extend the implemented feature extractor/provisional stationary diagnostic
-   into the measured deterministic generic-motion FSM.
-7. Connect physical tee/cup evidence to the existing one-hole vertical slice.
-8. Decide the pilot gateway and feature-sensor I/O from measured needs.
+6. Build a repeatable, restrained research-ball core and record labelled putter
+   impact, rolling, settling and post-stop episodes. Then extend the implemented
+   feature extractor into the measured deterministic generic-motion FSM; do not
+   invent action thresholds from additional bare-Tag hand movement.
+7. Connect physical tee and cup evidence to the existing one-hole vertical
+   slice and complete an automatic real one-hole path.
+8. Run the time-boxed NFC feasibility spike after antenna identity and matching
+   are known, or during mechanical waiting time. NFC remains service wake plus
+   BLE handoff; BLE remains the authenticated communication and OTA channel.
+9. Decide the pilot gateway and feature-sensor I/O from measured needs.
 
-The next physical action follows
+The next physical action is to define and assemble the repeatable research-ball
+carrier. Once it exists, capture metadata and episode discipline continue to
+follow
 [`hardware/TAG_MOTION_EPISODE_RUNBOOK.md`](hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
+
+## 8. Current priority decision
+
+The highest-value next work is the controlled research-ball core plus real
+putt/roll/settle data. It attacks the largest unmeasured Ball risk and prevents
+the motion FSM from being tuned to hand-held development-board behavior.
+
+The next product-value milestone is physical tee/cup integration because it
+turns the existing software vertical slice into a real, automatic one-hole
+experience. A bounded NFC spike is worthwhile and now physically plausible,
+but it is third: it improves commissioning and service behavior rather than
+proving the core gameplay loop.

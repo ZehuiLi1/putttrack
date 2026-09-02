@@ -132,7 +132,8 @@ prerequisites unless ADR-013 is revisited.
 1. Mechanical/RF concept and repeatable instrumented core.
 2. nRF54L15 + candidate nPM2100/CR2447 design.
 3. Wake sensor + six-axis IMU retained for EVT.
-4. Secure provisioning/test pads/DFU.
+4. Secure provisioning/test pads/DFU, including NFC1/NFC2 and tuning footprints
+   if the bounded NFC service experiment passes.
 5. RF-in-shell, current, impact, balance and environmental tests.
 6. Reduce sensor/antenna BOM only after ablation.
 7. Add CS-specific antenna diversity only if the CS track is reactivated.
@@ -152,12 +153,18 @@ prerequisites unless ADR-013 is revisited.
 
 ## Active next Issues / PRs
 
-1. **Repository-owned Tag app:** identity, health, signed SMP OTA and version reporting.
-2. **Tag raw sensor capture:** ADXL367/BMI270 timestamps, sequence, clipping and dropped samples.
-3. **Generic motion V0:** replay-first deterministic state/candidate baseline.
-4. **Physical one-hole inputs:** tee and cup sensor adapters into semantic evidence.
-5. **No-CS one-hole soak:** identity isolation, ambiguous evidence and recovery paths.
-6. **Gateway evidence:** measured BLE reliability, physical I/O and local buffering before hardware selection.
+1. **Controlled research-ball core:** repeatable mechanical restraint and
+   labelled impact/rolling/settling/post-stop captures.
+2. **Generic motion V0:** extend the replay-first deterministic state/candidate
+   baseline only from controlled physical evidence.
+3. **Physical one-hole inputs:** tee and cup sensor adapters into semantic
+   evidence and the existing vertical slice.
+4. **Bounded NFC service spike:** external antenna/matching evidence, NDEF read,
+   NFC-to-BLE handoff and finally System OFF wake; no NFC telemetry/OTA scope.
+5. **No-CS one-hole soak:** identity isolation, ambiguous evidence and recovery
+   paths.
+6. **Gateway evidence:** measured BLE reliability, physical I/O and local
+   buffering before hardware selection.
 
 ## Dormant CS Issues / PRs
 
