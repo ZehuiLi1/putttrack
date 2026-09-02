@@ -125,6 +125,11 @@ establishes value.
 
 ## Experiment ladder
 
+The powered PN532 reader-side prerequisite is documented in
+[`ESP32C3_PN532_BRINGUP.md`](ESP32C3_PN532_BRINGUP.md). That bench passed SPI,
+PN532 firmware discovery, NFC-A selection and blank NTAG213 Type 2 parsing. It
+does not replace the powered nRF54L15 read or System OFF wake gates below.
+
 1. **Build-only proof:** compile a minimal Type 2 Tag NDEF text/URI image for
    PCA20072 without installing it. **Passed 2026-09-02.**
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a
