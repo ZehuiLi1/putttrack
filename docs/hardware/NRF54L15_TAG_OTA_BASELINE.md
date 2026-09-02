@@ -15,6 +15,12 @@ DAPLink remains required for:
 OTA can subsequently update the application, but it must not be treated as the
 only recovery path.
 
+For low-duty service activation, the proposed NFC field wake and bounded BLE
+handoff are documented in
+[`NFC_TRIGGERED_BLE_OTA.md`](NFC_TRIGGERED_BLE_OTA.md). NFC does not replace the
+signed BLE transport, MCUboot test/confirm flow or physical recovery path defined
+here.
+
 ## Development baseline
 
 The first build uses Nordic/Zephyr's SMP server sample rather than PuttTrack

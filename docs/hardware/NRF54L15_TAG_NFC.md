@@ -132,6 +132,12 @@ The powered PN532 reader-side prerequisite is documented in
 PN532 firmware discovery, NFC-A selection and blank NTAG213 Type 2 parsing. It
 does not replace the powered nRF54L15 read or System OFF wake gates below.
 
+The proposed service-state sequence, bounded BLE window, power measurements and
+security controls are specified in
+[`NFC_TRIGGERED_BLE_OTA.md`](NFC_TRIGGERED_BLE_OTA.md). That document preserves
+BLE SMP as the signed firmware transport; NFC is the proximity wake and service
+identity path.
+
 1. **Build-only proof:** compile a minimal Type 2 Tag NDEF text/URI image for
    PCA20072 without installing it. **Passed 2026-09-02.**
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a

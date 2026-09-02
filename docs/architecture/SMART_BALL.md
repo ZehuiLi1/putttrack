@@ -208,6 +208,9 @@ Ball does not output `+points`, authoritative `stroke.confirmed`, hole ID or fin
 - Signed images, rollback counter/policy and known-good recovery image.
 - Updates at assignment/service station or controlled idle window.
 - Do not update balls in an active session unless an emergency quarantine policy explicitly ends assignment.
+- The current implementation proposal uses NFC only to wake and identify a Ball
+  at close range, then opens a bounded authenticated BLE window for signed OTA;
+  see [`../hardware/NFC_TRIGGERED_BLE_OTA.md`](../hardware/NFC_TRIGGERED_BLE_OTA.md).
 - Failed update returns to previous image or service mode.
 - Production debug access is protected; authenticated service unlock is preferred.
 
