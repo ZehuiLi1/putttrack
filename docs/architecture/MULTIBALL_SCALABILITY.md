@@ -16,15 +16,17 @@ Example full venue:
 18 holes
 4-player group/hole
 72 balls with groups on course
-<=18 high-rate active balls
-remaining balls low-rate assigned/stationary
+<=18 hole-authorized active balls
+remaining Balls NFC-only System OFF while waiting for their turn
 ```
 
 ## 3. RF-cell model
 
 - Each ordinary hole is one logical RF cell unless site tests support a different boundary.
 - Zone Gateway manages 2–3 cells.
-- A Ball advertises low-rate identity/health; the local zone claims/schedules it only when assignment/position/tee context indicates relevance.
+- A waiting Ball stays NFC-only System OFF. A fixed Tee reader opens a bounded
+  activation request; Edge claims it only after eligible-turn, assignment,
+  exclusivity and credential checks pass.
 - High-rate CS remains local to the active hole/cell.
 - Handoff is explicit: old zone releases high-rate links after the group/hole state completes; new zone associates at the next tee.
 
@@ -42,7 +44,7 @@ remaining balls low-rate assigned/stationary
 
 | State | Suggested initial policy to test |
 |---|---|
-| Unassigned/storage | no CS; sparse advertisement |
+| Unassigned/storage/waiting turn | System OFF; NFC sense only; no CS or periodic advertising |
 | Assigned, not at active hole | coarse zone presence only |
 | Presented/READY | establish local links; 1–2 Hz validation |
 | Impact/rolling | target >=5 position updates/s; Anchor observations scheduled sequentially |
@@ -70,7 +72,7 @@ These are test starting points, not guaranteed SDK throughput.
 
 - full inventory/stress simulation;
 - 18 active balls maximum under ordinary-hole lock;
-- all other balls advertise/health only;
+- all other balls remain NFC-only System OFF except for bounded service windows;
 - validate assignment/handoff storms, restart/reconnect and bounded buffers.
 
 ## 6. Airtime model to implement
@@ -125,6 +127,8 @@ A 2026 research proof of concept combines PAwR with CS test commands on nRF54L15
 ## 10. Gates
 
 - zero cross-ball/cross-hole score mutation in stress simulation;
+- at most one active lease per ordinary hole and one hole per Ball, with stale
+  `epoch` and copied NFC identity unable to grant authority;
 - active position update target >=5 Hz per active ball at 20/40/80-ball scenarios;
 - confirmed-event presentation <=500 ms;
 - bounded queues, no silent observation/evidence loss;

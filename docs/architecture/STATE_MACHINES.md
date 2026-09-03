@@ -3,9 +3,13 @@
 ## 1. Ball
 
 ```text
-MANUFACTURED -> SHIPPING -> STORAGE -> IDLE_UNASSIGNED
- -> ASSIGNED -> PRESENTED -> ARMED -> IMPACT -> ACTIVE_ROLLING
- -> SETTLING -> STATIONARY
+MANUFACTURED -> SHIPPING / STORAGE
+ -> UNASSIGNED_SYSTEM_OFF (NFC only)
+ -> ACTIVATION_PENDING (bounded NFC-to-BLE window)
+ -> ASSIGNED_ACTIVE
+ -> ACTIVE_IDLE (ADXL367 wake; normal stationary play)
+ -> IMPACT -> ACTIVE_ROLLING -> SETTLING -> ACTIVE_IDLE
+ -> EXPLICIT_END / STALE_FAILSAFE -> UNASSIGNED_SYSTEM_OFF
 
 side states:
  PICKED_UP / CARRIED
@@ -16,6 +20,8 @@ side states:
 ```
 
 Ball state is physical/operational and never equals score authority.
+Motion alone cannot leave `UNASSIGNED_SYSTEM_OFF`. A current Edge-issued
+`session + hole + epoch` lease gates the active states; see ADR-015.
 
 ## 2. Anchor
 

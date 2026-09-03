@@ -1,0 +1,21 @@
+{
+  "readers": [
+    {
+      "reader_id": "tee-pn532-H01",
+      "hole_id": "H01",
+      "enabled": true
+    },
+    {
+      "reader_id": "tee-pn532-H02",
+      "hole_id": "H02",
+      "enabled": true
+    }
+  ],
+  "timing": {
+    "pending_timeout_ms": 10000,
+    "active_idle_after_ms": 30000,
+    "authority_offline_ms": 120000,
+    "inactive_system_off_ms": 1800000,
+    "maximum_activation_ms": 14400000
+  }
+}

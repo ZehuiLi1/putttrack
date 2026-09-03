@@ -320,6 +320,12 @@ class NoCsPhysicalEvidencePolicy:
                 "cup.entry_candidate",
                 "active_ball_is_not_playing",
             )
+        if sensor_kind == self.CUP_PRESENCE_KIND and observation.ball_id is None:
+            return decide(
+                "rejected",
+                "cup.entry_candidate",
+                "cup_presence_ball_id_is_required",
+            )
         if observation.ball_id is not None and observation.ball_id != context.active_ball_id:
             return decide(
                 "rejected",
@@ -373,6 +379,13 @@ class NoCsPhysicalEvidencePolicy:
                 "rejected",
                 "cup.entry_candidate",
                 "source_rebooted_during_cup_sequence",
+            )
+        if candidate.observation.sensor_id == observation.sensor_id:
+            self._cup_entry = None
+            return decide(
+                "rejected",
+                "cup.entry_candidate",
+                "cup_confirmation_requires_independent_sensor",
             )
         elapsed_ns = observation.edge_received_ns - candidate.observation.edge_received_ns
         if elapsed_ns < 0:

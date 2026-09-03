@@ -18,6 +18,7 @@ ADRs record decisions that architecture work must not silently reverse. Each ADR
 | [ADR-012](ADR-012-signed-staged-ota.md) | Signed staged OTA with rollback/quarantine |
 | [ADR-013](ADR-013-defer-cs-for-ble-motion-mvp.md) | Defer CS; execute the BLE + motion + physical-sensor MVP first |
 | [ADR-014](ADR-014-multi-receiver-ble-is-non-authoritative.md) | Multi-receiver BLE is redundant evidence, not position or score authority |
+| [ADR-015](ADR-015-nfc-gated-hole-activation.md) | NFC gates simple per-hole Ball activation; Edge owns exclusivity and epoch |
 
 ## ADR lifecycle
 

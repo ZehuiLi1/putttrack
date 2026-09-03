@@ -15,6 +15,10 @@ Wireless localisation can produce outliers, especially in NLOS/multipath. Tee ar
 
 Choose option 3 for Production V1. Narrow scoring-critical feature gates also use physical sensors where practical. Broad zones may use geometry when confidence gates pass.
 
+ADR-015 selects the first no-CS mechanism: a fixed PN532 at Tee, then an optical
+Cup entry edge plus PN532 confirmation of the exact active Ball. The two Cup
+sensors may share one controller but not one sensor identity.
+
 ## Why
 
 - independent failure mode;

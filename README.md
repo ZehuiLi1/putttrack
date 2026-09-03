@@ -54,11 +54,20 @@ generic activity intensity. The resulting canonical motion record can enter
 the one-hole runtime as an observed/pending/rejected candidate, but cannot
 infer pickup/impact semantics or directly mutate score.
 The hardware-neutral tee/cup input path is also implemented: assigned-Ball tee
-presence can reach READY, while cup completion requires entry plus independent
-occupancy within 3 seconds and an already-confirmed stroke. It is covered by
+presence can reach READY, while cup completion requires optical entry plus
+PN532 confirmation of the exact active Ball within 3 seconds and an
+already-confirmed stroke. One ESP32 may host both independently identified
+sensors. It is covered by
 ordering, health, idempotency, replay and HTTP end-to-end tests, but no physical
 tee/cup mechanism has yet passed. See
 [`docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md`](docs/hardware/PHYSICAL_TEE_CUP_INGRESS.md).
+A new fail-closed activation authority treats NFC as proximity only, enforces
+one Ball per hole and one hole per Ball, issues monotonic hole epochs, keeps
+normal stationary play in ADXL367-backed `ACTIVE_IDLE`, and returns a Ball to
+System OFF only on explicit end or bounded fail-safe conditions. The accepted
+decision and simple fixed-reader configuration are in
+[`ADR-015`](docs/adr/ADR-015-nfc-gated-hole-activation.md) and
+[`configs/venue/activation.example.json`](configs/venue/activation.example.json).
 A primary-source Trackaball comparison has also produced a fail-closed
 multi-receiver BLE observation layer and a research-only state/RF policy. It
 does not turn RSSI into position or score authority and does not change the

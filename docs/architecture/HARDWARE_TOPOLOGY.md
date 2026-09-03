@@ -38,11 +38,19 @@ Fixed CS Initiator with validated RF layout, protected 24 V power input and wire
 
 ### Tee node
 
-Independent start-zone presence and indicator controller. It may be combined with a nearby Anchor enclosure only if failure and maintenance remain separable.
+One fixed PN532-class start reader and indicator controller. Its immutable
+`reader_id -> hole_id` installation mapping creates only a bounded NFC
+activation request; Edge assignment and credential checks grant authority. It
+may be combined with a nearby node enclosure only if failure and maintenance
+remain separable.
 
 ### Cup / feature sensor node
 
-Provides scoring-critical physical evidence. Optical, inductive, pressure or other sensor choice is hole-specific; output must be timestamped and health-monitored.
+The initial Cup is an optical entry sensor plus a PN532-class identity/presence
+reader after the Ball settles. Both may use one ESP32 but keep distinct sensor
+IDs and raw evidence. Completion requires the exact current Ball and active
+hole lease. Other feature sensor choices remain hole-specific; every output is
+timestamped and health-monitored.
 
 ### Zone Gateway
 

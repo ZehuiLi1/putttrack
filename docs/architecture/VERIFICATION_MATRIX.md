@@ -109,6 +109,9 @@ Load: 4 players/hole, adjacent cells, 20/40/80 balls; one active player per ordi
 | Scheduler headroom | >=40% under representative P95 load |
 | Next-hole handoff/READY | <=2 s target after valid presentation |
 | Ball energy/update | measured for each schedule/config |
+| Active lease cardinality | <= ordinary-hole count; one hole per Ball |
+| Untrusted NFC / wrong turn | zero gameplay activation before Ball credential verification |
+| Old hole epoch / consumed token | zero reactivation or score mutation |
 
 ## Phase 6 — One complete gameplay hole
 
@@ -121,6 +124,7 @@ Run real/simulated assignment -> READY -> strokes -> features -> cup -> next pla
 | Duplicate/replay | zero duplicate mutation |
 | Cup false positive | zero in >=10,000 representative trials before removing guardrails |
 | Cup false negative | <0.1% target with physical sensor/fusion, reported confidence |
+| Cup Ball identity | optical entry alone never completes; PN532 must match the exact active lease |
 | First-time player start | four-player group starts H1 without verbal training in usability test |
 | Completion feedback | non-blocking; next legal arming not delayed by animation |
 | WAN loss | round completes and syncs later |

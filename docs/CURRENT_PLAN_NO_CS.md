@@ -113,15 +113,15 @@ position, cup entry or every valid stroke.
   P1.02/NFC1 and P1.03/NFC2 reach accessible pads and C17/C19 provide
   `TBD` tuning footprints. The default board DTS selects GPIO mode. The first
   research ball now has a 26 mm, 1.0 uH loop and provisional 220 pF values at
-  C17/C19; its powered PN532 read passed, but final tuning and System OFF wake
-  remain unproved.
-- The optional NFC Type 2 service variant now passes a complete NCS v3.4.0
-  MCUboot + application build. Confirmed `0.1.16` retains the one-shot 10-second
+  C17/C19; powered PN532 reads and System OFF NFC cold wake passed, while final
+  tuning/range/current remain unproved.
+- The optional NFC Type 2 service variant passes a complete NCS v3.4.0 MCUboot +
+  application build. Confirmed `0.1.17` retains the one-shot 10-second
   fast-BLE discovery window on an NFC field edge and exposes window/field
   diagnostics. Both generated images select NFCT pad mode; the signed OTA image
   verified and passed guarded BLE OTA, strict URI reads, field/window telemetry,
-  field removal, automatic low-power return and post-confirm reset. Range,
-  instrumented tuning, current and System OFF remain physical gates.
+  field removal, NFC cold wake, automatic low-power return and post-confirm
+  reset. Range, instrumented tuning and current remain physical gates.
 - Nordic's official `nrf54l15_tag_v1.0.step` has been measured into a
   reproducible `33.10 × 33.00 × 8.48 mm` populated-board envelope. A
   conservative `34.0 mm × 9.2 mm` removable carrier keep-in and a controlled
@@ -129,10 +129,18 @@ position, cup entry or every valid stroke.
 - A hardware-neutral `PhysicalSensorObservation` ingress now validates node
   health/debounce declaration, source ordering, Ball identity and active-hole
   context. Assigned tee presence can emit `tee.presented`; cup completion
-  requires entry followed by independent occupancy within 3 seconds and an
-  already-confirmed stroke. The policy, HTTP path, audit, idempotency and
-  deterministic replay tests pass. No physical tee/cup mechanism has been
-  selected or validated yet.
+  requires optical entry followed by PN532 confirmation of the exact active
+  Ball within 3 seconds and an already-confirmed stroke. The policy, HTTP path,
+  audit, idempotency and
+  deterministic replay tests pass. The PN532 Tee plus optical-entry/PN532 Cup
+  mechanism is selected but not yet physically validated.
+- A fail-closed `HoleActivationAuthority` now treats NFC as a bounded proximity
+  request, checks the flexible cross-session set of eligible active Balls,
+  enforces one Ball per hole and one
+  hole per Ball, increments a hole epoch, and models explicit-end plus bounded
+  fail-safe System OFF. Its 500-Ball/18-hole test holds exactly 18 active leases.
+  Production Ball credential verification and firmware activate/end commands
+  remain gates; current Just Works encryption is not called authentication.
 - The deterministic no-CS one-hole software soak completed 1,000 four-player
   rounds with 20,000 injected identity/order/premature-cup/retry faults and zero
   invariant failures. This closes the software-only soak gate; ADR-009's
@@ -338,12 +346,12 @@ Re-open the CS track only when at least one is true:
    The official STEP envelope and initial roller matrix are now documented;
    CAD adaptation, printing and physical captures are pending.
 8. Connect physical tee and cup evidence to the existing one-hole vertical
-   slice and complete an automatic real one-hole path.
-9. Run the time-boxed NFC feasibility spike after antenna identity and matching
-   are known, or during mechanical waiting time. The build-only rung is now
-   complete; do not install until the antenna/tuning checks pass. NFC remains
-   service wake plus BLE handoff; BLE remains the encrypted lab communication
-   and OTA channel, with controller authentication still a production gate.
+   slice using a Tee PN532 plus Cup optical-entry/PN532 identity pair, and
+   complete an automatic real one-hole path.
+9. ~~Prove the NFC identity, bounded BLE handoff and System OFF cold wake.~~
+   Complete on `0.1.17`. Next integrate the accepted NFC-gated hole activation
+   policy; BLE remains the encrypted lab transport, while production controller
+   authentication and KMU-backed Ball credentials remain gates.
 10. Decide the pilot gateway and feature-sensor I/O from measured needs.
 11. After FTO review, test the documented connectionless multi-receiver BLE
     ladder with explicit TX-power metadata. Do not treat receiver RSSI as
@@ -364,8 +372,9 @@ The highest-value next work is the controlled research-ball core plus real
 putt/roll/settle data. It attacks the largest unmeasured Ball risk and prevents
 the motion FSM from being tuned to hand-held development-board behavior.
 
-The next product-value milestone is physical tee/cup integration because it
+The next product-value milestone is physical Tee/Cup integration because it
 turns the existing software vertical slice into a real, automatic one-hole
-experience. A bounded NFC spike is worthwhile and now physically plausible,
-but it is third: it improves commissioning and service behavior rather than
-proving the core gameplay loop.
+experience. The selected simple shape is one fixed PN532 at Tee and one
+optical-entry plus PN532 identity pair at Cup. NFC-gated activation is now an
+accepted software policy; physical reader geometry and authenticated Ball
+commands remain to be proved.

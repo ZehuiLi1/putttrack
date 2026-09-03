@@ -65,6 +65,14 @@ credentials with an authenticated application protocol or a suitably verified
 bond/OOB design) and exercise revocation. Signed-image verification remains
 mandatory regardless of transport authorization.
 
+The same boundary applies to gameplay activation. A Tee NFC read may open a
+bounded discovery window, but only a fresh challenge verified against a unique
+provisioned Ball credential may create a `session + hole + epoch` lease. The
+reference Edge policy represents that result as `VerifiedBallAuthorization` and
+deliberately cannot derive it from a BLE address, NDEF identity or Just Works
+encryption. nRF54L15 KMU/PSA provisioning is the preferred production candidate;
+the factory flow, revocation and credential verifier remain physical gates.
+
 ### Ball
 
 - update at service/assignment station or controlled idle window;

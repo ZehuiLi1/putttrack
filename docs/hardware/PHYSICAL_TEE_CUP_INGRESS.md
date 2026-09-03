@@ -85,8 +85,8 @@ ball-leaving-tee edge arrive in different orders.
 
 A single cup edge cannot finish a hole. The no-CS V0 policy requires:
 
-1. `cup_entry/entered`; then
-2. `cup_presence/occupied` within 3 seconds;
+1. an optical/beam `cup_entry/entered`; then
+2. PN532 `cup_presence/occupied` with the exact active Ball ID within 3 seconds;
 3. the same currently active Ball and hole throughout the sequence; and
 4. the active player already in `PLAYING`, which means at least one independent
    `stroke.confirmed` has reached Gameplay.
@@ -95,9 +95,11 @@ Only that sequence emits `cup.confirmed`. The semantic event references both
 raw physical event IDs. Presence without entry remains `pending`; an expired or
 cross-Ball sequence is rejected. `vacant` clears any pending cup candidate.
 
-For the first rig this implies two independently meaningful mechanical/optical
-observations, for example an entry beam plus retained-ball occupancy. It does
-not require two MCUs: one node may report two separately identified sensors.
+For the first rig this is one optical break-beam plus one PN532 identity/presence
+read after the Ball settles. It does not require two MCUs: one ESP32 may report
+both, but they must have distinct `sensor_id` values, retain independent raw
+evidence and remain in the same boot/sequence domain. Reusing one sensor for
+both claims fails closed.
 
 This V0 two-stage mechanism is a prototype substitute for unavailable CS
 proximity. Production ADR-009 still requires measured false-positive/negative
@@ -140,8 +142,8 @@ Automated tests prove:
 - foreign/missing Ball identity, unhealthy nodes and absent debounce version
   fail closed;
 - a cup presence edge alone cannot complete a hole;
-- entry plus timely occupancy completes a player only after an independently
-  confirmed stroke;
+- entry plus timely PN532 confirmation of the exact active Ball completes a
+  player only after an independently confirmed stroke;
 - duplicate, gap and replay handling are deterministic and idempotent;
 - the full path works through the HTTP ingress and the existing Gameplay Engine.
 
@@ -154,7 +156,7 @@ resistance or false-positive rate.
 When the ball/core work is ready, build the smallest bench rig that can emit:
 
 - tee occupied/vacant plus an independently correlated assigned Ball ID;
-- cup entry plus cup occupancy/vacancy;
+- optical cup entry plus PN532 current-Ball identity/occupancy and vacancy;
 - stable boot ID, sequence, monotonic time, health and debounce version.
 
 Capture raw switch/beam timing before fixing debounce constants. Then run

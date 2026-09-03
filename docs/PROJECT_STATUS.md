@@ -38,6 +38,7 @@ real tee/cup evidence.
 | Motion analysis pipeline | Software pass | Strict dataset/session validation, deterministic features and fail-closed generic candidates | Fit only from controlled in-ball episodes |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
 | Tee/cup ingress | Software pass | Identity/order/health checks; tee presence and two-stage cup completion contracts | Select/build mechanisms and measure false-positive/latency behavior |
+| NFC-gated hole activation | Software pass | Fixed reader mapping, cross-session eligible-turn checks, one Ball/hole, epoch replay protection, active-idle and fail-safe leases; 500-Ball/18-hole invariant passes | Provision Ball credential, persist leases, then connect authenticated firmware commands |
 | Multi-receiver BLE | Software/research pass | Redundant reception contract and state-based research RF profiles; RSSI has no score/position authority | FTO review, connectionless event packet and multi-receiver RF/current trial |
 | Pilot gateway | Not selected | XIAO nRF52840 USB HCI is a working development bridge | Select Linux/ESP32-C6 only from measured BLE/I/O/buffering needs |
 | Channel Sounding / Anchors | Deferred | Research assets retained | Reopen only on an explicit spatial gameplay or evidence trigger |
@@ -61,8 +62,8 @@ BLE transport, signed images or DAPLink recovery.
 
 1. Collect the roller and putter impact/roll/settle/stop episode matrix on
    confirmed `0.1.17`; the two-orientation stationary baseline is complete.
-2. Build the simplest real tee-presence and independent entry-plus-occupancy cup
-   mechanisms, then connect them to the implemented ingress.
+2. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
+   connect them to the implemented activation and evidence policies.
 3. In parallel, characterize NFC range/orientation and the provisional 1.0 uH
    plus 220 pF pair; cold wake has passed, but close reads are not final tuning.
 4. Measure Tag current before changing advertising-off/System OFF policy or

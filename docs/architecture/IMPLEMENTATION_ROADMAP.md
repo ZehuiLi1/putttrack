@@ -161,13 +161,13 @@ prerequisites unless ADR-013 is revisited.
    baseline only from controlled physical evidence.
 3. **Physical one-hole inputs:** the hardware-neutral tee/cup adapters,
    fail-closed policy, HTTP ingress and replay tests are complete. Build the
-   physical nodes, correlate assigned Ball identity at the tee, and measure the
-   two-stage cup mechanism next.
-4. **Bounded NFC service spike:** external antenna/matching evidence, NDEF read,
-   NFC-to-BLE handoff and finally System OFF wake; no NFC telemetry/OTA scope.
-   The optional MCUboot + application build-only proof and one-shot 10-second
-   fast-BLE discovery window compile have passed; hardware remains unpopulated
-   and untested.
+   selected Tee PN532 plus Cup optical-entry/PN532 identity nodes and measure
+   the two-stage mechanism next.
+4. **NFC-gated activation:** NDEF read, bounded BLE handoff and System OFF cold
+   wake have passed physically. Reader/hole mapping, eligible-turn exclusivity,
+   epoch and power-lease policy pass in software. Next provision a production
+   Ball credential, persist leases and implement authenticated Ball activate/end
+   commands; do not treat current Just Works encryption as controller identity.
 5. **No-CS one-hole soak:** the seeded 1,000-round software soak passed with
    20,000 injected identity/order/premature-cup/retry faults. Retain it as a
    regression gate; the physical mechanism and human-play soak remain.
