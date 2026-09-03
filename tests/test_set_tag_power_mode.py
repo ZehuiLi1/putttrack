@@ -6,7 +6,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from tools.set_tag_power_mode import request
+from tools.set_tag_power_mode import parser, request
 
 
 def args(**overrides) -> argparse.Namespace:
@@ -24,6 +24,10 @@ def args(**overrides) -> argparse.Namespace:
 
 
 class SetTagPowerModeTests(unittest.TestCase):
+    def test_default_selector_matches_per_device_advertising_name(self) -> None:
+        parsed = parser().parse_args(["research"])
+        self.assertEqual(parsed.device_name, "PuttTrack-")
+
     @patch("tools.set_tag_power_mode.time.sleep")
     @patch("tools.set_tag_power_mode.subprocess.run")
     def test_transient_pairing_failure_is_retried(self, run, sleep) -> None:

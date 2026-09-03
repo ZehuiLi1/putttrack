@@ -25,7 +25,10 @@ COMMAND_BY_MODE = {"auto": 20, "research": 21, "idle": 22}
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("mode", choices=tuple(COMMAND_BY_MODE))
-    result.add_argument("--device-name", default="PuttTrack-Tag-v0.1")
+    # Firmware >=0.1.17 appends a per-device identity suffix. nrfutil accepts
+    # this value as a name prefix; full encrypted DEVICE_ID validation still
+    # happens after connection.
+    result.add_argument("--device-name", default="PuttTrack-")
     result.add_argument("--ble-address")
     result.add_argument(
         "--address-type",
