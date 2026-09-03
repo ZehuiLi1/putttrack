@@ -543,9 +543,12 @@ void RollerMotor::scan() {
 void RollerMotor::status() {
   uint8_t voltage_reply[5] = {};
   uint8_t speed_reply[6] = {};
+  uint8_t position_reply[8] = {};
   uint8_t state_reply[4] = {};
   const bool voltage_ok = readCommand(0x24, voltage_reply, sizeof(voltage_reply));
   const bool speed_ok = readCommand(0x35, speed_reply, sizeof(speed_reply));
+  const bool position_ok =
+      readCommand(0x36, position_reply, sizeof(position_reply));
   const bool state_ok = readCommand(0x3A, state_reply, sizeof(state_reply));
 
   const uint16_t millivolts =
@@ -553,10 +556,19 @@ void RollerMotor::status() {
   const int16_t magnitude = static_cast<int16_t>(
       (static_cast<uint16_t>(speed_reply[3]) << 8U) | speed_reply[4]);
   const int16_t rpm = speed_reply[2] == 0x01U ? -magnitude : magnitude;
+  const uint32_t position_magnitude =
+      (static_cast<uint32_t>(position_reply[3]) << 24U) |
+      (static_cast<uint32_t>(position_reply[4]) << 16U) |
+      (static_cast<uint32_t>(position_reply[5]) << 8U) |
+      static_cast<uint32_t>(position_reply[6]);
+  const int64_t position_raw = position_reply[2] == 0x01U
+                                   ? -static_cast<int64_t>(position_magnitude)
+                                   : static_cast<int64_t>(position_magnitude);
   const uint8_t flags = state_reply[2];
 
   Serial.print(F("{\"event\":\"motor_status\",\"ok\":"));
-  Serial.print((voltage_ok && speed_ok && state_ok) ? F("true") : F("false"));
+  Serial.print((voltage_ok && speed_ok && position_ok && state_ok) ? F("true")
+                                                                   : F("false"));
   if (voltage_ok) {
     Serial.print(F(",\"bus_mv\":"));
     Serial.print(millivolts);
@@ -564,6 +576,10 @@ void RollerMotor::status() {
   if (speed_ok) {
     Serial.print(F(",\"rpm\":"));
     Serial.print(rpm);
+  }
+  if (position_ok) {
+    Serial.print(F(",\"position_raw\":"));
+    Serial.printf("%lld", static_cast<long long>(position_raw));
   }
   if (state_ok) {
     Serial.print(F(",\"enabled\":"));
@@ -642,14 +658,50 @@ void RollerMotor::run(int rpm, uint32_t seconds) {
 
 void RollerMotor::stop(const char *reason) {
   const uint8_t stop_payload[] = {0x98, 0x00};
-  const bool accepted = action(0xFE, stop_payload, sizeof(stop_payload), "stop");
+  // Match the proven controller's redundant immediate-stop policy. Keep the
+  // drive enabled briefly while speed settles; disabling immediately can let
+  // the mechanism coast freely even though the first STOP was acknowledged.
+  static constexpr uint16_t STOP_INTERVALS_MS[] = {0, 8, 24};
+  bool accepted = false;
+  for (const uint16_t interval_ms : STOP_INTERVALS_MS) {
+    if (interval_ms > 0U) {
+      delay(interval_ms);
+    }
+    accepted =
+        action(0xFE, stop_payload, sizeof(stop_payload), "stop") || accepted;
+  }
+  int16_t last_rpm = 0;
+  const bool settled = waitForZeroSpeed(750U, last_rpm);
   running_ = false;
   armed_ = false;
   Serial.print(F("{\"event\":\"motor_stopped\",\"reason\":\""));
   Serial.print(reason);
   Serial.print(F("\",\"acknowledged\":"));
   Serial.print(accepted ? F("true") : F("false"));
+  Serial.print(F(",\"settled\":"));
+  Serial.print(settled ? F("true") : F("false"));
+  Serial.print(F(",\"final_rpm\":"));
+  Serial.print(last_rpm);
   Serial.println('}');
+}
+
+bool RollerMotor::waitForZeroSpeed(uint32_t timeout_ms, int16_t &last_rpm) {
+  bool read_ok = false;
+  const uint32_t started_ms = millis();
+  do {
+    uint8_t speed_reply[6] = {};
+    read_ok = readCommand(0x35, speed_reply, sizeof(speed_reply), 80U);
+    if (read_ok) {
+      const int16_t magnitude = static_cast<int16_t>(
+          (static_cast<uint16_t>(speed_reply[3]) << 8U) | speed_reply[4]);
+      last_rpm = speed_reply[2] == 0x01U ? -magnitude : magnitude;
+      if (last_rpm == 0) {
+        return true;
+      }
+    }
+    delay(40);
+  } while (millis() - started_ms < timeout_ms);
+  return false;
 }
 
 void RollerMotor::disable() {

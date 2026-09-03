@@ -75,7 +75,8 @@ class RollerMotorControlTests(unittest.TestCase):
                 {"event": "motor_status", "ok": True, "stalled": False},
                 {"event": "motor_armed"},
                 {"event": "motor_running", "rpm": -30, "seconds": 2},
-                {"event": "motor_stopped", "reason": "run_timeout"},
+                {"event": "motor_stopped", "reason": "run_timeout",
+                 "settled": True, "final_rpm": 0},
                 {"event": "motor_action_ack", "action": "disable", "accepted": True},
                 {"event": "motor_status", "ok": True, "rpm": 0,
                  "enabled": False, "stalled": False, "stall_protect": False},
@@ -100,7 +101,8 @@ class RollerMotorControlTests(unittest.TestCase):
                 {"event": "motor_status", "ok": True, "stalled": False},
                 {"event": "motor_armed"},
                 {"event": "motor_running", "rpm": 30, "seconds": 1},
-                {"event": "motor_stopped", "reason": "run_timeout"},
+                {"event": "motor_stopped", "reason": "run_timeout",
+                 "settled": True, "final_rpm": 0},
                 {"event": "motor_action_ack", "action": "disable", "accepted": True},
                 {"event": "motor_status", "ok": True, "rpm": 0,
                  "enabled": True, "stalled": False, "stall_protect": False},
@@ -108,6 +110,21 @@ class RollerMotorControlTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(RuntimeError, "unsafe post-run motor state"):
             execute(port, run_args(seconds=1))
+        self.assertEqual(port.writes[-1], b"motor stop\n")
+
+    def test_run_fails_closed_if_timeout_stop_did_not_settle(self) -> None:
+        port = FakeSerial(
+            [
+                {"event": "motor_probe", "ok": True},
+                {"event": "motor_status", "ok": True, "stalled": False},
+                {"event": "motor_armed"},
+                {"event": "motor_running", "rpm": -120, "seconds": 1},
+                {"event": "motor_stopped", "reason": "run_timeout",
+                 "settled": False, "final_rpm": 16},
+            ]
+        )
+        with self.assertRaisesRegex(RuntimeError, "did not settle"):
+            execute(port, run_args(rpm=-120, seconds=1))
         self.assertEqual(port.writes[-1], b"motor stop\n")
 
     def test_noise_is_ignored_while_waiting_for_event(self) -> None:

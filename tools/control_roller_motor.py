@@ -162,6 +162,8 @@ def execute(serial_port: SerialLike, args: argparse.Namespace) -> None:
         )
         if stopped.get("reason") != "run_timeout":
             raise RuntimeError(f"run ended unexpectedly: {stopped}")
+        if stopped.get("settled") is not True or stopped.get("final_rpm") != 0:
+            raise RuntimeError(f"motor did not settle after timeout stop: {stopped}")
         disabled = wait_event(serial_port, "motor_action_ack", args.timeout)
         if disabled.get("action") != "disable" or disabled.get("accepted") is not True:
             raise RuntimeError(f"post-run disable was not acknowledged: {disabled}")

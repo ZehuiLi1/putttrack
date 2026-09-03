@@ -47,5 +47,6 @@ class RollerMotor {
                    uint32_t timeout_ms = 180);
   bool action(uint8_t command, const uint8_t *payload, size_t payload_length,
               const char *name);
+  bool waitForZeroSpeed(uint32_t timeout_ms, int16_t &last_rpm);
   bool deadlineReached(uint32_t deadline_ms) const;
 };

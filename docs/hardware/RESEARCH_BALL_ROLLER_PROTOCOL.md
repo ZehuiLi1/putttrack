@@ -45,7 +45,12 @@ The first controller adapter is implemented and physically passed on the
 user's ZDT/张大头 Emm_V5 closed-loop driver over TTL UART. On 2026-09-04 it
 returned firmware/hardware codes `1/120`, reported an 18.74--18.89 V bus, and
 completed both +30 and -30 RPM three-second commands with acknowledged timeout
-stops, final 0 RPM, disabled output and no stall flags. It records host-visible
+stops, final 0 RPM, disabled output and no stall flags. Subsequent 60 and
++/-120 RPM staged tests produced matching encoder-position changes and visible
+mechanical motion. The first -120 RPM stop exposed a transient 16 RPM reading
+after immediate disable; the controller now sends three redundant STOP frames,
+waits up to 750 ms for a confirmed 0 RPM while still enabled, and only then
+disables. The same -120 RPM case passed after that change. It records host-visible
 command/ack events; synchronization remains bounded rather than falsely exact:
 
 1. Start a phone/camera view that includes the ball and roller control/status.
@@ -171,7 +176,7 @@ mechanical revision, never by adjacent windows from the same run.
 ## Remaining controller facts
 
 The protocol, host interface, pin mapping and empty-fixture bidirectional
-30 RPM/3 s stop gate are physically confirmed. The
+30/60/120 RPM staged stop gates are physically confirmed. The
 remaining physical metadata cannot be inferred in software:
 
 - roller diameter/contact layout;
