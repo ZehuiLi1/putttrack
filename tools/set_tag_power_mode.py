@@ -185,6 +185,17 @@ def main() -> int:
                 "sensor_recovery_generation": status.sensor_recovery_generation,
                 "sensor_auto_reboot_count": status.sensor_auto_reboot_count,
                 "sensor_auto_reboot_guard": status.sensor_auto_reboot_guard,
+                "nfc_enabled": status.nfc_enabled,
+                "nfc_setup_error": status.nfc_setup_error,
+                "nfc_field_on_count": status.nfc_field_on_count,
+                "nfc_field_off_count": status.nfc_field_off_count,
+                "nfc_field_present": status.nfc_field_present,
+                "nfc_service_window_active": status.nfc_service_window_active,
+                "nfc_service_window_ms": status.nfc_service_window_ms,
+                "nfc_service_window_open_count": status.nfc_service_window_open_count,
+                "nfc_service_window_suppressed_count": (
+                    status.nfc_service_window_suppressed_count
+                ),
             },
             indent=2,
             sort_keys=True,

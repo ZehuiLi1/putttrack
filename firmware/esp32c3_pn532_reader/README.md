@@ -62,6 +62,11 @@ pio device monitor -d firmware/esp32c3_pn532_reader
 
 普通 MIFARE 卡不能按 Type 2 NDEF 读取时，`ndef_ok=false` 是正常的；UID bring-up 仍然有效。完成一次 50 连读后，再在 0/10/20/30/40 mm 记录成功率。测试台若为金属，PN532 下方先垫塑料、泡棉或纸盒。
 
+nRF54L15 Type 2 仿真在本次实测中声明了 992 字节用户区，但服务 URI
+只需读取前 60 字节。程序会按需逐页加载 TLV，不会因为声明容量大于本地
+`PT_MAX_NDEF_BYTES` 就拒绝目标，也不会每次扫描读取完整用户区；单个 TLV
+仍必须完整落在本地上限内。
+
 ### 2. nRF54L15 智能球身份
 
 nRF54L15 端应运行 NFC-A Type 2 Tag/NDEF，并通过 13.56 MHz NFC 线圈暴露身份。早期原型可使用 UTF-8 Text Record，例如：

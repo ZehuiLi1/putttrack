@@ -6,16 +6,17 @@ Every capture is bound to the Tag's full opaque `DEVICE_ID`. A BLE advertising
 name or controller address may select a device, but neither is the identity
 authority.
 
-This matters before the second Tag is powered. The confirmed `0.1.13` image
-uses the same `PuttTrack-Tag-v0.1` advertising name on every board, and a BLE
-controller address may be private or represented differently by the host. A
-name-only scan can therefore choose the wrong board without an obvious error.
+This matters before the second Tag is powered. Legacy `0.1.13` used the same
+`PuttTrack-Tag-v0.1` advertising name on every board, and a BLE controller
+address may be private or represented differently by the host. Confirmed
+`0.1.16` adds a per-device scan-response name, while full identity locking
+remains required.
 
 The currently commissioned physical Tag reports:
 
 ```text
 DEVICE_ID=f383571202836e6f
-firmware=0.1.13 (confirmed)
+firmware=0.1.16 (confirmed)
 ```
 
 `DEVICE_ID` is an opaque inventory key, not a secret and not an authorization
@@ -43,7 +44,7 @@ The JSONL ends with a `tag_capture_result` record. Offline single-capture and
 dataset analyzers reject an explicit failed result, so a failed field capture
 cannot later be promoted merely because its motion records look plausible.
 
-For the current `0.1.13` Tag, the safest frozen capture pins both the adapter's
+For the current Tag, the safest frozen capture pins both the adapter's
 BLE address and the full device identity:
 
 ```bash
@@ -69,10 +70,10 @@ python tools/capture_tag_smp.py \
 ```
 
 The device-ID check prevents silent mislabelling even in that fallback. With
-multiple powered `0.1.13` boards, however, repeated name-based SMP requests can
-alternate between boards and should not be used.
+multiple powered boards, repeated non-unique name-based SMP requests should not
+be used.
 
-## Build-only firmware 0.1.14 and later
+## Per-device firmware name
 
 Repository candidate `0.1.14` adds a per-device scan-response name:
 
@@ -80,10 +81,10 @@ Repository candidate `0.1.14` adds a per-device scan-response name:
 PuttTrack-<first four DEVICE_ID bytes>
 ```
 
-For the commissioned Tag this would be `PuttTrack-f3835712`. The suffix makes
+For the commissioned Tag this is `PuttTrack-f3835712`. The suffix makes
 ordinary scanning and service selection less ambiguous; the full encrypted
-`DEVICE_ID` remains authoritative. The physical Tag has not been updated and
-continues to run confirmed `0.1.13`.
+`DEVICE_ID` remains authoritative. This behavior is now present in confirmed
+physical `0.1.16`.
 
 Both default and optional-NFC `0.1.14+0` variants were built with NCS v3.4.0
 and verified with the lab Ed25519 key on 2026-09-03:
@@ -112,7 +113,7 @@ test. When it is commissioned:
 2. read and record its full `DEVICE_ID` before collecting data;
 3. give it a separate Ball inventory record;
 4. use `--expected-device-id` on every labelled capture;
-5. preserve the first Tag and confirmed `0.1.13` as the known-good baseline.
+5. preserve the first Tag and confirmed `0.1.16` as the known-good baseline.
 
 The current encrypted BLE pairing uses the lab service posture and does not
 provide authenticated MITM protection. Identity locking prevents accidental

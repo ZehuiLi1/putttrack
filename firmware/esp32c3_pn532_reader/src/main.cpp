@@ -11,6 +11,8 @@ Adafruit_PN532 pn532(PT_PN532_SS, &SPI);
 struct NdefResult {
   bool type2 = false;
   bool valid = false;
+  size_t type2_advertised_bytes = 0;
+  size_t type2_loaded_bytes = 0;
   String text;
   String ball_id;
   String uri;
@@ -299,6 +301,29 @@ bool parseNdefRecords(const uint8_t *message, size_t message_length,
   return true;
 }
 
+bool loadType2UserBytes(uint8_t *memory, size_t capacity,
+                        size_t advertised_bytes, size_t required_bytes,
+                        size_t &loaded_bytes) {
+  if (required_bytes > advertised_bytes || required_bytes > capacity) {
+    return false;
+  }
+
+  while (loaded_bytes < required_bytes) {
+    if (capacity - loaded_bytes < 4U ||
+        advertised_bytes - loaded_bytes < 4U) {
+      return false;
+    }
+    const size_t page_number = 4U + (loaded_bytes / 4U);
+    if (page_number > 0xFFU ||
+        !pn532.ntag2xx_ReadPage(static_cast<uint8_t>(page_number),
+                               memory + loaded_bytes)) {
+      return false;
+    }
+    loaded_bytes += 4U;
+  }
+  return true;
+}
+
 NdefResult readType2Ndef() {
   NdefResult result;
   uint8_t page[4] = {};
@@ -315,25 +340,36 @@ NdefResult readType2Ndef() {
   result.type2 = true;
 
   const size_t advertised_bytes = static_cast<size_t>(page[2]) * 8U;
-  if (advertised_bytes == 0 || advertised_bytes > PT_MAX_NDEF_BYTES) {
+  result.type2_advertised_bytes = advertised_bytes;
+  if (advertised_bytes == 0) {
     result.error = "type2_memory_out_of_range";
     return result;
   }
 
   static uint8_t user_memory[PT_MAX_NDEF_BYTES];
-  for (size_t offset = 0; offset < advertised_bytes; offset += 4U) {
-    const size_t page_number = 4U + (offset / 4U);
-    if (page_number > 0xFFU ||
-        !pn532.ntag2xx_ReadPage(static_cast<uint8_t>(page_number),
-                               user_memory + offset)) {
-      result.error = "type2_page_unreadable";
-      return result;
-    }
-  }
+  size_t loaded_bytes = 0;
+
+  // The nRF Type 2 emulator can advertise a user area larger than the bounded
+  // reader buffer even though the NDEF TLV itself is near the beginning. Read
+  // only the bytes needed to walk the TLVs and decode the selected message.
+  // An individual TLV still has to fit completely inside the local bound.
+  const auto ensure_loaded = [&](size_t required_bytes) {
+    const bool loaded = loadType2UserBytes(
+        user_memory, sizeof(user_memory), advertised_bytes, required_bytes,
+        loaded_bytes);
+    result.type2_loaded_bytes = loaded_bytes;
+    return loaded;
+  };
 
   // Find the NDEF Message TLV (0x03), skipping NULL and proprietary TLVs.
   size_t offset = 0;
   while (offset < advertised_bytes) {
+    if (!ensure_loaded(offset + 1U)) {
+      result.error = offset + 1U > sizeof(user_memory)
+                         ? "type2_reader_limit_reached"
+                         : "type2_page_unreadable";
+      return result;
+    }
     const uint8_t type = user_memory[offset++];
     if (type == 0x00) {
       continue;
@@ -341,14 +377,21 @@ NdefResult readType2Ndef() {
     if (type == 0xFE) {
       break;
     }
-    if (offset >= advertised_bytes) {
-      break;
+    if (offset >= advertised_bytes || !ensure_loaded(offset + 1U)) {
+      result.error = "type2_page_unreadable";
+      return result;
     }
 
     size_t length = user_memory[offset++];
     if (length == 0xFFU) {
-      if (advertised_bytes - offset < 2) {
+      if (advertised_bytes - offset < 2U) {
         result.error = "short_extended_tlv_length";
+        return result;
+      }
+      if (!ensure_loaded(offset + 2U)) {
+        result.error = offset + 2U > sizeof(user_memory)
+                           ? "type2_reader_limit_reached"
+                           : "type2_page_unreadable";
         return result;
       }
       length = (static_cast<size_t>(user_memory[offset]) << 8U) |
@@ -357,6 +400,14 @@ NdefResult readType2Ndef() {
     }
     if (length > advertised_bytes - offset) {
       result.error = "tlv_out_of_bounds";
+      return result;
+    }
+    if (length > sizeof(user_memory) - offset) {
+      result.error = "ndef_tlv_exceeds_reader_limit";
+      return result;
+    }
+    if (!ensure_loaded(offset + length)) {
+      result.error = "type2_page_unreadable";
       return result;
     }
 
@@ -384,6 +435,12 @@ void printTagEvent(const String &uid, const NdefResult &ndef) {
   Serial.print(PT_STABLE_READ_TARGET);
   Serial.print(F(",\"ndef_ok\":"));
   Serial.print(ndef.valid ? F("true") : F("false"));
+  if (ndef.type2) {
+    Serial.print(F(",\"type2_advertised_bytes\":"));
+    Serial.print(ndef.type2_advertised_bytes);
+    Serial.print(F(",\"type2_loaded_bytes\":"));
+    Serial.print(ndef.type2_loaded_bytes);
+  }
   if (ndef.valid) {
     Serial.print(F(",\"ndef_text\":"));
     printJsonString(ndef.text);

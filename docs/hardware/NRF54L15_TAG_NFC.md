@@ -2,11 +2,14 @@
 
 ## Status
 
-The physical NFC path on PCA20072 is **present but unpopulated and not yet
-validated**. The build-only software proof now passes, but the candidate has
-not been uploaded to the Tag. The confirmed `0.1.13` Tag image remains
-unchanged. NFC is a bounded service/provisioning experiment, not a new gameplay
-dependency and not a replacement for BLE telemetry or signed BLE OTA.
+The powered PCA20072 NFC path passed end-to-end on 2026-09-03. A 26 mm,
+1.0 uH flexible loop and provisional 220 pF values at both C17 and C19 let an
+ESP32-C3/PN532 select the assembled research ball, read its PuttTrack service
+URI and correlate RF field-on/field-off with the Tag's encrypted BLE status.
+Firmware `0.1.16` passed the guarded BLE OTA flow and is now the active,
+confirmed image. This is a powered service/read result, not a System OFF wake,
+final tuning, range or battery-life claim. NFC remains a bounded service path,
+not a gameplay dependency or replacement for BLE telemetry and signed BLE OTA.
 
 ## Hardware evidence
 
@@ -43,11 +46,12 @@ Primary sources:
 
 ## Hardware boundary
 
-Do not populate C17/C19 by guess. Their values depend on the loop inductance,
+The research-ball starting network is now populated, but is not a production
+tuning result. Its values depend on the loop inductance,
 loss, lead length, board parasitics, nearby battery and final enclosure. Before
-soldering, record the antenna part number or geometry and its specified
-inductance/tuning network. Prefer the antenna vendor's nRF reference values or
-an LCR/VNA-assisted 13.56 MHz tuning pass. A phone-read smoke test can validate
+freezing a custom PCB, record the antenna part number or geometry and its
+specified inductance/tuning network. Prefer the antenna vendor's nRF reference
+values or an LCR/VNA-assisted 13.56 MHz tuning pass. A close PN532 read validates
 basic coupling but does not replace tuning evidence for the final Ball.
 
 The first hardware check therefore requires:
@@ -71,11 +75,11 @@ prove one of these paths rather than assume the application overlay is enough:
 - explicitly restore NFCT pad mode early in the application before initializing
   the NFC library, with a verified reset/System OFF sequence.
 
-Keep `0.1.13` confirmed as the rollback image. Any NFC candidate is uploaded as
-an unconfirmed signed test image and is confirmed only after BLE/SMP, motion
-wake, automatic idle and rollback access still pass.
+For the first physical trial, `0.1.13` was kept as the confirmed rollback image
+while the NFC candidate booted unconfirmed. `0.1.16` was confirmed only after
+BLE/SMP, NFC read/field loss, automatic idle and recovery access passed.
 
-### Build-only result — revalidated 2026-09-03
+### Build and physical result — revalidated 2026-09-03
 
 The repository now contains an explicitly optional Type 2 Tag service variant:
 
@@ -112,18 +116,24 @@ not used to extend the window. The idle 2.0–2.5 second advertisement remains
 enabled after timeout, so this build does not claim System OFF or measured
 energy savings. A field does not change identity, configuration or firmware.
 
-Latest NCS v3.4.0 build evidence for candidate `0.1.16+0`:
+NCS v3.4.0 physical lab-key build evidence for candidate `0.1.16+0`:
 
 - application RRAM: `192,544 / 696,176 bytes` (`27.66%`);
 - application RAM: `210,508 / 262,144 bytes` (`80.30%`);
 - signed application image version: `0.1.16+0`;
 - signed image passed `imgtool verify` with the existing lab Ed25519 key;
 - signed OTA BIN SHA-256:
-  `a26d641651e38c36456dbae0c0dd2fb63078b4f53fd39d13f8aebea37a32ea3b`;
+  `41c64709745cf7205c809a07cd7eef5a2a61494a14ed0eee4cfc80b74a342fc7`;
+- first-install HEX SHA-256:
+  `4b8cbcc8a1d511d336ad4369d1c3c42ae0fc4e719b7f2fcd4c61c5035db3042b`;
+- MCUboot image digest:
+  `4128faddacb1a7f785044c164750830d19e42aff28fbe659fc6a643dcb394ee92e99bdaecf4d0beb7f19bbae06b08e9981e883d24a024202a3ea83576723879e`;
 - signed OTA and first-install artifacts were produced successfully;
+- the image was uploaded, test-booted with confirmed `0.1.13` retained, checked
+  through the physical gates below, confirmed remotely, and survived a reset as
+  active and confirmed;
 - a separate default build kept NFC disabled/GPIO pin mode and also passed
-  signature verification;
-- no image was installed on physical hardware.
+  signature verification.
 
 The roughly 19.8% remaining RAM is enough for this bounded proof but argues
 against adding a larger NFC application protocol before a physical NDEF read
@@ -146,16 +156,36 @@ identity path.
    PCA20072 without installing it. **Passed 2026-09-02.**
 2. **Powered read proof:** expose only opaque PuttTrack device identity and a
    firmware/version marker; count field-detected, field-lost and read events.
+   **Passed 2026-09-03.** The PN532 strictly decoded
+   `putttrack://service/tag/f383571202836e6f?fw=0.1.16`, reported
+   `service_uri_ok=true`, and exceeded the 50-consecutive-read gate at an
+   approximately 5 mm parallel-loop placement.
 3. **NFC-to-BLE handoff:** an NFC touch opens a bounded connectable BLE service
-   window. **Build-only implementation passed in `0.1.16`; physical timing is
-   pending.** Encrypted BLE remains the lab channel for configuration,
+   window. **Powered physical pass 2026-09-03.** Before reset, encrypted status
+   recorded 11 field-on and 11 field-off events, four admitted service windows,
+   seven duplicate-field suppressions and no NFC setup error. The 10-second
+   window closed even while a field remained present. Encrypted BLE remains the lab channel for configuration,
    diagnostics and signed OTA; production controller authentication is open.
 4. **System OFF proof:** only after ordinary reads are reliable, test NFC field
    detection as a wake source for `SHIPPING`/deep-service state.
-5. **Regression proof:** repeat ADXL367 motion wake/re-sleep, SMP reconnect,
-   OTA rollback and false-wake checks.
+5. **Regression proof:** **healthy-path pass 2026-09-03.** After field removal,
+   `field_present=false`; automatic idle restored 2.0--2.5 second advertising,
+   ADXL367 12 Hz wake mode and its interrupt while stopping BMI270 ODRs, the
+   50 Hz stream and BMI270 SPI. SMP remained reachable, all sensor/power/NFC
+   error counters remained zero, and confirmed `0.1.16` survived reset.
 6. **Power proof:** measure NFC sensing, field-present and post-wake energy when
    a suitable current instrument is available.
+
+### Reader compatibility finding
+
+The nRF Type 2 emulator advertised 992 bytes of user memory while the actual
+service message ended within the first 60 bytes. The initial reader rejected
+any advertised area larger than its 512-byte bounded buffer, so it selected the
+Tag but reported `type2_memory_out_of_range`. The reader now walks TLVs and
+loads pages on demand: a single NDEF TLV must still fit inside the fixed local
+bound, but a larger advertised Tag capacity is no longer mistaken for an
+oversized message. The corrected firmware physically decoded the URI and
+passed the 50-read gate.
 
 NFC field presence is a wake signal, not authentication. A field detection may
 open a short service window; identity-changing commands, provisioning secrets

@@ -23,9 +23,9 @@ for the first proof.
 |---|---|---|
 | ESP32-C3 to PN532 over SPI | Physical pass | Reader firmware and wiring are stable |
 | PN532 to NFC-A card and blank NTAG213 | Physical pass | Real 13.56 MHz selection and Type 2 memory access passed repeatedly |
-| PN532 to nRF54L15 NFC target | Not yet tested | No end-to-end Ball NFC claim yet |
-| nRF54L15 Type 2 service image | Build-only pass | Signed candidate exists but has not been installed or antenna-tested |
-| One-shot 10 s NFC-to-fast-BLE window | Build-only pass | Candidate `0.1.16` compiles and reports window/open/suppression state; no field or timing test yet |
+| PN532 to nRF54L15 NFC target | Powered physical pass | Strict service URI decoded and the 50-consecutive-read gate passed through the assembled Ball loop |
+| nRF54L15 Type 2 service image | Physical pass | `0.1.16` passed guarded OTA, physical read, confirmation and post-confirm reset |
+| One-shot 10 s NFC-to-fast-BLE window | Powered physical pass | Field counters correlated; duplicate edges were suppressed and the window closed without indefinite extension |
 | Host service-touch/update planner | Software pass | URI/JSON identity cross-check, inventory/session/quarantine/version/hardware/release gates fail closed; it does not perform or authorize BLE OTA |
 | nRF54L15 NFC wake from System OFF | Not yet tested | Supported upstream, but not proved on the PuttTrack hardware path |
 | Signed BLE SMP OTA and MCUboot confirmation | Physical pass | Keep this as the firmware transport and recovery contract |
@@ -159,19 +159,19 @@ met through the production-authorized BLE service channel.
 
 ## Implementation and acceptance order
 
-1. Write a known service URI to the NTAG213 and physically verify the existing
-   PN532 URI and `device_id` parser.
-2. Install the signed nRF54L15 Type 2 candidate as an unconfirmed test image and
-   complete a powered read through the actual external NFC loop.
-3. Correlate reader field presentation with Tag field-on/field-off counters.
-4. Implement the bounded NFC-to-BLE window without System OFF and repeat BLE,
-   sensor, motion-wake and OTA rollback regression tests. **Build-only passed in
-   `0.1.16`; physical timing and regression remain open.**
-5. Complete one end-to-end NFC wake -> identity read -> BLE signed OTA -> health
+1. Install the signed nRF54L15 Type 2 candidate as an unconfirmed test image and
+   complete a powered read through the actual external NFC loop. **Passed with
+   `0.1.16` on 2026-09-03.**
+2. Correlate reader field presentation with Tag field-on/field-off counters.
+   **Passed with 11 balanced field-on/off events before reset.**
+3. Implement the bounded NFC-to-BLE window without System OFF and repeat BLE,
+   sensor, motion-wake and guarded OTA checks. **Healthy-path physical pass;
+   deliberate sensor fault injection remains separate.**
+4. Complete one end-to-end NFC wake -> identity read -> BLE signed OTA -> health
    check -> confirm flow.
-6. Prove NFC wake from System OFF separately, including reset reason, false wakes,
+5. Prove NFC wake from System OFF separately, including reset reason, false wakes,
    timeout and repeated wake/re-sleep behavior.
-7. Measure the current cases above and make a documented go/defer decision on
+6. Measure the current cases above and make a documented go/defer decision on
    disabling idle advertising in each product state.
 
 The first product-shaped station can use one PN532 for check-in/assignment and a

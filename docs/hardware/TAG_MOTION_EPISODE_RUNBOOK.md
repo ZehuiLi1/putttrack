@@ -39,7 +39,7 @@ The output path is exclusive: the tool will not overwrite an existing episode.
 promote selected immutable evidence separately after review.
 
 The commissioned Tag's full ID is `f383571202836e6f`. Always lock it for its
-captures. While it runs confirmed `0.1.13`, keep any other same-name Tag powered
+captures. It now runs confirmed `0.1.16`; keep any uncommissioned Tag powered
 off or additionally pin `--ble-address` and `--address-type`; see
 [`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).
 

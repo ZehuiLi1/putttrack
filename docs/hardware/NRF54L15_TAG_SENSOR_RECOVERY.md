@@ -1,6 +1,7 @@
 # nRF54L15 Tag sensor fault detection and recovery
 
-**Status:** build-only candidate `0.1.16`; physical Tag remains confirmed `0.1.13`
+**Status:** confirmed physical `0.1.16`; healthy path passed, injected/recurrent
+fault paths pending
 
 ## Observed fault
 
@@ -87,6 +88,22 @@ fails capture preflight when an old nonzero sensor counter exists. For `0.1.16`
 and later, a healthy device may retain historical failed-sample counts, but a
 capture fails if health is not `healthy`, `capture_safe` is false, an error
 counter grows, or the recovery generation changes during the capture.
+
+## Physical healthy-path result
+
+The NFC variant of `0.1.16` was installed through the guarded BLE OTA path on
+2026-09-03. Before confirmation, both sensors remained ready through powered
+NFC reads, field removal and automatic return to idle. Sensor health stayed
+`healthy`; sensor, recovery and power-management errors remained zero. After
+remote confirmation and reset, both sensors initialized again and the Tag
+returned to ADXL367 interrupt wake mode with BMI270 sampling stopped and SPI
+suspended.
+
+This establishes that the recovery code does not disturb the observed healthy
+path. It does not exercise local reconfiguration, the retained one-reboot guard
+or quarantine. Those require deliberate fault injection/reproduction and ten
+sealed reset cycles before the complete recovery policy can be called a
+physical pass.
 
 ## Evidence and remaining gates
 

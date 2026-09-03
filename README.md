@@ -12,7 +12,7 @@ There is no near-term continuous-XY claim. See
 [`ADR-013`](docs/adr/ADR-013-defer-cs-for-ble-motion-mvp.md). The evidence-ranked
 current dashboard is [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md).
 
-The physical Tag currently runs confirmed repository firmware `0.1.13` from a
+The physical Tag currently runs confirmed repository firmware `0.1.16` from a
 CR2032: signed BLE OTA, stable identity/health, ADXL367 + BMI270 telemetry,
 explicit ODR/range metadata, clipping counters and an atomic
 1024-sample/20.48-second frozen history are validated. Its automatic power
@@ -20,24 +20,23 @@ policy stops BMI270 and the motion stream after 30 seconds at rest, retains
 ADXL367 in hardware wake-up mode with INT1 connected to nRF54L15 P0.03, stops
 MCU polling, suspends the BMI270 SPI controller, slows BLE advertising, and
 restores the full 50 Hz path after physical motion. Repeated interrupt
-wake/re-sleep cycles and a post-confirm reboot are validated with zero reported
-sensor, power-management or advertising errors.
+wake/re-sleep cycles, powered NFC reads, return to idle and a post-confirm reboot
+are validated with zero reported sensor, power-management, NFC or advertising
+errors.
 See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
 and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
-A build-only `0.1.15` candidate adds per-device advertising names, while the
-capture tools now lock the full encrypted device ID and boot/session
-continuity so a future second Tag cannot be silently mixed into a dataset. The
-physical Tag remains on confirmed `0.1.13`; see
+The confirmed image also adds a per-device advertising name, while the capture
+tools lock the full encrypted device ID and boot/session continuity so a future
+second Tag cannot be silently mixed into a dataset. See
 [`docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md`](docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md).
-PCA20072 design review also confirms an unpopulated optional NFC path on
-P1.02/NFC1 and P1.03/NFC2 with C17/C19 tuning footprints. It remains an
-unvalidated, time-boxed service/provisioning experiment; see
+PCA20072 design review and the assembled-ball test confirm the NFC path on
+P1.02/NFC1 and P1.03/NFC2. A 26 mm, 1.0 uH loop with provisional 220 pF values
+at C17/C19 passed strict PN532 URI reads and the bounded 10-second BLE service
+window; System OFF wake, final tuning, range and current remain open. See
 [`docs/hardware/NRF54L15_TAG_NFC.md`](docs/hardware/NRF54L15_TAG_NFC.md).
-The optional NFC Type 2 service image now passes build and signature
-verification and includes a one-shot 10-second fast-BLE discovery window, but
-has not been installed or antenna-tested. The host-side service planner strictly
-cross-checks reader URI/identity/version and rejects unsafe update eligibility;
-it does not itself authorize or perform OTA. Nordic's official STEP assembly was
+The host-side service planner strictly cross-checks reader URI/identity/version
+and rejects unsafe update eligibility; it does not itself authorize or perform
+OTA. Nordic's official STEP assembly was
 also reduced to a reproducible populated-board envelope and conservative
 research-core keep-in; see
 [`docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md`](docs/hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md)

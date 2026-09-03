@@ -112,14 +112,17 @@ position, cup entry or every valid stroke.
   evidence; foreign/inactive Ball observations fail closed.
 - Official PCA20072 revision 1.0.0 design files confirm an optional NFC route:
   P1.02/NFC1 and P1.03/NFC2 reach accessible pads and C17/C19 provide
-  unpopulated `TBD` tuning footprints. The default board DTS selects GPIO mode;
-  the hardware route is present but has not yet been populated or validated.
+  `TBD` tuning footprints. The default board DTS selects GPIO mode. The first
+  research ball now has a 26 mm, 1.0 uH loop and provisional 220 pF values at
+  C17/C19; its powered PN532 read passed, but final tuning and System OFF wake
+  remain unproved.
 - The optional NFC Type 2 service variant now passes a complete NCS v3.4.0
-  MCUboot + application build. Candidate `0.1.16` retains the one-shot 10-second
+  MCUboot + application build. Confirmed `0.1.16` retains the one-shot 10-second
   fast-BLE discovery window on an NFC field edge and exposes window/field
   diagnostics. Both generated images select NFCT pad mode; the signed OTA image
-  verifies and retains BLE/SMP/motion at link time. It has not been installed,
-  so antenna read, coexistence and power remain physical gates.
+  verified and passed guarded BLE OTA, strict URI reads, field/window telemetry,
+  field removal, automatic low-power return and post-confirm reset. Range,
+  instrumented tuning, current and System OFF remain physical gates.
 - Nordic's official `nrf54l15_tag_v1.0.step` has been measured into a
   reproducible `33.10 × 33.00 × 8.48 mm` populated-board envelope. A
   conservative `34.0 mm × 9.2 mm` removable carrier keep-in and a controlled
@@ -155,8 +158,9 @@ Minimum firmware surface:
 **Exit:** repository-owned image boots, reports identity/health, updates over BLE
 and remains confirmed after a second reboot.
 
-**Result:** Passed on physical Tag with firmware `0.1.13` on 2026-09-02,
-including signed battery-powered OTA, confirmation and a post-confirm reset.
+**Result:** Passed initially with `0.1.13` on 2026-09-02 and remains passed with
+confirmed `0.1.16` after its NFC/healthy-sensor guarded OTA and post-confirm
+reset on 2026-09-03.
 
 ### M2 — Tag sensor bring-up and raw capture
 

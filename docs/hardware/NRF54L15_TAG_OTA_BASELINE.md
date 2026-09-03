@@ -257,9 +257,9 @@ health-counter continuity. The default signed OTA BIN SHA-256 is:
 fb89e5f7f93787cd86b49af7610c67eec0bf5cdbbdb9ff9ee5c7e4541b857b3a
 ```
 
-The optional NFC variant was also rebuilt and verified. These artifacts do not
-supersede the physical evidence: the active Tag remains confirmed `0.1.13` and
-is the known-good rollback baseline. See
+The optional NFC variant was also rebuilt and verified. At the time these
+compile-only artifacts were recorded, `0.1.13` remained the confirmed physical
+baseline. See
 [`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).
 
 ## Build-only bounded NFC service candidate
@@ -292,6 +292,48 @@ insecure debug key and must not be flashed:
 | default | 185,268 / 696,176 B | 207,360 / 262,144 B | `6fee79ea7ba9c649ad7097edb48ef66703f5a52aebe289dc64c779bc91f91976` |
 | NFC service | 192,544 / 696,176 B | 210,508 / 262,144 B | `a26d641651e38c36456dbae0c0dd2fb63078b4f53fd39d13f8aebea37a32ea3b` |
 
-The physical Tag remains confirmed `0.1.13`. See
+At the time of this compile-only result, the physical Tag remained confirmed
+`0.1.13`. See
 [`NRF54L15_TAG_SENSOR_RECOVERY.md`](NRF54L15_TAG_SENSOR_RECOVERY.md) for the
 observed assembled-ball failure, policy and physical acceptance gates.
+
+## Confirmed NFC and healthy recovery-path candidate
+
+The NFC variant of `0.1.16+0` was rebuilt with the existing external lab key,
+verified locally, uploaded over encrypted BLE SMP, test-booted while confirmed
+`0.1.13` remained in the other slot, and physically exercised on 2026-09-03.
+
+The guarded acceptance sequence passed:
+
+1. both IMUs initialized with zero sensor, power-management and advertising
+   errors;
+2. the Tag automatically entered idle with BMI270 ODRs stopped and SPI
+   suspended while ADXL367 INT1 wake mode remained active;
+3. an ESP32-C3/PN532 decoded the exact PuttTrack service URI and passed 50
+   consecutive strict reads;
+4. encrypted status correlated the RF interaction as 11 field-on and 11
+   field-off events, while the one-shot 10-second service window closed without
+   indefinite extension;
+5. field removal and stationary timeout restored the same low-power state;
+6. the image was remotely confirmed, reset, and remained active/confirmed;
+7. after reset, NFC setup, both sensors and automatic idle passed again with all
+   health/error counters at zero.
+
+Physical lab-key artifact identities:
+
+```text
+signed OTA BIN SHA-256:
+41c64709745cf7205c809a07cd7eef5a2a61494a14ed0eee4cfc80b74a342fc7
+
+first-install HEX SHA-256:
+4b8cbcc8a1d511d336ad4369d1c3c42ae0fc4e719b7f2fcd4c61c5035db3042b
+
+MCUboot image digest:
+4128faddacb1a7f785044c164750830d19e42aff28fbe659fc6a643dcb394ee92e
+99bdaecf4d0beb7f19bbae06b08e9981e883d24a024202a3ea83576723879e
+```
+
+The active physical baseline is therefore confirmed `0.1.16`. The bounded
+recovery implementation's healthy path has passed, but deliberate fault
+injection and ten sealed reset cycles remain separate gates; confirmation is not
+evidence that those fault paths have already occurred.

@@ -38,9 +38,9 @@
 #define PT_STABLE_READ_TARGET 50
 #endif
 
-// A Type 2 Tag advertises its available user memory in the capability
-// container. This limit bounds RAM use and deliberately rejects oversized
-// payloads instead of silently truncating identity data.
+// Bound the individual TLV/message materialized by the reader. The Tag may
+// advertise a larger user area; pages are loaded on demand and oversized
+// messages are rejected instead of silently truncating identity data.
 #ifndef PT_MAX_NDEF_BYTES
 #define PT_MAX_NDEF_BYTES 512
 #endif
