@@ -3,10 +3,13 @@
 #include <SPI.h>
 
 #include "app_config.h"
+#include "roller_motor.h"
 
 namespace {
 
 Adafruit_PN532 pn532(PT_PN532_SS, &SPI);
+HardwareSerial motor_uart(1);
+RollerMotor roller_motor(motor_uart);
 
 struct NdefResult {
   bool type2 = false;
@@ -495,6 +498,8 @@ void setup() {
                 "\"mosi\":%d,\"ss\":%d}\n",
                 PT_PN532_SCK, PT_PN532_MISO, PT_PN532_MOSI, PT_PN532_SS);
 
+  roller_motor.begin();
+
   SPI.begin(PT_PN532_SCK, PT_PN532_MISO, PT_PN532_MOSI, PT_PN532_SS);
   pn532.begin();
 
@@ -517,6 +522,17 @@ void setup() {
 }
 
 void loop() {
+  roller_motor.serviceConsole();
+  roller_motor.serviceDeadline();
+
+  // During a timed roller run, prioritize the stop deadline and host emergency
+  // command. PN532 polling can block for hundreds of milliseconds and is not
+  // needed while collecting controlled-motion data.
+  if (roller_motor.running()) {
+    delay(2);
+    return;
+  }
+
   uint8_t uid[10] = {};
   uint8_t uid_length = 0;
   const bool found = pn532.readPassiveTargetID(

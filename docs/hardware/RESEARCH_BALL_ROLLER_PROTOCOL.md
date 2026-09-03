@@ -41,8 +41,12 @@ Confirmed Tag firmware `0.1.17` in `research` policy records a 50 Hz output stre
 sequence, validity, sensor errors and both IMU vectors. The run manifest must
 also retain ODR/range and episode-local clipping deltas.
 
-Until the motor controller protocol is integrated, synchronization is bounded
-rather than falsely exact:
+The first controller adapter is implemented and physically passed on the
+user's ZDT/张大头 Emm_V5 closed-loop driver over TTL UART. On 2026-09-04 it
+returned firmware/hardware codes `1/120`, reported an 18.74--18.89 V bus, and
+completed both +30 and -30 RPM three-second commands with acknowledged timeout
+stops, final 0 RPM, disabled output and no stall flags. It records host-visible
+command/ack events; synchronization remains bounded rather than falsely exact:
 
 1. Start a phone/camera view that includes the ball and roller control/status.
 2. Begin each run with at least 3 seconds stationary.
@@ -51,7 +55,8 @@ rather than falsely exact:
    the Tag history automatically.
 5. Store the video/cue reference and motor log beside the Tag run manifest.
 
-Once controller timestamps are accessible, log them monotonically and estimate
+Preserve its JSON command/status log beside each capture. Controller events currently use host
+receive order rather than a shared Tag clock. Estimate
 the controller-to-Tag offset with a repeatable sharp speed transition. Do not
 assume host wall-clock equality. The 20.48-second Tag history means the complete
 profile, including pre/post rest, should initially stay below about 17 seconds.
@@ -76,6 +81,44 @@ its geometry and preload. Treat the theoretical ratio as a diagnostic only
 until roller diameter, contact layout and encoder truth are recorded.
 
 ## Capture workflow
+
+### Motor bring-up before inserting the Ball
+
+The ESP32-C3 can run PN532 SPI and the motor UART together. The safe mapping and
+commands are maintained in
+[`../../firmware/esp32c3_pn532_reader/README.md`](../../firmware/esp32c3_pn532_reader/README.md):
+
+```text
+Emm R/A/H -> ESP32-C3 GPIO4 (ESP RX; physically confirmed)
+Emm T/B/L -> ESP32-C3 GPIO5 (ESP TX; physically confirmed)
+Emm Gnd   -> ESP32-C3 GND
+```
+
+GPIO11 is prohibited because it is the ESP32-C3 `VDD_SPI` pin by default. With
+the ball removed and the motor power switch in reach, the first gate is
+read-only:
+
+```bash
+python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 probe
+python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 status
+```
+
+The empty-fixture gate physically passed in both directions on 2026-09-04. To
+repeat it after any wiring, firmware or mechanical change, use 30 RPM for three
+seconds:
+
+```bash
+python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 run \
+  --rpm 30 --seconds 3 --confirm-clear
+```
+
+Verify direction, automatic stop, explicit `stop`, and `disable` before placing
+the assembled Ball in the fixture. The firmware issues `STOP + DISABLE` on MCU
+boot and enforces a one-shot arm token and run deadline. Those controls cannot
+stop a separately powered driver if the ESP32 loses power, so a reachable motor
+power switch is mandatory until a hardware fail-safe `EN` interlock exists.
+
+### Tag capture
 
 Before the first run:
 
@@ -125,16 +168,17 @@ Then collect level-surface free rolls, gentle putter strikes, wall/ball
 collisions and cup sequences. Split evaluation by complete session and
 mechanical revision, never by adjacent windows from the same run.
 
-## Information needed for controller integration
+## Remaining controller facts
 
-The software adapter can be implemented when these are known:
+The protocol, host interface, pin mapping and empty-fixture bidirectional
+30 RPM/3 s stop gate are physically confirmed. The
+remaining physical metadata cannot be inferred in software:
 
-- motor controller board/model and its source repository or protocol;
-- USB serial, BLE, Wi-Fi or other host interface;
-- command syntax and speed units;
 - roller diameter/contact layout;
-- encoder availability and timestamp resolution;
-- emergency-stop behavior.
+- whether reported closed-loop motor RPM matches roller RPM under load;
+- encoder timestamp resolution, if raw encoder samples are exposed;
+- direction sign relative to the fixture;
+- measured slip and the final hardware emergency-stop/`EN` behavior.
 
-Until then, the protocol above lets mechanical printing and firmware/data work
-advance without inventing a controller API.
+Do not label motor RPM as ball angular velocity until roller diameter, contact
+geometry and slip have been measured.
