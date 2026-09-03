@@ -43,12 +43,11 @@ position, cup entry or every valid stroke.
 - Physical OTA update from `0.0.0` to `0.0.1`, followed by a second successful
   confirmed reboot.
 - XIAO nRF52840 Sense running as a USB HCI controller for Mac development.
-- Repository-owned Tag firmware `0.1.13` installed over BLE while powered from
-  CR2032, remotely confirmed and verified after a further reboot.
+- Repository-owned Tag firmware `0.1.17` installed over BLE while powered from
+  CR2032, remotely confirmed and verified after ordinary and NFC cold reboots.
 - Multi-Tag capture now locks the full encrypted device ID plus boot/firmware,
-  sequence/time and health-counter continuity. Build-only candidate `0.1.16`
-  adds a per-device advertising suffix; it has not replaced the confirmed
-  physical `0.1.13` image.
+  sequence/time and health-counter continuity. Confirmed `0.1.17` also exposes a
+  per-device advertising suffix.
 - A primary-source Trackaball review confirmed the relevance of distributed
   BLE reception, local buffering and state-sensitive radio operation. A
   hardware-neutral multi-receiver observation/aggregation contract is now
@@ -83,12 +82,12 @@ position, cup entry or every valid stroke.
   dataset is `experiments/research_ball_r0_stationary`. Before that reset,
   status exposed one ADXL367 boot-initialization
   failure that had been counted every 160 ms for almost the full 3.2-hour boot.
-- Build-only candidate `0.1.16` now detects consecutive failures, invalidates
-  capture history across recovery, tries local reconfiguration three times,
-  permits one quiet/disconnected warm reboot and quarantines recurrence. Host
-  capture rejects unhealthy state or a recovery-generation change. The
-  confirmed physical image remains `0.1.13` until R0 collection and fault
-  injection are complete.
+- Confirmed `0.1.17` detects consecutive failures, invalidates capture history
+  across recovery, tries local reconfiguration three times, permits one
+  quiet/disconnected warm reboot and quarantines recurrence. Host capture
+  rejects unhealthy state or a recovery-generation change. The healthy path has
+  passed on the assembled Ball; deterministic fault injection and sealed reset
+  soak remain open.
 - The physical capture converts to canonical `MotionObservation` and reaches the
   one-hole no-CS candidate policy. A real stationary observation was audited as
   `motion.stationary` with zero score/stroke mutation.
@@ -315,7 +314,8 @@ Re-open the CS track only when at least one is true:
 
 1. ~~Freeze and document the working OTA baseline.~~ Complete.
 2. ~~Create the repository-owned Tag application with identity/health and SMP.~~
-   Complete (`0.1.13` confirmed on the physical Tag).
+   Complete (initially `0.1.13`; currently `0.1.17` confirmed on the physical
+   Tag).
 3. ~~Bring up ADXL367 and BMI270 with a raw BLE capture path.~~ Complete for
    polling/live-window/frozen-history research capture.
 4. ~~Record clearly active and natural pickup/carry bare-Tag baselines.~~
@@ -324,13 +324,13 @@ Re-open the CS track only when at least one is true:
    intensity. Defer impact/rolling/settling until an appropriate restrained or
    ball-core setup.
 5. ~~Implement and physically validate adaptive development-board power.~~
-   Complete functionally in battery-powered `0.1.13`, including event-driven
+   Complete functionally in battery-powered `0.1.17`, including event-driven
    ADXL367 INT1 wake, repeated wake/re-sleep, slow-advertising access and
    post-confirm reset. Measured coin-cell current remains a separate gate.
 6. ~~Make capture safe before a second Tag is powered.~~ Complete: full
    `DEVICE_ID` locking, address pinning, boot/session continuity and strict
-   malformed/error handling are implemented. Candidate `0.1.16` provides a
-   human-readable short-ID advertising suffix but remains build-only.
+   malformed/error handling are implemented. Confirmed `0.1.17` provides a
+   human-readable short-ID advertising suffix.
 7. Build a repeatable, restrained research-ball core and record labelled putter
    impact, rolling, settling and post-stop episodes. Then extend the implemented
    feature extractor into the measured deterministic generic-motion FSM; do not

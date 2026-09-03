@@ -35,7 +35,7 @@ touch; do not silently keep it as a clean run.
 
 ## Data contract and timing
 
-Tag firmware `0.1.13` in `research` policy records a 50 Hz output stream from
+Confirmed Tag firmware `0.1.17` in `research` policy records a 50 Hz output stream from
 100 Hz ADXL367/BMI270 configuration and retains the latest 1024 samples
 (20.48 seconds). Each captured sample already includes monotonic device time,
 sequence, validity, sensor errors and both IMU vectors. The run manifest must

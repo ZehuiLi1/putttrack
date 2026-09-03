@@ -116,11 +116,14 @@ not be flashed or distributed:
 | Default | 185,268 / 696,176 B | 207,360 / 262,144 B | `6fee79ea7ba9c649ad7097edb48ef66703f5a52aebe289dc64c779bc91f91976` |
 | NFC service | 192,544 / 696,176 B | 210,508 / 262,144 B | `a26d641651e38c36456dbae0c0dd2fb63078b4f53fd39d13f8aebea37a32ea3b` |
 
-Before installing a privately signed candidate on the research ball:
+The recovery policy is now present in confirmed `0.1.17`; its ordinary healthy
+path, idle wake and capture guards have passed on target. The remaining gates
+are:
 
-1. finish the `0.1.13` assembled-ball R0 dataset while that boot is healthy;
-2. add deterministic firmware fault injection for fetch/read failures and
+1. add deterministic firmware fault injection for fetch/read failures and
    retained reboot-guard state;
-3. verify at least ten sealed-ball reset/start cycles;
-4. test an unconfirmed OTA boot first and retain `0.1.13` for rollback;
-5. prove recovery, quarantine, capture rejection and idle wake again on target.
+2. verify at least ten sealed-ball reset/start cycles;
+3. deliberately prove local recovery, guarded reboot, quarantine and host
+   capture rejection on target;
+4. keep signed OTA test boot and the retained `0.1.16` slot as the recovery
+   boundary while running those tests.
