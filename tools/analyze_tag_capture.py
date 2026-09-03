@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,33 @@ from putttrack.motion import (  # noqa: E402
     provisional_generic_motion_check,
 )
 from putttrack.tag import MotionRecord, StatusRecord  # noqa: E402
+
+
+ROLLER_LABEL_PATTERN = re.compile(
+    r"^roller_([+-]?\d+(?:\.\d+)?)rpm(?:_|$)", re.IGNORECASE
+)
+
+
+def expected_states_for_label(label: str) -> tuple[str, ...] | None:
+    """Return the provisional states allowed by a known episode label."""
+    expected_states = {
+        "stationary": ("STATIONARY_CANDIDATE",),
+        "pickup_carry": ("ACTIVE_MOTION_CANDIDATE",),
+        "handling": ("UNCLASSIFIED", "ACTIVE_MOTION_CANDIDATE"),
+    }
+    normalized = label.strip().lower()
+    if normalized in expected_states:
+        return expected_states[normalized]
+
+    roller_match = ROLLER_LABEL_PATTERN.match(normalized)
+    if roller_match is not None:
+        commanded_rpm = float(roller_match.group(1))
+        return (
+            ("STATIONARY_CANDIDATE",)
+            if commanded_rpm == 0.0
+            else ("ACTIVE_MOTION_CANDIDATE",)
+        )
+    return None
 
 
 def motion_from_json(payload: dict[str, object]) -> MotionRecord:
@@ -135,20 +163,16 @@ def main() -> int:
 
     features = extract_window_features(records)
     diagnostic = provisional_generic_motion_check(features)
-    expected_states = {
-        "stationary": ("STATIONARY_CANDIDATE",),
-        "pickup_carry": ("ACTIVE_MOTION_CANDIDATE",),
-        "handling": ("UNCLASSIFIED", "ACTIVE_MOTION_CANDIDATE"),
-    }
     if len(episode_labels) > 1:
         label_consistency = {
             "status": "FAIL",
             "labels": sorted(episode_labels),
             "reason": "capture_contains_multiple_episode_labels",
         }
-    elif episode_labels and next(iter(episode_labels)) in expected_states:
+    elif episode_labels and expected_states_for_label(next(iter(episode_labels))) is not None:
         episode_label = next(iter(episode_labels))
-        allowed_states = expected_states[episode_label]
+        allowed_states = expected_states_for_label(episode_label)
+        assert allowed_states is not None
         label_consistency = {
             "status": (
                 "PASS" if diagnostic.state in allowed_states else "FAIL"
