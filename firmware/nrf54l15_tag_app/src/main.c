@@ -16,6 +16,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/device.h>
+#include <zephyr/drivers/fuel_gauge.h>
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/sensor.h>
@@ -39,8 +40,17 @@
 #include <nfc/ndef/uri_msg.h>
 #endif
 
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+#include <zephyr/sys/poweroff.h>
+#include <nrfx.h>
+#include <hal/nrf_power.h>
+#if !NRF_POWER_HAS_RESETREAS
+#include <hal/nrf_reset.h>
+#endif
+#endif
+
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.16"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.17"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -51,6 +61,7 @@
 #define PUTTTRACK_MGMT_ID_POWER_AUTO 20U
 #define PUTTTRACK_MGMT_ID_POWER_RESEARCH 21U
 #define PUTTTRACK_MGMT_ID_POWER_IDLE 22U
+#define PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF 23U
 
 #define STATUS_PACKET_SIZE 64U
 #define MOTION_PACKET_SIZE 56U
@@ -168,6 +179,8 @@ static const struct bt_uuid_128 putttrack_motion_uuid = BT_UUID_INIT_128(
 static const struct device *const adxl367 = DEVICE_DT_GET(DT_NODELABEL(adxl367));
 static const struct device *const bmi270 = DEVICE_DT_GET(DT_NODELABEL(bmi270));
 static const struct device *const bmi270_spi = DEVICE_DT_GET(DT_NODELABEL(spi22));
+static const struct device *const battery_fuel_gauge =
+	DEVICE_DT_GET(DT_ALIAS(battery_fuel_gauge));
 static const struct i2c_dt_spec adxl367_i2c =
 	I2C_DT_SPEC_GET(DT_NODELABEL(adxl367));
 static const struct sensor_trigger idle_wake_trigger = {
@@ -216,6 +229,11 @@ static atomic_t sensor_health = ATOMIC_INIT(PUTTTRACK_SENSOR_HEALTHY);
 static uint32_t power_transition_count;
 static uint32_t advertising_start_error_count;
 static uint32_t power_management_error_count;
+static bool battery_supported;
+static bool battery_sample_valid;
+static int32_t battery_sample_error;
+static uint32_t battery_voltage_mv;
+static uint32_t battery_soc_percent;
 static atomic_t bmi270_spi_suspended;
 static atomic_t idle_wake_interrupt_enabled;
 static atomic_t adxl367_wakeup_mode_enabled;
@@ -243,17 +261,25 @@ static struct sensor_reboot_retention sensor_reboot_retention __noinit;
 #define NFC_NDEF_BUFFER_SIZE 160U
 #define NFC_URI_BUFFER_SIZE 96U
 #define NFC_SERVICE_DISCOVERY_WINDOW_MS 10000U
+#define NFC_SYSTEM_OFF_DELAY_MS 2000U
 
 static uint8_t nfc_ndef_buffer[NFC_NDEF_BUFFER_SIZE];
 static atomic_t nfc_field_on_count;
 static atomic_t nfc_field_off_count;
+static atomic_t nfc_data_read_count;
 static atomic_t nfc_field_present;
 static atomic_t nfc_service_window_active;
 static atomic_t nfc_service_window_open_count;
 static atomic_t nfc_service_window_suppressed_count;
 static int32_t nfc_setup_error;
+static atomic_t system_off_pending;
+static int32_t system_off_entry_error;
+static bool nfc_system_off_wake;
 static struct k_work nfc_service_window_open_work;
 static struct k_work_delayable nfc_service_window_close_work;
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+static struct k_work_delayable system_off_work;
+#endif
 #endif
 
 K_MUTEX_DEFINE(packet_mutex);
@@ -261,6 +287,40 @@ K_SEM_DEFINE(power_event_sem, 0, 1);
 
 static void build_status_packet(void);
 static void begin_sensor_recovery(uint32_t error_bits);
+
+static void sample_battery(void)
+{
+	static const fuel_gauge_prop_t properties[] = {
+		FUEL_GAUGE_VOLTAGE,
+		FUEL_GAUGE_RELATIVE_STATE_OF_CHARGE,
+	};
+	union fuel_gauge_prop_val values[ARRAY_SIZE(properties)];
+	int rc;
+
+	battery_supported = device_is_ready(battery_fuel_gauge);
+	battery_sample_valid = false;
+	if (!battery_supported) {
+		battery_sample_error = -ENODEV;
+		return;
+	}
+
+	rc = fuel_gauge_get_props(battery_fuel_gauge, properties, values,
+				  ARRAY_SIZE(properties));
+	if (rc != 0) {
+		battery_sample_error = rc;
+		return;
+	}
+	if (values[0].voltage < 0 ||
+	    values[1].relative_state_of_charge > 100U) {
+		battery_sample_error = -ERANGE;
+		return;
+	}
+
+	battery_voltage_mv = (uint32_t)values[0].voltage / 1000U;
+	battery_soc_percent = values[1].relative_state_of_charge;
+	battery_sample_error = 0;
+	battery_sample_valid = true;
+}
 
 static const char *power_policy_name(enum putttrack_power_policy policy)
 {
@@ -356,6 +416,7 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	uint32_t status_sequence;
 	bool ok;
 
+	sample_battery();
 	bytes_to_hex(device_id, device_id_len, device_id_hex);
 	bytes_to_hex(boot_id, sizeof(boot_id), boot_id_hex);
 	build_status_packet();
@@ -468,7 +529,17 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_tstr_put_lit(zse, "bmi_spi_suspended") &&
 	     zcbor_bool_put(zse, atomic_get(&bmi270_spi_suspended) != 0) &&
 	     zcbor_tstr_put_lit(zse, "battery_supported") &&
-	     zcbor_bool_put(zse, false);
+	     zcbor_bool_put(zse, battery_supported) &&
+	     zcbor_tstr_put_lit(zse, "battery_sample_valid") &&
+	     zcbor_bool_put(zse, battery_sample_valid) &&
+	     zcbor_tstr_put_lit(zse, "battery_sample_error") &&
+	     zcbor_int32_put(zse, battery_sample_error) &&
+	     zcbor_tstr_put_lit(zse, "battery_voltage_mv") &&
+	     zcbor_uint32_put(zse, battery_voltage_mv) &&
+	     zcbor_tstr_put_lit(zse, "battery_soc_percent") &&
+	     zcbor_uint32_put(zse, battery_soc_percent) &&
+	     zcbor_tstr_put_lit(zse, "battery_soc_estimated") &&
+	     zcbor_bool_put(zse, true);
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	ok = ok &&
@@ -480,6 +551,8 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_on_count)) &&
 	     zcbor_tstr_put_lit(zse, "nfc_field_off") &&
 	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_off_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_data_reads") &&
+	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_data_read_count)) &&
 	     zcbor_tstr_put_lit(zse, "nfc_field_present") &&
 	     zcbor_bool_put(zse, atomic_get(&nfc_field_present) != 0) &&
 	     zcbor_tstr_put_lit(zse, "nfc_service_window") &&
@@ -492,7 +565,16 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_tstr_put_lit(zse, "nfc_service_window_suppressed") &&
 	     zcbor_uint32_put(zse,
 			       (uint32_t)atomic_get(
-				       &nfc_service_window_suppressed_count));
+				       &nfc_service_window_suppressed_count)) &&
+	     zcbor_tstr_put_lit(zse, "system_off_supported") &&
+	     zcbor_bool_put(zse,
+			     IS_ENABLED(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)) &&
+	     zcbor_tstr_put_lit(zse, "system_off_pending") &&
+	     zcbor_bool_put(zse, atomic_get(&system_off_pending) != 0) &&
+	     zcbor_tstr_put_lit(zse, "system_off_entry_error") &&
+	     zcbor_int32_put(zse, system_off_entry_error) &&
+	     zcbor_tstr_put_lit(zse, "nfc_system_off_wake") &&
+	     zcbor_bool_put(zse, nfc_system_off_wake);
 #endif
 
 	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
@@ -767,6 +849,60 @@ static int putttrack_mgmt_power_idle(struct smp_streamer *ctxt)
 	return putttrack_mgmt_set_power_policy(ctxt, PUTTTRACK_POWER_IDLE);
 }
 
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+static void enter_system_off(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (!atomic_cas(&system_off_pending, 1, 0)) {
+		return;
+	}
+	if (atomic_get(&nfc_field_present) != 0) {
+		system_off_entry_error = -EBUSY;
+		return;
+	}
+
+	system_off_entry_error = 0;
+	sys_poweroff();
+}
+
+static int putttrack_mgmt_enter_system_off(struct smp_streamer *ctxt)
+{
+	zcbor_state_t *zse = ctxt->writer->zs;
+	bool accepted = false;
+	int32_t error = 0;
+	bool ok;
+
+	if (nfc_setup_error != 0) {
+		error = nfc_setup_error;
+	} else if (atomic_get(&nfc_field_present) != 0) {
+		error = -EBUSY;
+	} else if (!atomic_cas(&system_off_pending, 0, 1)) {
+		error = -EALREADY;
+	} else {
+		int rc = k_work_reschedule(&system_off_work,
+					   K_MSEC(NFC_SYSTEM_OFF_DELAY_MS));
+
+		if (rc < 0) {
+			atomic_clear(&system_off_pending);
+			error = rc;
+		} else {
+			accepted = true;
+		}
+	}
+
+	system_off_entry_error = error;
+	ok = zcbor_tstr_put_lit(zse, "accepted") &&
+	     zcbor_bool_put(zse, accepted) &&
+	     zcbor_tstr_put_lit(zse, "delay_ms") &&
+	     zcbor_uint32_put(zse, NFC_SYSTEM_OFF_DELAY_MS) &&
+	     zcbor_tstr_put_lit(zse, "error") &&
+	     zcbor_int32_put(zse, error);
+
+	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
+}
+#endif
+
 static const struct mgmt_handler putttrack_mgmt_handlers[] = {
 	[PUTTTRACK_MGMT_ID_STATUS] = {
 		.mh_read = putttrack_mgmt_status,
@@ -812,6 +948,12 @@ static const struct mgmt_handler putttrack_mgmt_handlers[] = {
 		.mh_read = NULL,
 		.mh_write = putttrack_mgmt_power_idle,
 	},
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+	[PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF] = {
+		.mh_read = NULL,
+		.mh_write = putttrack_mgmt_enter_system_off,
+	},
+#endif
 };
 
 static struct mgmt_group putttrack_mgmt_group = {
@@ -1065,6 +1207,20 @@ BT_CONN_CB_DEFINE(connection_callbacks) = {
 static void initialize_identity(void)
 {
 	ssize_t result;
+
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+	uint32_t raw_reset_cause;
+
+#if NRF_POWER_HAS_RESETREAS
+	raw_reset_cause = nrf_power_resetreas_get(NRF_POWER);
+	nfc_system_off_wake =
+		(raw_reset_cause & NRF_POWER_RESETREAS_NFC_MASK) != 0U;
+#else
+	raw_reset_cause = nrf_reset_resetreas_get(NRF_RESET);
+	nfc_system_off_wake =
+		(raw_reset_cause & NRF_RESET_RESETREAS_NFC_MASK) != 0U;
+#endif
+#endif
 
 	result = hwinfo_get_device_id(device_id, sizeof(device_id));
 	if (result > 0) {
@@ -1890,6 +2046,12 @@ static void nfc_callback(void *context, nfc_t2t_event_t event,
 	switch (event) {
 	case NFC_T2T_EVENT_FIELD_ON:
 		atomic_inc(&nfc_field_on_count);
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+		if (atomic_cas(&system_off_pending, 1, 0)) {
+			(void)k_work_cancel_delayable(&system_off_work);
+			system_off_entry_error = -EBUSY;
+		}
+#endif
 		if (atomic_cas(&nfc_field_present, 0, 1)) {
 			(void)k_work_submit(&nfc_service_window_open_work);
 		} else {
@@ -1899,6 +2061,9 @@ static void nfc_callback(void *context, nfc_t2t_event_t event,
 	case NFC_T2T_EVENT_FIELD_OFF:
 		atomic_inc(&nfc_field_off_count);
 		atomic_clear(&nfc_field_present);
+		break;
+	case NFC_T2T_EVENT_DATA_READ:
+		atomic_inc(&nfc_data_read_count);
 		break;
 	default:
 		break;
@@ -1964,14 +2129,20 @@ int main(void)
 	k_work_init(&nfc_service_window_open_work, open_nfc_service_window);
 	k_work_init_delayable(&nfc_service_window_close_work,
 			      close_nfc_service_window);
+#if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
+	k_work_init_delayable(&system_off_work, enter_system_off);
 #endif
+#endif
+	sample_battery();
 	initialize_sensors();
 	if (bt_enable(NULL) == 0) {
 		atomic_set(&bluetooth_ready, 1);
 		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 	}
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
-	(void)initialize_nfc_service();
+	if (initialize_nfc_service() == 0 && nfc_system_off_wake) {
+		(void)k_work_submit(&nfc_service_window_open_work);
+	}
 #endif
 	build_status_packet();
 

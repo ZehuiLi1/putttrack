@@ -2,13 +2,13 @@
 
 ## Status
 
-The powered PCA20072 NFC path passed end-to-end on 2026-09-03. A 26 mm,
+The powered and System OFF PCA20072 NFC paths passed end-to-end on 2026-09-03. A 26 mm,
 1.0 uH flexible loop and provisional 220 pF values at both C17 and C19 let an
 ESP32-C3/PN532 select the assembled research ball, read its PuttTrack service
 URI and correlate RF field-on/field-off with the Tag's encrypted BLE status.
-Firmware `0.1.16` passed the guarded BLE OTA flow and is now the active,
-confirmed image. This is a powered service/read result, not a System OFF wake,
-final tuning, range or battery-life claim. NFC remains a bounded service path,
+Firmware `0.1.17` passed the guarded BLE OTA flow, battery observation and a
+true System OFF cold wake and is now the active, confirmed image. This is not a
+final tuning, range, current or battery-life claim. NFC remains a bounded service path,
 not a gameplay dependency or replacement for BLE telemetry and signed BLE OTA.
 
 ## Hardware evidence
@@ -105,7 +105,7 @@ internally consistent.
 The application exposes a read-only URI:
 
 ```text
-putttrack://service/tag/<opaque-device-id>?fw=0.1.16
+putttrack://service/tag/<opaque-device-id>?fw=0.1.17
 ```
 
 It counts NFC field-on/field-off events and reports those plus initialization
@@ -166,13 +166,19 @@ identity path.
    seven duplicate-field suppressions and no NFC setup error. The 10-second
    window closed even while a field remained present. Encrypted BLE remains the lab channel for configuration,
    diagnostics and signed OTA; production controller authentication is open.
-4. **System OFF proof:** only after ordinary reads are reliable, test NFC field
-   detection as a wake source for `SHIPPING`/deep-service state.
+4. **System OFF proof:** **physical pass 2026-09-03 with confirmed `0.1.17`.**
+   An identity-locked encrypted BLE command entered System OFF, BLE remained
+   absent for more than 60 seconds, and the PN532 then woke the Tag and decoded
+   50 consecutive service records. The boot ID changed from
+   `ae42b6ce63db585a` to `eab45817668ee95c`; encrypted status reported the
+   dedicated NFC reset reason. This remains an explicit shipping/service state,
+   not the automatic gameplay-idle policy.
 5. **Regression proof:** **healthy-path pass 2026-09-03.** After field removal,
    `field_present=false`; automatic idle restored 2.0--2.5 second advertising,
    ADXL367 12 Hz wake mode and its interrupt while stopping BMI270 ODRs, the
    50 Hz stream and BMI270 SPI. SMP remained reachable, all sensor/power/NFC
-   error counters remained zero, and confirmed `0.1.16` survived reset.
+   error counters remained zero. Confirmed `0.1.17` retained battery sampling,
+   both sensors, idle and BLE management after NFC cold wake.
 6. **Power proof:** measure NFC sensing, field-present and post-wake energy when
    a suitable current instrument is available.
 
@@ -212,3 +218,6 @@ physical tee/cup evidence needed for an automatic one-hole experience.
 The NFC spike is therefore time-boxed behind, or run during mechanical waiting
 time for, the controlled research-ball core and physical one-hole work. Its
 exit is a documented go/defer decision, not indefinite protocol development.
+
+The detailed cold-wake, safety-command and battery evidence is recorded in
+[`NRF54L15_TAG_SYSTEM_OFF_BATTERY.md`](NRF54L15_TAG_SYSTEM_OFF_BATTERY.md).

@@ -159,8 +159,8 @@ Minimum firmware surface:
 and remains confirmed after a second reboot.
 
 **Result:** Passed initially with `0.1.13` on 2026-09-02 and remains passed with
-confirmed `0.1.16` after its NFC/healthy-sensor guarded OTA and post-confirm
-reset on 2026-09-03.
+confirmed `0.1.17` after guarded OTA, battery observation and NFC System OFF
+cold wake on 2026-09-03.
 
 ### M2 — Tag sensor bring-up and raw capture
 

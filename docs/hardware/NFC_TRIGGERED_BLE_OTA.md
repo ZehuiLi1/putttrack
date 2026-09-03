@@ -23,11 +23,11 @@ for the first proof.
 |---|---|---|
 | ESP32-C3 to PN532 over SPI | Physical pass | Reader firmware and wiring are stable |
 | PN532 to NFC-A card and blank NTAG213 | Physical pass | Real 13.56 MHz selection and Type 2 memory access passed repeatedly |
-| PN532 to nRF54L15 NFC target | Powered physical pass | Strict service URI decoded and the 50-consecutive-read gate passed through the assembled Ball loop |
-| nRF54L15 Type 2 service image | Physical pass | `0.1.16` passed guarded OTA, physical read, confirmation and post-confirm reset |
-| One-shot 10 s NFC-to-fast-BLE window | Powered physical pass | Field counters correlated; duplicate edges were suppressed and the window closed without indefinite extension |
+| PN532 to nRF54L15 NFC target | Physical pass | Strict service URI decoded and repeated 50-consecutive-read gates passed through the assembled Ball loop, powered and after cold wake |
+| nRF54L15 Type 2 service image | Physical pass | Confirmed `0.1.17` passed guarded OTA, physical read, System OFF cold wake and post-wake health checks |
+| One-shot 10 s NFC-to-fast-BLE window | Physical pass | Field and complete-read counters correlated; duplicate edges were suppressed and the window closed without indefinite extension |
 | Host service-touch/update planner | Software pass | URI/JSON identity cross-check, inventory/session/quarantine/version/hardware/release gates fail closed; it does not perform or authorize BLE OTA |
-| nRF54L15 NFC wake from System OFF | Not yet tested | Supported upstream, but not proved on the PuttTrack hardware path |
+| nRF54L15 NFC wake from System OFF | Physical pass | Explicit power-off, more than 60 seconds of BLE absence, NFC reset reason, changed boot ID, strict URI read and BLE recovery passed |
 | Signed BLE SMP OTA and MCUboot confirmation | Physical pass | Keep this as the firmware transport and recovery contract |
 | ADXL367 interrupt wake and re-sleep | Physical pass | Keep motion wake as the gameplay/handling path |
 | Whole-board current | Not measured | No battery-life or NFC power-saving claim is allowed yet |
@@ -83,7 +83,7 @@ the NFC payload.
 6. If an update is required, the lab controller establishes encrypted BLE
    management access. Production must additionally authenticate/authorize the
    service controller before extending a maintenance lease, capped initially at
-   120 seconds per attempt. That lease extension is not implemented in `0.1.16`.
+   120 seconds per attempt. That lease extension is not implemented in `0.1.17`.
 7. The controller uploads the signed image through SMP. MCUboot starts it in test
    mode. The application verifies boot, storage, sensors, BLE and watchdog health
    before confirmation.
@@ -161,16 +161,18 @@ met through the production-authorized BLE service channel.
 
 1. Install the signed nRF54L15 Type 2 candidate as an unconfirmed test image and
    complete a powered read through the actual external NFC loop. **Passed with
-   `0.1.16` on 2026-09-03.**
+   `0.1.16` and repeated with `0.1.17` on 2026-09-03.**
 2. Correlate reader field presentation with Tag field-on/field-off counters.
    **Passed with 11 balanced field-on/off events before reset.**
 3. Implement the bounded NFC-to-BLE window without System OFF and repeat BLE,
    sensor, motion-wake and guarded OTA checks. **Healthy-path physical pass;
    deliberate sensor fault injection remains separate.**
 4. Complete one end-to-end NFC wake -> identity read -> BLE signed OTA -> health
-   check -> confirm flow.
+   check -> confirm flow. **The component paths have passed; production service
+   orchestration and controller authentication remain open.**
 5. Prove NFC wake from System OFF separately, including reset reason, false wakes,
-   timeout and repeated wake/re-sleep behavior.
+   timeout and repeated wake/re-sleep behavior. **One explicit physical cold-wake
+   cycle passed on confirmed `0.1.17`; repeated soak remains open.**
 6. Measure the current cases above and make a documented go/defer decision on
    disabling idle advertising in each product state.
 

@@ -9,6 +9,51 @@
 	int1-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
 };
 
+/ {
+	aliases {
+		battery-fuel-gauge = &fuel_gauge;
+	};
+
+	vbatt: vbatt {
+		status = "okay";
+		compatible = "voltage-divider";
+		io-channels = <&adc 0>;
+		/* Virtual 1:1 divider: SAADC samples VDD internally. */
+		output-ohms = <1>;
+		full-ohms = <1>;
+	};
+
+	fuel_gauge: fuel_gauge {
+		status = "okay";
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&vbatt>;
+		device-chemistry = "lithium-ion-manganese-oxide";
+
+		/* Nordic's generic CR2032 example; SOC remains an estimate. */
+		ocv-capacity-table-0 = <2400000 2700000 2750000 2800000 2850000
+					2880000 2900000 2920000 2950000 2980000
+					3000000>;
+		charge-full-design-microamp-hours = <220000>;
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <14>;
+		zephyr,oversampling = <8>;
+		zephyr,vref-mv = <900>;
+		zephyr,input-positive = <NRF_SAADC_VDD>;
+	};
+};
+
 /delete-node/ &boot_partition;
 /delete-node/ &slot0_partition;
 /delete-node/ &slot1_partition;

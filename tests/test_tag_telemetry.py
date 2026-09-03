@@ -143,16 +143,26 @@ class TagTelemetryTests(unittest.TestCase):
                 "bmi_spi_suspended": True,
                 "wake_interrupt": True,
                 "adxl_wakeup_mode": True,
-                "battery_supported": False,
+                "battery_supported": True,
+                "battery_sample_valid": True,
+                "battery_sample_error": 0,
+                "battery_voltage_mv": 2968,
+                "battery_soc_percent": 90,
+                "battery_soc_estimated": True,
                 "nfc_enabled": True,
                 "nfc_setup_error": 0,
                 "nfc_field_on": 4,
                 "nfc_field_off": 3,
+                "nfc_data_reads": 4,
                 "nfc_field_present": True,
                 "nfc_service_window": True,
                 "nfc_service_window_ms": 10000,
                 "nfc_service_window_opens": 2,
                 "nfc_service_window_suppressed": 1,
+                "system_off_supported": True,
+                "system_off_pending": False,
+                "system_off_entry_error": 0,
+                "nfc_system_off_wake": True,
                 "sensor_health": "healthy",
                 "capture_safe": True,
                 "sensor_faults": 2,
@@ -194,16 +204,26 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertTrue(status.bmi270_spi_suspended)
         self.assertTrue(status.idle_wake_interrupt_enabled)
         self.assertTrue(status.adxl367_wakeup_mode_enabled)
-        self.assertFalse(status.battery_supported)
+        self.assertTrue(status.battery_supported)
+        self.assertTrue(status.battery_sample_valid)
+        self.assertEqual(status.battery_sample_error, 0)
+        self.assertEqual(status.battery_voltage_mv, 2968)
+        self.assertEqual(status.battery_soc_percent, 90)
+        self.assertTrue(status.battery_soc_estimated)
         self.assertTrue(status.nfc_enabled)
         self.assertEqual(status.nfc_setup_error, 0)
         self.assertEqual(status.nfc_field_on_count, 4)
         self.assertEqual(status.nfc_field_off_count, 3)
+        self.assertEqual(status.nfc_data_read_count, 4)
         self.assertTrue(status.nfc_field_present)
         self.assertTrue(status.nfc_service_window_active)
         self.assertEqual(status.nfc_service_window_ms, 10000)
         self.assertEqual(status.nfc_service_window_open_count, 2)
         self.assertEqual(status.nfc_service_window_suppressed_count, 1)
+        self.assertTrue(status.system_off_supported)
+        self.assertFalse(status.system_off_pending)
+        self.assertEqual(status.system_off_entry_error, 0)
+        self.assertTrue(status.nfc_system_off_wake)
         self.assertEqual(status.sensor_health, "healthy")
         self.assertTrue(status.capture_safe)
         self.assertEqual(status.sensor_fault_count, 2)
@@ -281,6 +301,32 @@ class TagTelemetryTests(unittest.TestCase):
         payload["boot_id"] = "8899aabbccddeeff"
         payload["sensor_errors"] = -1
         with self.assertRaisesRegex(TelemetryProtocolError, "non-negative"):
+            status_from_smp(payload)
+
+    def test_smp_status_rejects_invalid_battery_claim(self) -> None:
+        payload = {
+            "proto": 1,
+            "seq": 1,
+            "uptime_ms": 2,
+            "reset": 0,
+            "sensor_errors": 0,
+            "notify_drops": 0,
+            "adxl_ready": True,
+            "bmi_ready": True,
+            "device_id": "0011223344556677",
+            "boot_id": "8899aabbccddeeff",
+            "fw": "0.1.17",
+            "battery_supported": True,
+            "battery_sample_valid": True,
+            "battery_voltage_mv": 2950,
+            "battery_soc_percent": 101,
+        }
+        with self.assertRaisesRegex(TelemetryProtocolError, "within 0..100"):
+            status_from_smp(payload)
+
+        payload["battery_soc_percent"] = 80
+        payload["battery_supported"] = False
+        with self.assertRaisesRegex(TelemetryProtocolError, "requires support"):
             status_from_smp(payload)
 
     def test_normalizes_smp_motion(self) -> None:

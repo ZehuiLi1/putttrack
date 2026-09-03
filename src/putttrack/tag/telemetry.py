@@ -56,15 +56,25 @@ class StatusRecord:
     idle_wake_interrupt_enabled: bool = False
     adxl367_wakeup_mode_enabled: bool = False
     battery_supported: bool | None = None
+    battery_sample_valid: bool | None = None
+    battery_sample_error: int | None = None
+    battery_voltage_mv: int | None = None
+    battery_soc_percent: int | None = None
+    battery_soc_estimated: bool | None = None
     nfc_enabled: bool | None = None
     nfc_setup_error: int | None = None
     nfc_field_on_count: int = 0
     nfc_field_off_count: int = 0
+    nfc_data_read_count: int = 0
     nfc_field_present: bool = False
     nfc_service_window_active: bool = False
     nfc_service_window_ms: int | None = None
     nfc_service_window_open_count: int = 0
     nfc_service_window_suppressed_count: int = 0
+    system_off_supported: bool | None = None
+    system_off_pending: bool = False
+    system_off_entry_error: int | None = None
+    nfc_system_off_wake: bool = False
     sensor_health: str | None = None
     capture_safe: bool | None = None
     sensor_fault_count: int = 0
@@ -313,6 +323,21 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
     ):
         raise TelemetryProtocolError(f"unsupported sensor_health {sensor_health!r}")
 
+    battery_supported = _optional_bool(payload, "battery_supported")
+    battery_sample_valid = _optional_bool(payload, "battery_sample_valid")
+    battery_voltage_mv = _optional_non_negative_int(payload, "battery_voltage_mv")
+    battery_soc_percent = _optional_non_negative_int(payload, "battery_soc_percent")
+    if battery_soc_percent is not None and battery_soc_percent > 100:
+        raise TelemetryProtocolError("SMP battery_soc_percent must be within 0..100")
+    if battery_sample_valid is True and (
+        battery_supported is not True
+        or battery_voltage_mv is None
+        or battery_soc_percent is None
+    ):
+        raise TelemetryProtocolError(
+            "valid battery sample requires support, voltage and estimated SOC"
+        )
+
     return StatusRecord(
         protocol_version=version,
         sequence=_required_non_negative_int(payload, "seq"),
@@ -362,11 +387,17 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
         bmi270_spi_suspended=_optional_bool(payload, "bmi_spi_suspended") or False,
         idle_wake_interrupt_enabled=_optional_bool(payload, "wake_interrupt") or False,
         adxl367_wakeup_mode_enabled=_optional_bool(payload, "adxl_wakeup_mode") or False,
-        battery_supported=_optional_bool(payload, "battery_supported"),
+        battery_supported=battery_supported,
+        battery_sample_valid=battery_sample_valid,
+        battery_sample_error=_optional_int(payload, "battery_sample_error"),
+        battery_voltage_mv=battery_voltage_mv,
+        battery_soc_percent=battery_soc_percent,
+        battery_soc_estimated=_optional_bool(payload, "battery_soc_estimated"),
         nfc_enabled=_optional_bool(payload, "nfc_enabled"),
         nfc_setup_error=_optional_int(payload, "nfc_setup_error"),
         nfc_field_on_count=_optional_non_negative_int(payload, "nfc_field_on") or 0,
         nfc_field_off_count=_optional_non_negative_int(payload, "nfc_field_off") or 0,
+        nfc_data_read_count=_optional_non_negative_int(payload, "nfc_data_reads") or 0,
         nfc_field_present=_optional_bool(payload, "nfc_field_present") or False,
         nfc_service_window_active=(
             _optional_bool(payload, "nfc_service_window") or False
@@ -381,6 +412,10 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
             _optional_non_negative_int(payload, "nfc_service_window_suppressed")
             or 0
         ),
+        system_off_supported=_optional_bool(payload, "system_off_supported"),
+        system_off_pending=_optional_bool(payload, "system_off_pending") or False,
+        system_off_entry_error=_optional_int(payload, "system_off_entry_error"),
+        nfc_system_off_wake=_optional_bool(payload, "nfc_system_off_wake") or False,
         sensor_health=sensor_health,
         capture_safe=_optional_bool(payload, "capture_safe"),
         sensor_fault_count=_optional_non_negative_int(payload, "sensor_faults") or 0,

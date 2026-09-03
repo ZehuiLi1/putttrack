@@ -128,7 +128,7 @@ The repository's research-only proposal is:
 
 These values are bounded hypotheses, not firmware defaults. `0 dBm` is used as
 the first active-test ceiling rather than immediately choosing the nRF54L15
-maximum. The current physical Tag runs confirmed `0.1.16`; it still does not
+maximum. The current physical Tag runs confirmed `0.1.17`; it still does not
 implement dynamic TX power.
 
 Before enabling this policy on hardware:

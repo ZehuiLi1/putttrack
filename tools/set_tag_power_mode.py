@@ -162,6 +162,13 @@ def main() -> int:
             {
                 "acknowledgement": acknowledgement,
                 "battery_supported": status.battery_supported,
+                "battery_sample_valid": status.battery_sample_valid,
+                "battery_sample_error": status.battery_sample_error,
+                "battery_voltage_mv": status.battery_voltage_mv,
+                "battery_soc_percent": status.battery_soc_percent,
+                "battery_soc_estimated": status.battery_soc_estimated,
+                "device_id": status.device_id,
+                "boot_id": status.boot_id,
                 "firmware_version": status.firmware_version,
                 "adxl367_ready": status.adxl367_ready,
                 "bmi270_ready": status.bmi270_ready,
@@ -189,6 +196,7 @@ def main() -> int:
                 "nfc_setup_error": status.nfc_setup_error,
                 "nfc_field_on_count": status.nfc_field_on_count,
                 "nfc_field_off_count": status.nfc_field_off_count,
+                "nfc_data_read_count": status.nfc_data_read_count,
                 "nfc_field_present": status.nfc_field_present,
                 "nfc_service_window_active": status.nfc_service_window_active,
                 "nfc_service_window_ms": status.nfc_service_window_ms,
@@ -196,6 +204,10 @@ def main() -> int:
                 "nfc_service_window_suppressed_count": (
                     status.nfc_service_window_suppressed_count
                 ),
+                "system_off_supported": status.system_off_supported,
+                "system_off_pending": status.system_off_pending,
+                "system_off_entry_error": status.system_off_entry_error,
+                "nfc_system_off_wake": status.nfc_system_off_wake,
             },
             indent=2,
             sort_keys=True,

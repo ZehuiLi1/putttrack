@@ -23,7 +23,7 @@ XIAO USB HCI development bridge:
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
   that frozen capture.
 
-Confirmed firmware `0.1.13` and build-only candidate `0.1.16` provide three
+Confirmed firmware `0.1.17` provides three
 remotely selectable power policies while preserving the signed OTA and
 frozen-history protocol:
 
@@ -60,19 +60,19 @@ single unchecked start attempt. This covers the documented transient
 recycled. Status exposes `adv_start_errors`; a nonzero value records recovered
 start failures rather than silently leaving the Tag undiscoverable.
 
-The physical `0.1.13` image is confirmed after battery-powered BLE OTA. It has
+The physical `0.1.17` image is confirmed after battery-powered BLE OTA. It has
 passed two repeatable ADXL367 INT1 wake/re-sleep cycles, extended idle without
 false wakes, remote confirmation and a post-confirm reset/idle cycle. DAPLink
 is therefore a commissioning and recovery tool, not part of ordinary
 application updates or operation.
 
-Candidate `0.1.16` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
+Firmware `0.1.17` advertises `PuttTrack-<first four DEVICE_ID bytes>` in its
 scan response to distinguish multiple boards. This is only a selector: capture
-must still lock the full encrypted `DEVICE_ID`. The candidate has passed signed
-default and NFC-variant builds but has not been installed on the physical Tag.
+must still lock the full encrypted `DEVICE_ID`.
 
 Encrypted custom mcumgr writes select the policy: command `20` is `auto`, `21`
-is `research`, and `22` is `idle`. Use:
+is `research`, `22` is `idle`, and NFC builds expose explicit System OFF command
+`23`. Use:
 
 ```bash
 python tools/set_tag_power_mode.py auto
@@ -82,12 +82,12 @@ python tools/set_tag_power_mode.py idle
 
 The status response reports the requested policy, current active/idle state,
 transition count, actual stream/IMU rates, interrupt/wake-mode flags, BMI270 SPI
-suspend state, power-management error count and `battery_supported=false`.
-Although the board SoC ADC exists, the official board description does not
-define a battery-divider or fuel-gauge channel, so firmware must not invent a
-battery percentage.
+suspend state, power-management error count, measured VDD in millivolts and a
+generic CR2032 OCV percentage explicitly labelled as estimated. The battery
+overlay follows Nordic's current nRF54L15 Tag sample; it does not claim precise
+state of charge, current consumption or remaining runtime.
 
-Candidate `0.1.16` additionally detects per-sensor failure streaks, invalidates
+Firmware `0.1.17` additionally detects per-sensor failure streaks, invalidates
 capture history across recovery, makes at most three local recovery attempts
 and permits only one quiet/disconnected warm reboot before quarantine. Its SMP
 health contract is fail-closed in the host capture tools while remaining
@@ -112,7 +112,7 @@ scripts/nrf54l15_tag/build_tag_app.sh
 The BLE OTA input is
 `build/nrf54l15-tag-app/nrf54l15_tag_app/zephyr/zephyr.signed.bin`.
 
-An optional build-only NFC service variant keeps the default configuration
+An optional NFC service variant keeps the default configuration
 unchanged and applies the NFCT pin overlay consistently to MCUboot and the
 application:
 
@@ -125,12 +125,22 @@ It exposes a read-only
 `putttrack://service/tag/<opaque-device-id>?fw=<version>` Type 2 Tag URI and
 opens one 10-second fast connectable-BLE discovery window on each NFC field
 rising edge. Keeping a reader continuously present cannot extend the window.
-Encrypted mcumgr status exposes NFC setup/field state, window state, open count
-and suppressed-repeat count. This phase still retains low-duty idle advertising
-and does not implement System OFF. NFC field presence is not authentication,
-and the variant does not replace BLE SMP or signed OTA.
-It must not be installed until the external loop and C17/C19 matching network
-have passed the hardware checks in
+Encrypted mcumgr status exposes NFC setup/field state, complete-read count,
+window state, open count, suppressed-repeat count and dedicated NFC reset
+reason. The confirmed physical NFC variant implements an explicit System OFF
+experiment; automatic power policies never enter it. NFC field presence is not
+authentication, and the variant does not replace BLE SMP or signed OTA.
+
+The host command is dry-run by default and locks the full device ID. Add
+`--execute` only after moving the NFC reader away:
+
+```bash
+python tools/enter_tag_system_off.py \
+  --ble-address DA:88:62:A1:D3:40 --address-type random \
+  --confirm-device-id f383571202836e6f
+```
+
+The external loop and C17/C19 matching network must pass the checks in
 [`NRF54L15_TAG_NFC.md`](../../docs/hardware/NRF54L15_TAG_NFC.md).
 
 Capture and inspect a stationary window through the XIAO adapter:
@@ -147,7 +157,8 @@ Select `research` before collecting a labelled full-rate episode. In `auto`,
 the active ring is cleared on wake so a frozen record never mixes idle timing
 with 50 Hz samples; it can initially contain fewer than 1024 samples.
 
-For confirmed `0.1.13`, keep other same-name Tags off or also pass
+For confirmed `0.1.17`, prefer `--ble-address`, the correct `--address-type`
+and the expected full device ID. For legacy same-name images, keep other Tags off or pass
 `--ble-address` and the correct `--address-type`. See
 [`TAG_MULTI_DEVICE_IDENTITY.md`](../../docs/hardware/TAG_MULTI_DEVICE_IDENTITY.md).
 

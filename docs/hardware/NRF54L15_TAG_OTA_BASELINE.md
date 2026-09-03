@@ -337,3 +337,38 @@ The active physical baseline is therefore confirmed `0.1.16`. The bounded
 recovery implementation's healthy path has passed, but deliberate fault
 injection and ten sealed reset cycles remain separate gates; confirmation is not
 evidence that those fault paths have already occurred.
+
+## Confirmed battery and NFC System OFF candidate
+
+Firmware `0.1.17+0` was signed with the same external lab key, uploaded through
+encrypted BLE SMP and test-booted with confirmed `0.1.16` retained. Before
+confirmation it passed identity, both sensors, NFC initialization, Type 2 NDEF
+read, battery sampling, active and idle checks. It was then confirmed before
+the destructive-to-connectivity System OFF test.
+
+The explicit command acknowledged a 2-second delay, after which BLE remained
+unavailable for more than 60 seconds. A PN532 field woke the system, strictly
+decoded 50 consecutive `0.1.17` service URIs and restored encrypted BLE. The
+boot ID changed and raw reset diagnostics reported the dedicated NFC wake bit.
+MCUboot then showed `0.1.17` active/confirmed and `0.1.16` inactive. Battery VDD
+samples ranged from 2.912 to 2.957 V across active and idle loads; the derived
+CR2032 percentage is explicitly approximate.
+
+Physical lab-key artifact identities:
+
+```text
+signed OTA BIN SHA-256:
+c8242ac21f63c04445e030a7ab497415f209a37296a42501b9863a2a6e5354d9
+
+first-install HEX SHA-256:
+decbd2439facfb8be1e4c05d940628fea8b7fcd939b723d71c43f7209f6db363
+
+MCUboot image digest:
+0d67e10dc4948b60c39dc4123d778ab15989fe655d3992b99766f72565486d23
+0f5504d0ff71a9dc7821ec51e929e56e2a2eb9759b30f238f9d9c32ece62e1a8
+```
+
+The active physical baseline is confirmed `0.1.17`. System OFF remains an
+explicit service/shipping experiment; measured whole-board current and
+repeated cold-wake soak are still open. See
+[`NRF54L15_TAG_SYSTEM_OFF_BATTERY.md`](NRF54L15_TAG_SYSTEM_OFF_BATTERY.md).

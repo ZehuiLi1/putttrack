@@ -13,4 +13,14 @@ config PUTTTRACK_NFC_SERVICE
 	  This option does not make NFC an authenticated transport and does not
 	  replace encrypted BLE SMP or signed OTA.
 
+config PUTTTRACK_NFC_SYSTEM_OFF_TEST
+	bool "Enable explicit NFC System OFF wake experiment"
+	depends on PUTTTRACK_NFC_SERVICE
+	default n
+	help
+	  Add an encrypted BLE SMP command that enters System OFF after a short
+	  delay. NFC field sensing remains armed as a wake source. This is an
+	  explicit laboratory operation only; normal power policies never enter
+	  System OFF automatically.
+
 endmenu
