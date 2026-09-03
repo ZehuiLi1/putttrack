@@ -9,6 +9,15 @@ continue to exercise the path in CI.
 
 It does **not** define impact, rolling, pickup or settling thresholds. Those remain evidence-gated until mechanically repeatable Research Ball data exists.
 
+The exploratory assembled-ball comparison at
+`experiments/research_ball_r1_manual_floor` adds two manual rolls, pickup/carry,
+repeated restrained taps, before/after stationary checks and a timed-ARMED
+physical smoke capture. It demonstrates
+signal separation and exposes procedure contamination, but its unmeasured
+speed/surface and missing action timestamps keep it out of final calibration.
+Subsequent captures should use the armed device-marker workflow in
+[`TAG_MOTION_EPISODE_RUNBOOK.md`](../hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
+
 New captures must use the full expected Tag device ID. The capture session now
 checks device, boot, firmware, sequence/time continuity and health-counter
 deltas before the offline dataset accepts the file; see

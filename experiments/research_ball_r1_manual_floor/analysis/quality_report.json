@@ -1,0 +1,26 @@
+{
+  "dataset_id": "research-ball-r1-manual-floor-20260903-b",
+  "episodes": 7,
+  "episodes_by_label": {
+    "impact_tap": 1,
+    "pickup_carry": 1,
+    "rolling": 2,
+    "stationary": 3
+  },
+  "episodes_with_clipping": {
+    "adxl367": 2,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 0
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 5,
+    "WARN": 2
+  },
+  "warning_episode_ids": [
+    "roll-manual-medium-r01",
+    "restrained-repeated-taps-r01"
+  ]
+}

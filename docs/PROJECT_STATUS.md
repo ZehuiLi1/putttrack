@@ -15,7 +15,8 @@ in the architecture, ADR and hardware documents. Status labels mean:
 ## Current result
 
 The repository has a reliable smart-Tag development baseline, a mechanically
-assembled first research ball, a checked-in two-orientation stationary baseline,
+assembled first research ball, a checked-in two-orientation stationary baseline
+plus a seven-episode exploratory/manual-floor capture set,
 a powered NFC service plus System OFF cold-wake path and a complete software-only one-hole
 scoring path. It does **not** yet have a characterized rolling/impact dataset or a
 physically automatic hole. The largest remaining uncertainty is the IMU signal
@@ -33,7 +34,7 @@ real tee/cup evidence.
 | NFC System OFF wake | Physical pass | Explicit encrypted command, >60 s BLE absence, NFC reset reason, changed boot ID, BLE recovery and confirmed image verified | Repeated cold-wake/storage soak; keep explicit service state |
 | Battery observation | Physical pass; current unmeasured | Internal VDD ADC reports 2.91--2.96 V; generic CR2032 OCV percentage is labelled estimated | Temperature/load characterization and current instrument |
 | Bare-Tag motion data | Physical pass, limited scope | Stationary, handling and pickup datasets show generic motion separation and semantic overlap | Do not tune putt/roll logic from more hand-held Tag data |
-| Research-ball mechanics | Physical pass, limited | Printed halves close fully, carrier is restrained, and two distinct 1,024-sample assembled stationary captures passed with approximately 130° gravity-vector separation | Controlled impact/roll/settle/stop captures |
+| Research-ball mechanics/data | Physical pass, exploratory | Printed halves close fully; two original stationary baselines and seven manual-floor/ARMED episodes establish clean transport, static repeatability and preliminary roll/pickup/tap separation; exact-window timed ARMED capture physically passed | Controlled roller impact/roll/settle/stop repetitions with measured commands/truth |
 | Sensor fault recovery | Healthy-path physical pass | A real assembled-ball ADXL367 boot-init fault was diagnosed; confirmed `0.1.17` retains retries, capture-generation invalidation, one guarded reboot and quarantine | Fault injection and ten sealed reset cycles |
 | Motion analysis pipeline | Software pass | Strict dataset/session validation, deterministic features and fail-closed generic candidates | Fit only from controlled in-ball episodes |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
@@ -61,7 +62,8 @@ BLE transport, signed images or DAPLink recovery.
 ## Immediate order
 
 1. Collect the roller and putter impact/roll/settle/stop episode matrix on
-   confirmed `0.1.17`; the two-orientation stationary baseline is complete.
+   confirmed `0.1.17` using timed ARMED captures; stationary and exploratory
+   manual-floor baselines are complete.
 2. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
    connect them to the implemented activation and evidence policies.
 3. In parallel, characterize NFC range/orientation and the provisional 1.0 uH

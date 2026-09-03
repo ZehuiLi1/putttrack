@@ -47,8 +47,8 @@ rather than falsely exact:
 1. Start a phone/camera view that includes the ball and roller control/status.
 2. Begin each run with at least 3 seconds stationary.
 3. Use one visible/audible start cue, then execute exactly one motor profile.
-4. End with at least 5 seconds stationary and freeze the Tag history
-   immediately.
+4. End with at least 5 seconds stationary; the armed capture command freezes
+   the Tag history automatically.
 5. Store the video/cue reference and motor log beside the Tag run manifest.
 
 Once controller timestamps are accessible, log them monotonically and estimate
@@ -83,11 +83,15 @@ Before the first run:
 python tools/set_tag_power_mode.py research
 ```
 
-After each profile and its final stationary period:
+After the Ball and roller are fully arranged, start one bounded capture. Act
+only after the terminal prints `GO`; the 10-second post-GO interval must contain
+the complete motor profile and final stationary period:
 
 ```bash
 python tools/capture_tag_smp.py \
   --mode frozen \
+  --armed-countdown 3 \
+  --episode-seconds 10 \
   --expected-device-id f383571202836e6f \
   --label rolling \
   --notes "roller R1; CW; slow; carrier r1; repetition 01" \
@@ -95,6 +99,11 @@ python tools/capture_tag_smp.py \
 
 python tools/analyze_tag_capture.py runs/roller-r1-cw-slow-r01.jsonl
 ```
+
+The script writes a device-side GO marker and crops out setup motion as well as
+BLE freeze/readback delay. Countdown plus post-GO duration may not exceed 17
+seconds. If a motor profile cannot fit, shorten it or implement synchronized
+controller markers rather than weakening the retained-history bound.
 
 Do not reuse filenames or overwrite failed runs. A failed run remains useful
 evidence when its validity reason is explicit.

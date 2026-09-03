@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-manual-floor-20260903-b",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "session": "20260903-B",
+    "surface": "flat-floor-unspecified",
+    "orientation": "uncontrolled",
+    "notes": "Assembled printed two-half research ball; Tag mechanically restrained and shell fully closed. Manual exploratory procedure without measured distance, speed, surface material, independent timing or video ground truth. Do not use as final threshold/model calibration."
+  },
+  "episodes": [
+    {
+      "episode_id": "stationary-pre-r01",
+      "capture": "raw/stationary-pre-r01.jsonl",
+      "label": "stationary",
+      "trial": "001",
+      "notes": "Ball resting untouched on the floor before manual motion episodes."
+    },
+    {
+      "episode_id": "roll-manual-light-r01",
+      "capture": "raw/roll-manual-light-r01.jsonl",
+      "label": "rolling",
+      "trial": "002",
+      "strength": "manual-light",
+      "notes": "Single light finger push, instructed travel approximately 30-80 cm, natural stop, no pickup. Distance and speed were not independently measured."
+    },
+    {
+      "episode_id": "roll-manual-medium-r01",
+      "capture": "raw/roll-manual-medium-r01.jsonl",
+      "label": "rolling",
+      "trial": "003",
+      "strength": "manual-medium-subjective",
+      "notes": "Single subjectively stronger push in the opposite direction, instructed travel approximately 50-100 cm. The capture ended before a clean stationary tail, so it is not a settling-duration reference."
+    },
+    {
+      "episode_id": "stationary-post-r01",
+      "capture": "raw/stationary-post-r01.jsonl",
+      "label": "stationary",
+      "trial": "004",
+      "notes": "Untouched post-roll check collected to rule out persistent gyro drift or mechanically loose internal motion."
+    },
+    {
+      "episode_id": "pickup-carry-r01",
+      "capture": "raw/pickup-carry-r01.jsonl",
+      "label": "pickup_carry",
+      "trial": "005",
+      "notes": "Lifted approximately 20-30 cm, moved slowly left and right by hand, then gently placed back on the floor without a drop."
+    },
+    {
+      "episode_id": "restrained-repeated-taps-r01",
+      "capture": "raw/restrained-repeated-taps-r01.jsonl",
+      "label": "impact_tap",
+      "trial": "006",
+      "strength": "manual-light",
+      "notes": "Ball softly restrained from free rolling. The operator reports many light finger taps; the exact count and timestamps were not recorded. Setup/repositioning may also be present, so this is a repeated-tap episode and not clean per-impact ground truth."
+    },
+    {
+      "episode_id": "armed-stationary-smoke-r01",
+      "capture": "raw/armed-stationary-smoke-r01.jsonl",
+      "label": "stationary",
+      "trial": "007",
+      "notes": "Untouched Ball used to physically validate timed ARMED capture: three-second pre-GO countdown, device-side action marker and five-second post-GO interval."
+    }
+  ]
+}

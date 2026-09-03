@@ -48,9 +48,16 @@ research-core keep-in; see
 and
 [`docs/hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md`](docs/hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md).
 Physical stationary and continuous hand-motion windows now separate as
-`STATIONARY_CANDIDATE` and `ACTIVE_MOTION_CANDIDATE`. Two natural-pickup and two
-desk-handling repetitions also show that stronger handling overlaps pickup at
-generic activity intensity. The resulting canonical motion record can enter
+`STATIONARY_CANDIDATE` and `ACTIVE_MOTION_CANDIDATE`. The assembled Ball also
+has a seven-episode exploratory/manual-floor dataset covering before/after
+stationary, two free rolls, pickup/carry and restrained repeated taps. It shows
+preliminary roll/pickup separation and confirms that ADXL367 clips before the
+BMI270, but unmeasured speed and action timing prohibit final thresholds. Timed
+ARMED capture now records a device-side GO marker and excludes setup/readback
+delay from future labelled windows. See
+[`experiments/research_ball_r1_manual_floor`](experiments/research_ball_r1_manual_floor/README.md)
+and [`TAG_MOTION_EPISODE_RUNBOOK.md`](docs/hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
+The resulting canonical motion record can enter
 the one-hole runtime as an observed/pending/rejected candidate, but cannot
 infer pickup/impact semantics or directly mutate score.
 The hardware-neutral tee/cup input path is also implemented: assigned-Ball tee
@@ -349,15 +356,19 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 ## Immediate dependency order
 
-1. Preserve the verified Tag backup, DAPLink recovery and signed OTA baseline.
-2. Replace the generic SMP sample with a repository-owned Tag identity/health application.
-3. Bring up ADXL367 and BMI270 and capture replayable raw BLE telemetry.
-4. Collect labelled bare-Tag and controlled-ball-core motion episodes.
-5. Implement deterministic generic motion candidates without putting score logic in the Ball.
-6. Replace simulated one-hole events with physical tee/cup/feature evidence plus Ball context.
-7. Select pilot Gateway hardware only after the BLE contract and physical I/O count are measured.
-8. Re-open CS/ranging only on the explicit triggers in ADR-013.
-9. Complete a claims-based FTO/regulatory checkpoint before commercial freeze.
+1. Collect controlled roller and putter impact/roll/settle/stop repetitions
+   using timed ARMED captures and independent command/video truth.
+2. Fit and hold out a deterministic generic-motion FSM without giving the Ball
+   direct score authority.
+3. Build the selected Tee PN532 and Cup optical-entry + PN532 identity rigs and
+   drive the implemented one-hole evidence path with physical inputs.
+4. Provision production Ball/controller credentials, persist active leases and
+   connect authenticated activate/end commands to the Tag firmware.
+5. Measure whole-Tag current, NFC range/tuning and multi-receiver BLE behavior.
+6. Select pilot Gateway hardware only after BLE, physical I/O and buffering
+   requirements are measured.
+7. Re-open CS/ranging only on the explicit triggers in ADR-013.
+8. Complete claims-based FTO/regulatory checkpoints before commercial freeze.
 
 ## IP / legal note
 

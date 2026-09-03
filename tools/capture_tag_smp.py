@@ -21,6 +21,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from putttrack.tag import (  # noqa: E402
+    MotionRecord,
     TagCaptureSession,
     frozen_history_from_smp,
     frozen_history_metadata_from_smp,
@@ -28,6 +29,9 @@ from putttrack.tag import (  # noqa: E402
     motion_window_from_smp,
     status_from_smp,
 )
+
+
+ARMED_HISTORY_BUDGET_SECONDS = 17.0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -71,7 +75,106 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="keep requesting windows until Enter is received or --count is reached",
     )
+    parser.add_argument(
+        "--armed-countdown",
+        type=float,
+        help=(
+            "frozen mode only: after setup, keep the Ball stationary for this "
+            "many seconds before printing GO and recording a device-side marker"
+        ),
+    )
+    parser.add_argument(
+        "--episode-seconds",
+        type=float,
+        help=(
+            "frozen mode only: seconds from GO until the history is frozen; "
+            "include the action and final stationary tail"
+        ),
+    )
     return parser
+
+
+def validate_armed_options(
+    *,
+    mode: str,
+    armed_countdown: float | None,
+    episode_seconds: float | None,
+    until_enter: bool,
+) -> None:
+    """Validate the bounded timed-capture contract independently of hardware."""
+
+    if (armed_countdown is None) != (episode_seconds is None):
+        raise ValueError(
+            "--armed-countdown and --episode-seconds must be provided together"
+        )
+    if armed_countdown is None:
+        return
+    if mode != "frozen":
+        raise ValueError("armed timed capture requires --mode frozen")
+    if until_enter:
+        raise ValueError("--until-enter cannot be combined with armed timed capture")
+    if armed_countdown <= 0 or episode_seconds is None or episode_seconds <= 0:
+        raise ValueError("armed countdown and episode duration must be positive")
+    if armed_countdown + episode_seconds > ARMED_HISTORY_BUDGET_SECONDS:
+        raise ValueError(
+            "armed countdown plus episode duration must not exceed "
+            f"{ARMED_HISTORY_BUDGET_SECONDS:.1f} seconds"
+        )
+
+
+def select_armed_window(
+    batch: tuple[MotionRecord, ...],
+    *,
+    action_marker: MotionRecord,
+    pre_roll_seconds: float,
+    episode_seconds: float,
+) -> tuple[MotionRecord, ...]:
+    """Select only requested pre-GO rest and post-GO episode duration."""
+
+    if not batch:
+        raise ValueError("frozen history is empty")
+    if not (
+        batch[0].source_monotonic_us
+        <= action_marker.source_monotonic_us
+        <= batch[-1].source_monotonic_us
+    ):
+        raise ValueError("action marker is outside the frozen history")
+    requested_start_us = action_marker.source_monotonic_us - round(
+        pre_roll_seconds * 1_000_000
+    )
+    requested_end_us = action_marker.source_monotonic_us + round(
+        episode_seconds * 1_000_000
+    )
+    if batch[0].source_monotonic_us > requested_start_us:
+        raise ValueError("frozen history does not cover the requested pre-GO interval")
+    if batch[-1].source_monotonic_us < requested_end_us:
+        raise ValueError("frozen history does not cover the requested post-GO interval")
+    selected = tuple(
+        motion
+        for motion in batch
+        if requested_start_us
+        <= motion.source_monotonic_us
+        <= requested_end_us
+    )
+    if len(selected) < 2:
+        raise ValueError("armed episode window contains fewer than two samples")
+    return selected
+
+
+def run_countdown(seconds: float) -> None:
+    """Print a monotonic countdown without accumulating one-second sleep drift."""
+
+    deadline = time.monotonic() + seconds
+    last_displayed = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        displayed = max(1, math.ceil(remaining))
+        if displayed != last_displayed:
+            print(f"ARMED: GO in {displayed}", file=sys.stderr, flush=True)
+            last_displayed = displayed
+        time.sleep(min(remaining, 0.1))
 
 
 def find_nrfutil(explicit: Path | None) -> Path:
@@ -181,6 +284,15 @@ def main() -> int:
         raise SystemExit("request retry limits must be positive")
     if args.mode == "frozen" and args.until_enter:
         raise SystemExit("--until-enter is unnecessary with the always-on frozen history")
+    try:
+        validate_armed_options(
+            mode=args.mode,
+            armed_countdown=args.armed_countdown,
+            episode_seconds=args.episode_seconds,
+            until_enter=args.until_enter,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if not Path(args.hci_port).exists():
         raise SystemExit(f"HCI serial port does not exist: {args.hci_port}")
     if args.address_type and not args.ble_address:
@@ -245,8 +357,38 @@ def main() -> int:
     capture_report = None
     request_failures_total = 0
     consecutive_request_failures = 0
+    action_marker = None
+    action_marker_host_ns = None
     try:
         if args.mode == "frozen":
+            if args.armed_countdown is not None:
+                print(
+                    "ARMED: setup must already be complete; keep the Ball untouched",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                run_countdown(args.armed_countdown)
+                action_marker = motion_from_smp(request(nrfutil, args, 1))
+                action_marker_host_ns = time.time_ns()
+                emit(
+                    {
+                        "record_type": "tag_episode_marker",
+                        "transport": "smp_frozen",
+                        "marker_kind": "action_start",
+                        "host_received_ns": action_marker_host_ns,
+                        "episode_label": args.label,
+                        "episode_notes": args.notes,
+                        "source_sequence": action_marker.sequence,
+                        "source_monotonic_us": action_marker.source_monotonic_us,
+                    }
+                )
+                print(
+                    f"GO: action window is {args.episode_seconds:.2f} seconds",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                time.sleep(args.episode_seconds)
+                print("FREEZING: keep the Ball untouched", file=sys.stderr, flush=True)
             frozen_metadata = frozen_history_metadata_from_smp(
                 request(nrfutil, args, 3)
             )
@@ -254,7 +396,15 @@ def main() -> int:
                 request(nrfutil, args, 4 + chunk_index)
                 for chunk_index in range(frozen_metadata.chunk_count)
             ]
-            batch = frozen_history_from_smp(frozen_metadata, chunk_payloads)
+            full_batch = frozen_history_from_smp(frozen_metadata, chunk_payloads)
+            batch = full_batch
+            if action_marker is not None:
+                batch = select_armed_window(
+                    full_batch,
+                    action_marker=action_marker,
+                    pre_roll_seconds=args.armed_countdown,
+                    episode_seconds=args.episode_seconds,
+                )
             emit(
                 {
                     "record_type": "tag_frozen_history",
@@ -263,8 +413,32 @@ def main() -> int:
                     "episode_label": args.label,
                     "episode_notes": args.notes,
                     **frozen_metadata.to_dict(),
+                    "episode_sample_count": len(batch),
                 }
             )
+            if action_marker is not None:
+                emit(
+                    {
+                        "record_type": "tag_episode_window",
+                        "transport": "smp_frozen",
+                        "host_received_ns": time.time_ns(),
+                        "episode_label": args.label,
+                        "episode_notes": args.notes,
+                        "action_start_sequence": action_marker.sequence,
+                        "action_start_source_monotonic_us": (
+                            action_marker.source_monotonic_us
+                        ),
+                        "action_start_host_received_ns": action_marker_host_ns,
+                        "window_start_sequence": batch[0].sequence,
+                        "window_start_source_monotonic_us": (
+                            batch[0].source_monotonic_us
+                        ),
+                        "window_end_sequence": batch[-1].sequence,
+                        "window_end_source_monotonic_us": batch[-1].source_monotonic_us,
+                        "pre_roll_seconds_requested": args.armed_countdown,
+                        "episode_seconds_requested": args.episode_seconds,
+                    }
+                )
             received_ns = time.time_ns()
             for motion in batch:
                 motions_by_sequence[motion.sequence] = motion
@@ -434,6 +608,15 @@ def main() -> int:
         ),
         "episode_label": args.label,
         "episode_notes": args.notes,
+        "armed_capture": action_marker is not None,
+        "action_start_sequence": (
+            action_marker.sequence if action_marker is not None else None
+        ),
+        "action_start_source_monotonic_us": (
+            action_marker.source_monotonic_us if action_marker is not None else None
+        ),
+        "armed_countdown_seconds": args.armed_countdown,
+        "episode_seconds_requested": args.episode_seconds,
         "request_failures_total": request_failures_total,
         "records": len(motions),
         "first_sequence": motions[0].sequence,

@@ -10,7 +10,44 @@ cup event or scoring event.
 Use firmware `0.1.7` or later and the XIAO nRF52840 USB HCI adapter. Keep the Tag
 powered, the XIAO connected and DAPLink disconnected unless recovery is needed.
 
-## Capture command
+## Preferred armed capture
+
+Arrange the Ball, restraints, camera and safe travel path **before** starting
+the command. The timed frozen workflow then:
+
+1. validates the exact Tag identity and sensor health;
+2. records the requested stationary countdown;
+3. obtains a device-side motion sequence/time marker and prints `GO`;
+4. waits a fixed action-plus-rest interval;
+5. freezes the retained history automatically; and
+6. emits only the requested pre-GO and post-GO interval.
+
+This keeps setup motion and operator/chat delay outside the labelled window.
+The combined countdown and episode duration is limited to 17 seconds so the
+complete interval remains inside the Tag's 20.48-second retained history.
+
+```bash
+python tools/set_tag_power_mode.py research
+
+python tools/capture_tag_smp.py \
+  --mode frozen \
+  --armed-countdown 3 \
+  --episode-seconds 10 \
+  --expected-device-id f383571202836e6f \
+  --label rolling \
+  --notes "roller R1; slow CW; act only after GO; finish with five seconds rest" \
+  --output runs/rolling-r1-cw-slow-r01.jsonl
+
+python tools/analyze_tag_capture.py runs/rolling-r1-cw-slow-r01.jsonl
+python tools/set_tag_power_mode.py auto
+```
+
+`--episode-seconds` begins at `GO`, so it must include both the action and its
+final stationary tail. Each armed file includes `tag_episode_marker` and
+`tag_episode_window` records with device sequence/monotonic-time boundaries;
+host timing is retained only as supporting provenance.
+
+## Legacy post-action capture
 
 The Tag continuously retains the latest 1024 source samples (20.48 seconds).
 Perform the action, then immediately run the frozen capture command. The first
@@ -39,7 +76,7 @@ The output path is exclusive: the tool will not overwrite an existing episode.
 promote selected immutable evidence separately after review.
 
 The commissioned Tag's full ID is `f383571202836e6f`. Always lock it for its
-captures. It now runs confirmed `0.1.16`; keep any uncommissioned Tag powered
+captures. It now runs confirmed `0.1.17`; keep any uncommissioned Tag powered
 off or additionally pin `--ble-address` and `--address-type`; see
 [`TAG_MULTI_DEVICE_IDENTITY.md`](TAG_MULTI_DEVICE_IDENTITY.md).
 
