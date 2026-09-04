@@ -180,7 +180,7 @@ file during the first pass.
 | `pickup_carry` | desk → hand → carry → place down | no rolling |
 | `pickup_drop` | ground → hand → carry → low-height casual drop | assembled protective Ball only; do not throw hard |
 | `rolling_pickup` | roll → pickup while still moving → carry → place | positive pickup case without a stationary boundary |
-| `handling` | cable/board adjustment and ordinary touch | common false-stroke source |
+| `handling` | ordinary touch/rotation while the Ball remains on the surface | critical false-pickup control; never lift the Ball |
 | `putt_rail_collision` | one putt → one fixed-rail collision → natural stop | negative pickup control; do not add a second impact |
 | `track_step_drop` | one roll over a representative course step → natural stop | negative pickup control; record approximate step height |
 | `impact_tap` | short controlled tap while restrained | do not damage the bare PCB |

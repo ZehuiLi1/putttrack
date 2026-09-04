@@ -91,7 +91,7 @@ $('#finish').addEventListener('click',async()=>{try{await api('/api/session/fini
 PROFILE_COPY = {
     "pickup_carry": ("拿起、携带、放下", "拿起球，走几步，再放下"),
     "pickup_drop": ("拿起、携带、低高度丢下", "模拟玩家随手丢球，不要用力砸球"),
-    "handling": ("触摸与重新摆球", "轻触、旋转或调整位置"),
+    "handling": ("触摸但不拿起", "球始终接触地面，只触摸、转动或轻微挪动"),
     "putt_gentle": ("轻推杆", "轻推一次并自然停止"),
     "putt_normal": ("正常推杆", "正常力度推击一次"),
     "putt_firm": ("较重推杆", "较大力度推击一次"),

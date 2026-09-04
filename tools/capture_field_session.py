@@ -55,7 +55,10 @@ PROFILES = {
     "handling": Profile(
         label="handling",
         episode_seconds=8.0,
-        instruction="GO 后等约 1 秒，只做一次普通触摸、转动或重新摆球，然后静止。",
+        instruction=(
+            "GO 后等约 1 秒，只做一次普通触摸、原地转动或轻微挪动；"
+            "球必须始终接触地面，不能拿起，然后保持静止。"
+        ),
     ),
     "putt_gentle": Profile(
         label="putt_gentle",
