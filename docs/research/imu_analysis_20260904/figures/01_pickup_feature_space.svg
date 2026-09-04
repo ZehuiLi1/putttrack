@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+<rect width="100%" height="100%" fill="white"/>
+<text x="450.0" y="30" text-anchor="middle" font-family="sans-serif" font-size="20">Current pickup / putt / roll feature separation</text>
+<text x="450.0" y="548" text-anchor="middle" font-family="sans-serif" font-size="14">Gyro-axis consistency over 1 s</text>
+<text x="18" y="280.0" text-anchor="middle" transform="rotate(-90 18 280.0)" font-family="sans-serif" font-size="14">Mean gyro norm over 1 s (rad/s)</text>
+<rect x="70" y="50" width="790" height="450" fill="none" stroke="black"/>
+<line x1="70.0" y1="50" x2="70.0" y2="500" stroke="#ddd"/><text x="70.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0.2</text>
+<line x1="228.0" y1="50" x2="228.0" y2="500" stroke="#ddd"/><text x="228.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0.36</text>
+<line x1="386.0" y1="50" x2="386.0" y2="500" stroke="#ddd"/><text x="386.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0.53</text>
+<line x1="544.0" y1="50" x2="544.0" y2="500" stroke="#ddd"/><text x="544.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0.69</text>
+<line x1="702.0" y1="50" x2="702.0" y2="500" stroke="#ddd"/><text x="702.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0.86</text>
+<line x1="860.0" y1="50" x2="860.0" y2="500" stroke="#ddd"/><text x="860.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">1</text>
+<line x1="70" y1="500.0" x2="860" y2="500.0" stroke="#ddd"/><text x="62" y="504.0" text-anchor="end" font-family="sans-serif" font-size="11">0</text>
+<line x1="70" y1="410.0" x2="860" y2="410.0" stroke="#ddd"/><text x="62" y="414.0" text-anchor="end" font-family="sans-serif" font-size="11">10</text>
+<line x1="70" y1="320.0" x2="860" y2="320.0" stroke="#ddd"/><text x="62" y="324.0" text-anchor="end" font-family="sans-serif" font-size="11">20</text>
+<line x1="70" y1="230.0" x2="860" y2="230.0" stroke="#ddd"/><text x="62" y="234.0" text-anchor="end" font-family="sans-serif" font-size="11">30</text>
+<line x1="70" y1="140.0" x2="860" y2="140.0" stroke="#ddd"/><text x="62" y="144.0" text-anchor="end" font-family="sans-serif" font-size="11">40</text>
+<line x1="70" y1="50.0" x2="860" y2="50.0" stroke="#ddd"/><text x="62" y="54.0" text-anchor="end" font-family="sans-serif" font-size="11">50</text>
+<line x1="599.9" y1="50" x2="599.9" y2="500" stroke="#555" stroke-dasharray="6 5"/><line x1="70" y1="410.0" x2="860" y2="410.0" stroke="#555" stroke-dasharray="6 5"/>
+<circle cx="121.1" cy="470.0" r="5.3" fill="#1f77b4" fill-opacity="0.75"/><circle cx="451.6" cy="479.2" r="4.2" fill="#9467bd" fill-opacity="0.75"/><circle cx="828.3" cy="362.0" r="4.3" fill="#2ca02c" fill-opacity="0.75"/><circle cx="836.9" cy="372.6" r="4.5" fill="#2ca02c" fill-opacity="0.75"/>
+<circle cx="290.5" cy="463.6" r="5.2" fill="#1f77b4" fill-opacity="0.75"/><circle cx="459.6" cy="460.2" r="5.4" fill="#1f77b4" fill-opacity="0.75"/><circle cx="143.5" cy="435.1" r="7.3" fill="#1f77b4" fill-opacity="0.75"/><circle cx="433.2" cy="451.0" r="6.0" fill="#1f77b4" fill-opacity="0.75"/><circle cx="357.9" cy="457.0" r="5.3" fill="#1f77b4" fill-opacity="0.75"/><circle cx="304.5" cy="472.3" r="4.5" fill="#1f77b4" fill-opacity="0.75"/><circle cx="249.1" cy="450.8" r="5.3" fill="#1f77b4" fill-opacity="0.75"/><circle cx="286.0" cy="465.6" r="5.6" fill="#1f77b4" fill-opacity="0.75"/><circle cx="332.0" cy="468.7" r="5.0" fill="#1f77b4" fill-opacity="0.75"/><circle cx="146.1" cy="472.2" r="5.0" fill="#1f77b4" fill-opacity="0.75"/>
+<circle cx="817.6" cy="167.2" r="7.0" fill="#d62728" fill-opacity="0.75"/><circle cx="787.6" cy="117.8" r="6.6" fill="#d62728" fill-opacity="0.75"/><circle cx="824.2" cy="101.0" r="8.0" fill="#d62728" fill-opacity="0.75"/><circle cx="729.9" cy="90.8" r="7.0" fill="#d62728" fill-opacity="0.75"/><circle cx="837.6" cy="207.7" r="4.7" fill="#d62728" fill-opacity="0.75"/><circle cx="835.2" cy="130.0" r="5.0" fill="#d62728" fill-opacity="0.75"/><circle cx="821.8" cy="160.6" r="5.6" fill="#d62728" fill-opacity="0.75"/><circle cx="824.1" cy="190.7" r="5.1" fill="#d62728" fill-opacity="0.75"/>
+<circle cx="685" cy="72" r="5" fill="#1f77b4"/><text x="697" y="76" font-family="sans-serif" font-size="12">pickup_carry</text><circle cx="685" cy="92" r="5" fill="#d62728"/><text x="697" y="96" font-family="sans-serif" font-size="12">putt_normal</text><circle cx="685" cy="112" r="5" fill="#2ca02c"/><text x="697" y="116" font-family="sans-serif" font-size="12">rolling</text><circle cx="685" cy="132" r="5" fill="#9467bd"/><text x="697" y="136" font-family="sans-serif" font-size="12">impact_tap</text>
+</svg>

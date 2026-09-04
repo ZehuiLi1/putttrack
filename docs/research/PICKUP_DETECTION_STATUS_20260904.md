@@ -114,6 +114,14 @@ After confirmation the event is latched until hole reset or the next Tee
 activation. Placement is useful for dataset segmentation and state recovery,
 but does not need to be a separate gameplay event.
 
+## Reviewed analysis snapshot
+
+The complete 2026-09-04 reviewed analysis, manifest audit, baseline comparison,
+research-only detector specification, next-capture plan and figures are stored
+under [`imu_analysis_20260904/`](imu_analysis_20260904/README.md). That snapshot
+records the evidence behind this status page without changing the authority
+boundary.
+
 ## Required validation before implementation authority
 
 Collect in this order:
@@ -132,4 +140,3 @@ session. A neural network is not justified until the labelled diversity and
 holdout set are materially larger. The first host/Edge detector remains
 research-only; deploy features to the nRF54L15 only after the definition is
 stable and resource/power behavior is measured.
-

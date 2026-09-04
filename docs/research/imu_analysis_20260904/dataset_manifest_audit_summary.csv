@@ -1,0 +1,9 @@
+category,files,motion_samples,duration_s,sequence_gaps,adxl367_clip_files,bmi270_accel_clip_files,bmi270_gyro_clip_files
+01_early_firmware_and_motion_tests,32,34015,693.539136,166,4,0,0
+02_curated_stationary,2,2048,40.920032000000006,0,0,0,0
+03_curated_manual_floor,7,6544,130.740512,0,2,0,0
+04_roller_preliminary,9,4918,98.179904,0,2,0,0
+05_roller_official,86,45784,913.959072,0,39,0,2
+06_field_pickup,12,7806,155.879904,0,12,0,0
+07_field_putt,10,7503,149.85984,0,9,0,8
+90_diagnostic_or_invalid,3,5249,105.84,46,1,0,0
