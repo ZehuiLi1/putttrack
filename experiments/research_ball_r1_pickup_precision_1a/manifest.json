@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1a-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1a-20260904-183730",
+    "surface": "unspecified",
+    "orientation": "uncontrolled",
+    "operator": "A",
+    "notes": "Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported completing the planned no-lift handling actions after the visible GO cue. Surface material and independent video ground truth were not recorded. These are false-pickup controls, not gameplay evidence."
+  },
+  "episodes": [
+    {
+      "episode_id": "handling-touch-r01",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r01.jsonl",
+      "label": "handling",
+      "trial": "001",
+      "strength": "light",
+      "notes": "Planned action: light touch or press without translation; Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-touch-r02",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r02.jsonl",
+      "label": "handling",
+      "trial": "002",
+      "strength": "light",
+      "notes": "Planned action: light touch or press without translation; Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-touch-r03",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r03.jsonl",
+      "label": "handling",
+      "trial": "003",
+      "strength": "light",
+      "notes": "Planned action: light touch or press without translation; Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-rotate-r04",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r04.jsonl",
+      "label": "handling",
+      "trial": "004",
+      "strength": "ordinary",
+      "notes": "Planned action: rotate in place while the Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-rotate-r05",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r05.jsonl",
+      "label": "handling",
+      "trial": "005",
+      "strength": "ordinary",
+      "notes": "Planned action: rotate in place while the Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-rotate-r06",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r06.jsonl",
+      "label": "handling",
+      "trial": "006",
+      "strength": "ordinary",
+      "notes": "Planned action: rotate in place while the Ball remains in contact with the surface."
+    },
+    {
+      "episode_id": "handling-slide-r07",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r07.jsonl",
+      "label": "handling",
+      "trial": "007",
+      "strength": "2-10-cm-planned",
+      "notes": "Planned action: slide approximately 2-10 cm without lifting the Ball."
+    },
+    {
+      "episode_id": "handling-slide-r08",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r08.jsonl",
+      "label": "handling",
+      "trial": "008",
+      "strength": "2-10-cm-planned",
+      "notes": "Planned action: slide approximately 2-10 cm without lifting the Ball."
+    },
+    {
+      "episode_id": "handling-slide-r09",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r09.jsonl",
+      "label": "handling",
+      "trial": "009",
+      "strength": "2-10-cm-planned",
+      "notes": "Planned action: slide approximately 2-10 cm without lifting the Ball."
+    },
+    {
+      "episode_id": "handling-slide-r10",
+      "capture": "raw/field-pickup-precision-1a-20260904-183730-handling-r10.jsonl",
+      "label": "handling",
+      "trial": "010",
+      "strength": "2-10-cm-planned",
+      "notes": "Planned action: slide approximately 2-10 cm without lifting the Ball."
+    }
+  ]
+}

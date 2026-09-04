@@ -1,0 +1,22 @@
+{
+  "dataset_id": "research-ball-r1-pickup-precision-1a-20260904",
+  "episodes": 10,
+  "episodes_by_label": {
+    "handling": 10
+  },
+  "episodes_with_clipping": {
+    "adxl367": 1,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 0
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 9,
+    "WARN": 1
+  },
+  "warning_episode_ids": [
+    "handling-slide-r08"
+  ]
+}
