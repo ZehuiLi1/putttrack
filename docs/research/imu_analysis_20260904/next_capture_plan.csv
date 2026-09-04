@@ -1,7 +1,7 @@
 phase,profile,minimum_episodes,protocol,primary_gate
-1A,handling_no_lift,30,touch / rotate / slide while the Ball continuously remains on the surface,pickup false-positive gate
+1A,handling,30,touch / rotate / slide while the Ball continuously remains on the surface,pickup false-positive gate
 1B,rolling_pickup,30,"slow / normal / fast roll, then pick up while still moving",second pickup temporal path
 1C,pickup_carry,30,slow lift / ordinary lift / fast grab; varied grip and initial orientation,independent pickup holdout
-1D,putt_clean,30,gentle / normal / firm unobstructed putts with independent video truth,clean rolling and impact context
-1E,collision_and_step,30,rail/wall collision and representative course-step/drop,collision and false-pickup controls
-1F,cup_sequence,30,lip miss / entry / bounce / rest / removal,fusion evidence; never IMU-only cup authority
+1D,putt_gentle|putt_normal|putt_firm,30,gentle / normal / firm unobstructed putts with independent video truth,clean rolling and impact context
+1E,putt_rail_collision|track_step_drop,30,rail/wall collision and representative course-step/drop,collision and false-pickup controls
+1F,cup_sequence (planned; not implemented),30,lip miss / entry / bounce / rest / removal,fusion evidence; never IMU-only cup authority

@@ -33,6 +33,13 @@ non-pickup:  0 / 11 selected
 
 This is not an accuracy estimate because thresholds were chosen after inspecting these episodes.
 
+The exact frozen feature/onset definition for the next untouched capture batch
+is stored in
+[`configs/research/pickup_detector_v0.json`](../../../configs/research/pickup_detector_v0.json).
+It records `authority=false`, treats missing/invalid/clipped evidence as UNKNOWN,
+and supports only the stationary-start path. Do not alter that file after
+viewing holdout results; any later definition must receive a new detector ID.
+
 ## Required rolling-start path
 
 ```text

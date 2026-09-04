@@ -30,9 +30,11 @@ Suggested scope:
    - missing pre-action stationary baseline.
 
 4. Capture profiles and manifests
-   - `handling_no_lift`;
+   - existing `handling` profile, whose current instruction strictly requires continuous surface contact;
    - `rolling_pickup`;
-   - `collision_and_step`;
+   - existing `putt_gentle` / `putt_normal` / `putt_firm` profiles;
+   - existing `putt_rail_collision` and `track_step_drop` profiles;
+   - future `cup_sequence` only after physical cup truth exists;
    - separate-day/operator holdout identifiers.
 
 5. Documentation gate

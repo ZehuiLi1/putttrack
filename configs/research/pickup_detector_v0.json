@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "detector_id": "pickup_detector_v0_stationary_start",
+  "status": "frozen_research_hypothesis_before_holdout",
+  "authority": false,
+  "trained_on_dataset": "putttrack_imu_20260904_exploratory",
+  "expected_source_rate_hz": 50,
+  "gravity_mps2": 9.80665,
+  "required_pre_go_stationary_s": 1.0,
+  "onset": {
+    "search_start_after_go_s": 0.5,
+    "accel_norm_deviation_mps2": 0.5,
+    "gyro_norm_rads": 0.25,
+    "lookahead_samples": 10,
+    "minimum_active_samples": 6
+  },
+  "vertical_impulse": {
+    "initial_up_vector": "mean_bmi270_acceleration_over_pre_go_stationary_window",
+    "propagation": "u_body_dot=-omega_body_cross_u_body; forward_euler; normalize_each_sample",
+    "integration": "right_rectangle_of_max(0,dot(accel_body,u_body)-gravity)",
+    "window_start_relative_to_onset_s": -0.1,
+    "window_end_relative_to_onset_s": 0.5,
+    "minimum_mps": 0.5
+  },
+  "gyro_shape": {
+    "window_start_relative_to_onset_s": 0.0,
+    "window_end_relative_to_onset_s": 1.0,
+    "maximum_mean_norm_rads": 10.0,
+    "axis_consistency": "norm(mean(gyro_vector))/mean(norm(gyro_vector))",
+    "maximum_axis_consistency": 0.75
+  },
+  "invalid_or_unknown_if": [
+    "missing_device_side_go_marker",
+    "pre_go_baseline_not_stationary",
+    "sensor_invalid_or_error_bits_nonzero",
+    "sequence_gap_or_time_regression",
+    "insufficient_feature_window",
+    "bmi270_gyro_clipping_inside_feature_window"
+  ],
+  "supported_paths": [
+    "stationary_start_pickup"
+  ],
+  "unsupported_paths": [
+    "rolling_start_pickup"
+  ],
+  "warning": "Thresholds were selected post-hoc on the 2026-09-04 exploratory set. Do not modify them after viewing holdout data and do not use them for Gameplay or scoring authority."
+}

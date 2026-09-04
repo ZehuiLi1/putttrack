@@ -108,6 +108,7 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertIn("确认 GO 标记", page)
         self.assertIn("重新连接并继续本批次", page)
         self.assertIn("/api/capture/go-ack", page)
+        self.assertIn("<option>30</option>", page)
 
     def test_go_ack_is_attempt_locked_and_writes_to_capture_stdin(self) -> None:
         app = FieldCaptureApp(args())

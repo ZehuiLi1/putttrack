@@ -1,9 +1,9 @@
-model,accuracy,balanced_accuracy,pickup_precision,pickup_recall,pickup_f1,mcc,tn,fp,fn,tp
-physics_rule,1.0,1.0,1.0,1.0,1.0,1.0,11,0,0,11
-logistic_3f,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
-linear_svm_3f,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
-rbf_svm_3f,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
-tree_depth2_3f,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.8181818182,10,1,1,10
-rf_3f,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
-logistic_full,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
-rf_full,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11
+model,evaluation_scope,reproducible_from_repo,accuracy,balanced_accuracy,pickup_precision,pickup_recall,pickup_f1,mcc,tn,fp,fn,tp,review_note
+physics_rule,post_hoc_in_sample,no,1.0,1.0,1.0,1.0,1.0,1.0,11,0,0,11,thresholds selected after inspecting all episodes; not LOEO or holdout
+logistic_3f,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing source ledger feature table preprocessing and fold outputs
+linear_svm_3f,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing source ledger feature table preprocessing and fold outputs
+rbf_svm_3f,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing source ledger feature table preprocessing and fold outputs
+tree_depth2_3f,reported_leave_one_episode_out,no,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.8181818182,10,1,1,10,missing source ledger feature table preprocessing and fold outputs
+rf_3f,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing source ledger feature table preprocessing random seed hyperparameters and fold outputs
+logistic_full,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing full feature definition source ledger preprocessing and fold outputs
+rf_full,reported_leave_one_episode_out,no,0.9545454545,0.9545454545,0.9166666667,1.0,0.9565217391,0.9128709292,10,1,0,11,missing full feature definition source ledger preprocessing random seed hyperparameters and fold outputs

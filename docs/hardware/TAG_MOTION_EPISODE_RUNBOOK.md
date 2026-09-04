@@ -77,6 +77,31 @@ perform exactly one instructed action, then leave the Ball untouched until the
 completion cue. Use `--start-index` to continue a partially completed batch
 without reusing filenames.
 
+The current pickup-precision sequence is `handling` first, then
+`rolling_pickup`, then a separate pickup/carry holdout. For `handling`, the Ball
+must remain in continuous contact with the surface. The web UI accepts a
+30-episode batch, but three independently named ten-episode sessions are
+preferable when they can vary time, orientation or operator. Put structured
+context in the notes field, for example
+`phase=1A; operator=A; surface=short_carpet; ball=R1`.
+
+For the first ten-run `handling` session, use this fixed distribution after
+each green GO:
+
+- repetitions 1-3: lightly touch or press the Ball without translating it;
+- repetitions 4-6: rotate the Ball in place while it remains on the surface;
+- repetitions 7-10: slide it approximately 2-10 cm without lifting it.
+
+Perform only one action per repetition and then leave the Ball untouched until
+the result is shown. If the Ball leaves the surface, mark that attempt failed
+and repeat the same repetition; do not relabel it after seeing the IMU result.
+
+For armed captures, analysis now checks the post-GO episode rather than letting
+pre-roll activity satisfy an action label. A nominal action with no measured
+post-GO motion fails, and motion during the final 1.2 seconds before GO fails
+the pre-action stationary gate. The file is retained with a `.failed-*` name
+for diagnosis and the same repetition can be retried.
+
 ## Preferred armed capture
 
 Arrange the Ball, restraints, camera and safe travel path **before** starting

@@ -19,6 +19,7 @@ from putttrack.motion import (  # noqa: E402
     build_provisional_motion_observation,
     extract_window_features,
     provisional_generic_motion_check,
+    provisional_stationary_check,
 )
 from putttrack.tag import MotionRecord, StatusRecord  # noqa: E402
 
@@ -26,6 +27,7 @@ from putttrack.tag import MotionRecord, StatusRecord  # noqa: E402
 ROLLER_LABEL_PATTERN = re.compile(
     r"^roller_([+-]?\d+(?:\.\d+)?)rpm(?:_|$)", re.IGNORECASE
 )
+PRE_ACTION_BASELINE_US = 1_200_000
 
 
 def expected_states_for_label(label: str) -> tuple[str, ...] | None:
@@ -34,7 +36,14 @@ def expected_states_for_label(label: str) -> tuple[str, ...] | None:
         "stationary": ("STATIONARY_CANDIDATE",),
         "pickup_carry": ("ACTIVE_MOTION_CANDIDATE",),
         "pickup_drop": ("ACTIVE_MOTION_CANDIDATE",),
+        "rolling_pickup": ("ACTIVE_MOTION_CANDIDATE",),
         "handling": ("UNCLASSIFIED", "ACTIVE_MOTION_CANDIDATE"),
+        "putt_gentle": ("ACTIVE_MOTION_CANDIDATE",),
+        "putt_normal": ("ACTIVE_MOTION_CANDIDATE",),
+        "putt_firm": ("ACTIVE_MOTION_CANDIDATE",),
+        "hand_roll": ("ACTIVE_MOTION_CANDIDATE",),
+        "putt_rail_collision": ("ACTIVE_MOTION_CANDIDATE",),
+        "track_step_drop": ("ACTIVE_MOTION_CANDIDATE",),
     }
     normalized = label.strip().lower()
     if normalized in expected_states:
@@ -49,6 +58,27 @@ def expected_states_for_label(label: str) -> tuple[str, ...] | None:
             else ("ACTIVE_MOTION_CANDIDATE",)
         )
     return None
+
+
+def split_armed_records(
+    records: list[MotionRecord], marker_source_monotonic_us: int | None
+) -> tuple[list[MotionRecord], list[MotionRecord]]:
+    """Return a bounded pre-GO baseline and the post-GO episode records."""
+
+    if marker_source_monotonic_us is None:
+        return [], records
+    baseline_start = marker_source_monotonic_us - PRE_ACTION_BASELINE_US
+    baseline = [
+        record
+        for record in records
+        if baseline_start <= record.source_monotonic_us < marker_source_monotonic_us
+    ]
+    episode = [
+        record
+        for record in records
+        if record.source_monotonic_us >= marker_source_monotonic_us
+    ]
+    return baseline, episode
 
 
 def motion_from_json(payload: dict[str, object]) -> MotionRecord:
@@ -139,6 +169,7 @@ def main() -> int:
     edge_received_ns = 0
     episode_labels: set[str] = set()
     capture_result = None
+    marker_source_monotonic_us = None
     for line_number, line in enumerate(args.capture.read_text(encoding="utf-8").splitlines(), 1):
         payload = json.loads(line)
         if not isinstance(payload, dict):
@@ -152,6 +183,10 @@ def main() -> int:
             final_status = status_from_json(payload)
         elif payload.get("record_type") == "tag_capture_result":
             capture_result = payload
+        elif payload.get("record_type") == "tag_episode_marker":
+            value = payload.get("source_monotonic_us")
+            if isinstance(value, int):
+                marker_source_monotonic_us = value
         label = payload.get("episode_label")
         if isinstance(label, str) and label.strip():
             episode_labels.add(label.strip().lower())
@@ -163,7 +198,32 @@ def main() -> int:
         )
 
     features = extract_window_features(records)
-    diagnostic = provisional_generic_motion_check(features)
+    baseline_records, episode_records = split_armed_records(
+        records, marker_source_monotonic_us
+    )
+    if len(episode_records) < 2:
+        raise SystemExit("capture contains fewer than two post-marker motion records")
+    episode_features = extract_window_features(episode_records)
+    diagnostic = provisional_generic_motion_check(episode_features)
+    if marker_source_monotonic_us is None:
+        pre_action_quality = {
+            "status": "NOT_CHECKED",
+            "reason": "capture_has_no_device_side_episode_marker",
+        }
+    elif len(baseline_records) < 2:
+        pre_action_quality = {
+            "status": "FAIL",
+            "reason": "pre_action_baseline_missing",
+        }
+    else:
+        baseline_features = extract_window_features(baseline_records)
+        baseline_diagnostic = provisional_stationary_check(baseline_features)
+        pre_action_quality = {
+            "status": "PASS" if baseline_diagnostic.passed else "FAIL",
+            "observed_state": baseline_diagnostic.state,
+            "reasons": list(baseline_diagnostic.reasons),
+            "features": baseline_features.to_dict(),
+        }
     if len(episode_labels) > 1:
         label_consistency = {
             "status": "FAIL",
@@ -174,14 +234,22 @@ def main() -> int:
         episode_label = next(iter(episode_labels))
         allowed_states = expected_states_for_label(episode_label)
         assert allowed_states is not None
+        state_matches = diagnostic.state in allowed_states
+        baseline_passes = pre_action_quality["status"] != "FAIL"
         label_consistency = {
-            "status": (
-                "PASS" if diagnostic.state in allowed_states else "FAIL"
-            ),
+            "status": "PASS" if state_matches and baseline_passes else "FAIL",
             "label": episode_label,
             "allowed_states": list(allowed_states),
             "observed_state": diagnostic.state,
+            "analysis_window": (
+                "post_marker"
+                if marker_source_monotonic_us is not None
+                else "complete_capture"
+            ),
+            "pre_action_quality": pre_action_quality["status"],
         }
+        if not baseline_passes:
+            label_consistency["reason"] = "pre_action_not_stationary"
     else:
         label_consistency = {
             "status": "NOT_CHECKED",
@@ -214,6 +282,8 @@ def main() -> int:
             {
                 "capture": str(args.capture),
                 "features": features.to_dict(),
+                "episode_features": episode_features.to_dict(),
+                "pre_action_quality": pre_action_quality,
                 "label_consistency": label_consistency,
                 "provisional_diagnostic": diagnostic.to_dict(),
                 "observation_output": (
