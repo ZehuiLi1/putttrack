@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "recognizer_id": "putttrack_pg_dual_head_hsmm_v1_research",
+  "name": "Physics-Guided Dual-Head Hidden Semi-Markov Recognizer",
+  "authority": false,
+  "status": "architecture_selected_emissions_require_group_holdout_training",
+  "input": {
+    "wake_sensor": "ADXL367",
+    "measurement_sensor": "BMI270",
+    "current_stream_rate_hz": 50,
+    "recommended_active_rate_hz": 400,
+    "recommended_impact_accel_burst_rate_hz": 1600,
+    "pre_trigger_seconds": 1.5,
+    "post_trigger_seconds": 4.0
+  },
+  "persistent_states": [
+    "STATIONARY",
+    "ROLLING",
+    "SETTLING",
+    "CARRIED",
+    "AIRBORNE",
+    "UNKNOWN"
+  ],
+  "transient_events": [
+    "MOTION_ONSET",
+    "IMPACT_CANDIDATE",
+    "PICKUP_TRANSITION",
+    "ROLLING_PICKUP",
+    "COLLISION_OR_STEP_CANDIDATE",
+    "DROP_LANDING_CANDIDATE"
+  ],
+  "feature_windows_seconds": [0.08, 0.20, 0.60, 1.00, 2.00],
+  "feature_groups": [
+    "sensor_health_and_clipping",
+    "acceleration_norm_and_jerk",
+    "gravity_compensated_vertical_impulse",
+    "gyro_energy_and_censored_saturation",
+    "gyro_axis_consistency_and_axis_drift",
+    "dominant_axis_eigenvalue_ratio",
+    "freefall_dwell_and_landing_pair",
+    "activity_persistence_and_time_to_still",
+    "rolling_model_departure"
+  ],
+  "emission_model": {
+    "current_choice": "regularized_logistic_heads",
+    "calibration": "group-held-out_probability_calibration",
+    "fallback": "physics_scores_only_return_unknown_when_unvalidated",
+    "future_candidate": "tiny_causal_tcn_emission_model_only_after_multi_day_multi_operator_multi_ball_labels"
+  },
+  "decoder": {
+    "type": "explicit_duration_hsmm_viterbi",
+    "transition_policy": "physical_paths_only",
+    "unknown_is_first_class_state": true,
+    "minimum_posterior_for_auto_evidence": 0.98,
+    "minimum_top_two_margin": 0.25
+  },
+  "allowed_transitions": {
+    "STATIONARY": ["STATIONARY", "ROLLING", "CARRIED", "AIRBORNE", "UNKNOWN"],
+    "ROLLING": ["ROLLING", "SETTLING", "CARRIED", "AIRBORNE", "UNKNOWN"],
+    "SETTLING": ["SETTLING", "STATIONARY", "ROLLING", "CARRIED", "UNKNOWN"],
+    "CARRIED": ["CARRIED", "AIRBORNE", "STATIONARY", "ROLLING", "UNKNOWN"],
+    "AIRBORNE": ["AIRBORNE", "ROLLING", "SETTLING", "STATIONARY", "CARRIED", "UNKNOWN"],
+    "UNKNOWN": ["UNKNOWN", "STATIONARY", "ROLLING", "SETTLING", "CARRIED", "AIRBORNE"]
+  },
+  "evidence_boundary": {
+    "ball_output": "generic_motion_evidence_only",
+    "gameplay_authority": false,
+    "requires_context_for_stroke": ["active_ball", "active_hole", "tee_ready", "not_cup_complete"],
+    "requires_physical_confirmation_for": ["cup_entry", "critical_bonus_gate"]
+  }
+}
