@@ -13,6 +13,13 @@ import json
 from pathlib import Path
 
 
+def _c_float(value: object) -> str:
+    text = f"{float(value):.8g}"
+    if "." not in text and "e" not in text.lower():
+        text += ".0"
+    return text + "f"
+
+
 def render(config_path: Path) -> str:
     raw = config_path.read_bytes()
     cfg = json.loads(raw)
@@ -30,21 +37,21 @@ def render(config_path: Path) -> str:
 #define PT_PICKUP_V0_CONFIG_SHA256 "{sha}"
 #define PT_PICKUP_V0_CONFIG_HASH32 0x{sha[:8]}U
 #define PT_PICKUP_V0_EXPECTED_RATE_HZ {int(cfg["expected_source_rate_hz"])}U
-#define PT_PICKUP_V0_GRAVITY_MPS2 {float(cfg["gravity_mps2"]):.8g}f
-#define PT_PICKUP_V0_BASELINE_SECONDS {float(cfg["required_pre_go_stationary_s"]):.8g}f
-#define PT_PICKUP_V0_BASELINE_ACCEL_STDEV_MAX {float(stationary["maximum_accel_norm_stdev_mps2"]):.8g}f
-#define PT_PICKUP_V0_BASELINE_GYRO_RMS_MAX {float(stationary["maximum_gyro_norm_rms_rads"]):.8g}f
-#define PT_PICKUP_V0_ONSET_ACCEL_DEVIATION {float(onset["accel_norm_deviation_mps2"]):.8g}f
-#define PT_PICKUP_V0_ONSET_GYRO_NORM {float(onset["gyro_norm_rads"]):.8g}f
+#define PT_PICKUP_V0_GRAVITY_MPS2 {_c_float(cfg["gravity_mps2"])}
+#define PT_PICKUP_V0_BASELINE_SECONDS {_c_float(cfg["required_pre_go_stationary_s"])}
+#define PT_PICKUP_V0_BASELINE_ACCEL_STDEV_MAX {_c_float(stationary["maximum_accel_norm_stdev_mps2"])}
+#define PT_PICKUP_V0_BASELINE_GYRO_RMS_MAX {_c_float(stationary["maximum_gyro_norm_rms_rads"])}
+#define PT_PICKUP_V0_ONSET_ACCEL_DEVIATION {_c_float(onset["accel_norm_deviation_mps2"])}
+#define PT_PICKUP_V0_ONSET_GYRO_NORM {_c_float(onset["gyro_norm_rads"])}
 #define PT_PICKUP_V0_ONSET_LOOKAHEAD_SAMPLES {int(onset["lookahead_samples"])}U
 #define PT_PICKUP_V0_ONSET_MIN_ACTIVE_SAMPLES {int(onset["minimum_active_samples"])}U
-#define PT_PICKUP_V0_IMPULSE_START_S ({float(impulse["window_start_relative_to_onset_s"]):.8g}f)
-#define PT_PICKUP_V0_IMPULSE_END_S {float(impulse["window_end_relative_to_onset_s"]):.8g}f
-#define PT_PICKUP_V0_IMPULSE_MIN_MPS {float(impulse["minimum_mps"]):.8g}f
-#define PT_PICKUP_V0_GYRO_WINDOW_START_S {float(gyro["window_start_relative_to_onset_s"]):.8g}f
-#define PT_PICKUP_V0_GYRO_WINDOW_END_S {float(gyro["window_end_relative_to_onset_s"]):.8g}f
-#define PT_PICKUP_V0_GYRO_MEAN_MAX_RADS {float(gyro["maximum_mean_norm_rads"]):.8g}f
-#define PT_PICKUP_V0_AXIS_CONSISTENCY_MAX {float(gyro["maximum_axis_consistency"]):.8g}f
+#define PT_PICKUP_V0_IMPULSE_START_S ({_c_float(impulse["window_start_relative_to_onset_s"])})
+#define PT_PICKUP_V0_IMPULSE_END_S {_c_float(impulse["window_end_relative_to_onset_s"])}
+#define PT_PICKUP_V0_IMPULSE_MIN_MPS {_c_float(impulse["minimum_mps"])}
+#define PT_PICKUP_V0_GYRO_WINDOW_START_S {_c_float(gyro["window_start_relative_to_onset_s"])}
+#define PT_PICKUP_V0_GYRO_WINDOW_END_S {_c_float(gyro["window_end_relative_to_onset_s"])}
+#define PT_PICKUP_V0_GYRO_MEAN_MAX_RADS {_c_float(gyro["maximum_mean_norm_rads"])}
+#define PT_PICKUP_V0_AXIS_CONSISTENCY_MAX {_c_float(gyro["maximum_axis_consistency"])}
 '''
 
 
