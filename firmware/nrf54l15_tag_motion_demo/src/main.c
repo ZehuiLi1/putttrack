@@ -7,7 +7,10 @@
  * No player/hole/score authority is added to the Ball.
  */
 
-#include "../../nrf54l15_tag_app/src/main.c"
+#ifndef PT_BASELINE_MAIN_SOURCE
+#define PT_BASELINE_MAIN_SOURCE "../../nrf54l15_tag_app/src/main.c"
+#endif
+#include PT_BASELINE_MAIN_SOURCE
 #include "motion_engine.h"
 
 #define MOTION_EVIDENCE_PACKET_SIZE 28U
