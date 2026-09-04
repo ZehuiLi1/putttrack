@@ -30,116 +30,7 @@ jobs:
           cache: pip
 
       - name: Preserve frozen V0 boundary in code and tests
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace(path_text: str, old: str, new: str) -> None:
-              path = Path(path_text)
-              text = path.read_text(encoding="utf-8")
-              if old not in text:
-                  raise SystemExit(f"expected source block not found in {path}")
-              path.write_text(text.replace(old, new), encoding="utf-8")
-
-          replace(
-              "src/putttrack/motion/pickup_v0.py",
-              '    baseline_thresholds = detector["stationary_baseline"]\n',
-              '    baseline_thresholds = baseline_policy\n',
-          )
-
-          replace(
-              "tools/imu_state_discovery.py",
-              '''def load_v0_config(root: Path) -> dict[str, Any]:
-              path = root / "configs" / "research" / "pickup_detector_v0.json"
-              payload = json.loads(path.read_text(encoding="utf-8"))
-              if not isinstance(payload, dict):
-                  raise ValueError(f"expected object in {path}")
-              return payload
-              ''',
-              '''def load_v0_config(root: Path) -> dict[str, Any]:
-              detector_path = root / "configs" / "research" / "pickup_detector_v0.json"
-              profile_path = (
-                  root
-                  / "configs"
-                  / "research"
-                  / "pickup_detector_v0_eval_profile.json"
-              )
-              detector = json.loads(detector_path.read_text(encoding="utf-8"))
-              profile = json.loads(profile_path.read_text(encoding="utf-8"))
-              if not isinstance(detector, dict) or not isinstance(profile, dict):
-                  raise ValueError("expected detector and evaluation-profile objects")
-              detector_sha256 = sha256_text(
-                  json.dumps(detector, sort_keys=True, separators=(",", ":"))
-              )
-              expected = str(profile["detector_config_sha256_expected"])
-              if detector_sha256 != expected:
-                  raise ValueError(
-                      f"frozen detector hash mismatch: {detector_sha256} != {expected}"
-                  )
-              baseline = profile["pre_go_stationary"]
-              execution = dict(detector)
-              execution["stationary_baseline"] = {
-                  "maximum_accel_norm_stdev_mps2": baseline[
-                      "maximum_accel_norm_stdev_mps2"
-                  ],
-                  "maximum_gyro_norm_rms_rads": baseline[
-                      "maximum_gyro_norm_rms_rads"
-                  ],
-              }
-              execution["_frozen_config_sha256"] = detector_sha256
-              return execution
-              ''',
-          )
-
-          replace(
-              "tools/imu_state_discovery.py",
-              '''        "config_sha256": sha256_text(
-                  json.dumps(v0_config, sort_keys=True, separators=(",", ":"))
-              ),
-              ''',
-              '''        "config_sha256": v0_config["_frozen_config_sha256"],
-              ''',
-          )
-
-          replace(
-              "tests/test_pickup_v0.py",
-              '''        self.assertIn("stationary_baseline", detector)
-                      self.assertIn("maximum_accel_norm_stdev_mps2", detector["stationary_baseline"])
-                      self.assertIn("maximum_gyro_norm_rms_rads", detector["stationary_baseline"])
-              ''',
-              '''        self.assertNotIn("stationary_baseline", detector)
-                      self.assertIn("pre_go_stationary", profile)
-                      self.assertIn(
-                          "maximum_accel_norm_stdev_mps2",
-                          profile["pre_go_stationary"],
-                      )
-                      self.assertIn(
-                          "maximum_gyro_norm_rms_rads",
-                          profile["pre_go_stationary"],
-                      )
-              ''',
-          )
-
-          replace(
-              "tools/capture_tag_smp.py",
-              '''                print(
-                              f"{'\\\\a' if args.audible_cue else ''}GO: action window is "
-                              f"{args.episode_seconds:.2f} seconds",
-                              file=sys.stderr,
-                              flush=True,
-                          )
-              ''',
-              '''                audible_prefix = "\\a" if args.audible_cue else ""
-                          print(
-                              f"{audible_prefix}GO: action window is "
-                              f"{args.episode_seconds:.2f} seconds",
-                              file=sys.stderr,
-                              flush=True,
-                          )
-              ''',
-          )
-          PY
+        run: python tools/reconcile_frozen_v0_boundary.py
 
       - name: Install research dependencies
         run: |
@@ -179,8 +70,12 @@ jobs:
           test "$(python - <<'PY'
           import hashlib, json
           from pathlib import Path
-          payload = json.loads(Path('configs/research/pickup_detector_v0.json').read_text())
-          canonical = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
+          payload = json.loads(
+              Path('configs/research/pickup_detector_v0.json').read_text()
+          )
+          canonical = json.dumps(
+              payload, sort_keys=True, separators=(',', ':')
+          ).encode()
           print(hashlib.sha256(canonical).hexdigest())
           PY
           )" = "7add18c4c4a23df0f26674a020f2d0ab78cae7de041467e7db71655aa27b000d"
