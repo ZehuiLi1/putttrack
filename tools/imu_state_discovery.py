@@ -328,11 +328,41 @@ def integrate_trapezoid(y: np.ndarray, x: np.ndarray) -> float:
 
 
 def load_v0_config(root: Path) -> dict[str, Any]:
-    path = root / "configs" / "research" / "pickup_detector_v0.json"
-    config = json.loads(path.read_text(encoding="utf-8"))
-    if config.get("authority") is not False:
-        raise ValueError(f"research detector must remain authority=false: {path}")
-    return config
+    detector_path = root / "configs" / "research" / "pickup_detector_v0.json"
+    profile_path = (
+        root
+        / "configs"
+        / "research"
+        / "pickup_detector_v0_eval_profile.json"
+    )
+    detector = json.loads(detector_path.read_text(encoding="utf-8"))
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    if not isinstance(detector, dict) or not isinstance(profile, dict):
+        raise ValueError("expected detector and evaluation-profile objects")
+    if detector.get("authority") is not False:
+        raise ValueError(
+            f"research detector must remain authority=false: {detector_path}"
+        )
+    detector_sha256 = sha256_text(
+        json.dumps(detector, sort_keys=True, separators=(",", ":"))
+    )
+    expected = str(profile["detector_config_sha256_expected"])
+    if detector_sha256 != expected:
+        raise ValueError(
+            f"frozen detector hash mismatch: {detector_sha256} != {expected}"
+        )
+    baseline = profile["pre_go_stationary"]
+    execution = dict(detector)
+    execution["stationary_baseline"] = {
+        "maximum_accel_norm_stdev_mps2": baseline[
+            "maximum_accel_norm_stdev_mps2"
+        ],
+        "maximum_gyro_norm_rms_rads": baseline[
+            "maximum_gyro_norm_rms_rads"
+        ],
+    }
+    execution["_frozen_config_sha256"] = detector_sha256
+    return execution
 
 
 def write_csv(frame: pd.DataFrame, path: Path) -> None:
@@ -1063,7 +1093,7 @@ def main() -> int:
         "metric_eligible_episodes":int(len(metric_eligible)),
         "metric_eligible_unknown":int((metric_eligible["prediction"] == "UNKNOWN").sum()),
         "config_path": "configs/research/pickup_detector_v0.json",
-        "config_sha256": sha256_text(json.dumps(v0_config, sort_keys=True, separators=(",", ":"))),
+        "config_sha256": v0_config["_frozen_config_sha256"],
         "note": "Exact frozen-config replay; UNKNOWN is retained and never counted as NOT_PICKUP.",
     }
     scored = v0_df[

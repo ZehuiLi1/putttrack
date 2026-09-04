@@ -38,11 +38,11 @@ class PickupV0Tests(unittest.TestCase):
                 / "pickup_detector_v0_eval_profile.json"
             ).read_text(encoding="utf-8")
         )
-        self.assertIn("stationary_baseline", detector)
-        self.assertNotIn(
+        self.assertNotIn("stationary_baseline", detector)
+        self.assertIn(
             "maximum_accel_norm_stdev_mps2", profile["pre_go_stationary"]
         )
-        self.assertNotIn(
+        self.assertIn(
             "maximum_gyro_norm_rms_rads", profile["pre_go_stationary"]
         )
 

@@ -415,8 +415,9 @@ def main() -> int:
                     )
                     if not readable or sys.stdin.readline().strip() != "GO":
                         raise RuntimeError("GO acknowledgement timed out")
+                audible_prefix = "\a" if args.audible_cue else ""
                 print(
-                    f"{'\\a' if args.audible_cue else ''}GO: action window is "
+                    f"{audible_prefix}GO: action window is "
                     f"{args.episode_seconds:.2f} seconds",
                     file=sys.stderr,
                     flush=True,

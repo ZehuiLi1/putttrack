@@ -6,7 +6,7 @@
   "metric_eligible_episodes": 60,
   "metric_eligible_unknown": 19,
   "config_path": "configs/research/pickup_detector_v0.json",
-  "config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+  "config_sha256": "7add18c4c4a23df0f26674a020f2d0ab78cae7de041467e7db71655aa27b000d",
   "note": "Exact frozen-config replay; UNKNOWN is retained and never counted as NOT_PICKUP.",
   "metric_eligible_definitive": 41,
   "tn": 21,

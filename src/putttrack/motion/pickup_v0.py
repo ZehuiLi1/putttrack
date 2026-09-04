@@ -448,7 +448,7 @@ def evaluate_pickup_v0(
     baseline_start = go_us - int(baseline_seconds * MICRO)
     baseline = _slice_time(capture.samples, baseline_start, go_us)
     baseline_policy = profile["pre_go_stationary"]
-    baseline_thresholds = detector["stationary_baseline"]
+    baseline_thresholds = baseline_policy
     expected_baseline_samples = expected_rate * baseline_seconds
     minimum_baseline_samples = math.ceil(
         expected_baseline_samples

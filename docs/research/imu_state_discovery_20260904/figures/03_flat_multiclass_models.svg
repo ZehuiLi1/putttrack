@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="360" viewBox="0 0 1120 360">
+<rect width="100%" height="100%" fill="white"/>
+<text x="40" y="38" font-family='sans-serif' font-size="24" font-weight="bold">Exploratory flat episode classifier</text>
+<line x1="330" y1="64" x2="330" y2="302" stroke="black"/>
+<text x="318" y="95" text-anchor="end" font-family='sans-serif' font-size="13">rocket_lite_ridge</text>
+<rect x="330" y="78" width="531.09" height="22" fill="#557a95"/>
+<text x="869.09" y="95" font-family='sans-serif' font-size="13">0.560</text>
+<text x="318" y="129" text-anchor="end" font-family='sans-serif' font-size="13">rbf_svm</text>
+<rect x="330" y="112" width="593.90" height="22" fill="#557a95"/>
+<text x="931.90" y="129" font-family='sans-serif' font-size="13">0.626</text>
+<text x="318" y="163" text-anchor="end" font-family='sans-serif' font-size="13">linear_lda_shrinkage</text>
+<rect x="330" y="146" width="613.39" height="22" fill="#557a95"/>
+<text x="951.39" y="163" font-family='sans-serif' font-size="13">0.647</text>
+<text x="318" y="197" text-anchor="end" font-family='sans-serif' font-size="13">logistic</text>
+<rect x="330" y="180" width="637.92" height="22" fill="#557a95"/>
+<text x="975.92" y="197" font-family='sans-serif' font-size="13">0.673</text>
+<text x="318" y="231" text-anchor="end" font-family='sans-serif' font-size="13">extra_trees</text>
+<rect x="330" y="214" width="691.41" height="22" fill="#557a95"/>
+<text x="1029.41" y="231" font-family='sans-serif' font-size="13">0.729</text>
+<text x="318" y="265" text-anchor="end" font-family='sans-serif' font-size="13">random_forest</text>
+<rect x="330" y="248" width="700.00" height="22" fill="#557a95"/>
+<text x="1038.00" y="265" font-family='sans-serif' font-size="13">0.738</text>
+<text x="680.0" y="340" text-anchor="middle" font-family='sans-serif' font-size="14">macro_f1</text>
+</svg>

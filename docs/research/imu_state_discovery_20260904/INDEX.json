@@ -1,0 +1,10 @@
+{
+  "audit": "dataset_audit.json",
+  "features": "episode_features.csv",
+  "flat_benchmarks": "flat_multiclass_benchmarks.csv",
+  "flat_predictions": "flat_multiclass_predictions.csv",
+  "v0": "frozen_v0_reconstruction_replay.csv",
+  "path_a": "path_a_benchmarks.csv",
+  "path_b": "path_b_benchmarks.csv",
+  "recommendation": "ARCHITECTURE_RECOMMENDATION.md"
+}
