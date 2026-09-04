@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "status": "unvalidated_physical_prior_template",
+  "authority": false,
+  "frame_rate_hz": 20,
+  "states": [
+    "STATIONARY",
+    "ROLLING",
+    "SETTLING",
+    "CARRIED",
+    "AIRBORNE",
+    "UNKNOWN"
+  ],
+  "start_log_probabilities": {
+    "STATIONARY": 0.0,
+    "ROLLING": -3.0,
+    "SETTLING": -4.0,
+    "CARRIED": -3.0,
+    "AIRBORNE": -5.0,
+    "UNKNOWN": -1.0
+  },
+  "transition_log_probabilities": {
+    "STATIONARY": {
+      "ROLLING": -0.1,
+      "CARRIED": -0.2,
+      "AIRBORNE": -2.0,
+      "UNKNOWN": -1.0
+    },
+    "ROLLING": {
+      "SETTLING": -0.1,
+      "CARRIED": -0.3,
+      "AIRBORNE": -1.0,
+      "UNKNOWN": -1.0
+    },
+    "SETTLING": {
+      "STATIONARY": -0.1,
+      "ROLLING": -0.5,
+      "CARRIED": -0.5,
+      "UNKNOWN": -1.0
+    },
+    "CARRIED": {
+      "AIRBORNE": -0.2,
+      "STATIONARY": -0.3,
+      "ROLLING": -1.0,
+      "UNKNOWN": -1.0
+    },
+    "AIRBORNE": {
+      "ROLLING": -0.3,
+      "SETTLING": -0.2,
+      "STATIONARY": -0.5,
+      "CARRIED": -0.5,
+      "UNKNOWN": -1.0
+    },
+    "UNKNOWN": {
+      "STATIONARY": -0.5,
+      "ROLLING": -0.5,
+      "SETTLING": -0.8,
+      "CARRIED": -0.5,
+      "AIRBORNE": -1.0
+    }
+  },
+  "durations_seconds": {
+    "STATIONARY": {"minimum": 0.25, "preferred": 2.0, "maximum": 60.0, "log_penalty": 0.15},
+    "ROLLING": {"minimum": 0.10, "preferred": 1.0, "maximum": 20.0, "log_penalty": 0.20},
+    "SETTLING": {"minimum": 0.15, "preferred": 0.7, "maximum": 5.0, "log_penalty": 0.30},
+    "CARRIED": {"minimum": 0.25, "preferred": 3.0, "maximum": 60.0, "log_penalty": 0.15},
+    "AIRBORNE": {"minimum": 0.04, "preferred": 0.20, "maximum": 1.5, "log_penalty": 0.35},
+    "UNKNOWN": {"minimum": 0.05, "preferred": 0.5, "maximum": 60.0, "log_penalty": 0.10}
+  },
+  "warning": "These durations and transition scores are initialization priors only. Freeze a new version after fitting/tuning on development groups, then evaluate once on untouched day/operator/Ball/surface groups."
+}

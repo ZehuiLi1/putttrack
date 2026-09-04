@@ -83,6 +83,15 @@ versioned at
 [`datasets/putttrack_imu_dataset_20260904.zip`](datasets/putttrack_imu_dataset_20260904.zip),
 with its browsable row-level manifest under
 [`docs/research/imu_analysis_20260904`](docs/research/imu_analysis_20260904/README.md).
+The frozen stationary-start pickup V0 is now executable directly from raw JSONL;
+its versioned 72-episode replay reports 60 metric-eligible episodes, 41
+definitive decisions and 19 UNKNOWN without giving motion Gameplay authority.
+The PG-DH-HSMM V1 branch adds tested physics-guided dual-head/explicit-duration
+research primitives and a grouped logistic export path, but has no validated
+production coefficients. See the
+[`V0 replay`](docs/research/imu_analysis_20260904/pickup_v0_holdout_eval/README.md)
+and
+[`algorithm decision`](docs/research/IMU_ALGORITHM_DECISION_20260904_CN.md).
 Duplicate working copies, incomplete captures and later live `runs/` remain
 local until they are reviewed into an experiment batch.
 The hardware-neutral tee/cup input path is also implemented: assigned-Ball tee

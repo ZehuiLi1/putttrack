@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "profile_id": "pickup_detector_v0_stationary_start_eval_profile_20260904",
+  "authority": false,
+  "detector_config_sha256_expected": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+  "note": "Execution-only requirements for frozen V0. Decision and stationary thresholds are sourced exclusively from pickup_detector_v0.json; this profile defines data coverage, rate tolerance and numerical clipping boundary.",
+  "pre_go_stationary": {
+    "minimum_duration_s": 0.9,
+    "minimum_sample_fraction_of_expected": 0.8
+  },
+  "source_rate_tolerance_fraction": 0.10,
+  "bmi270_gyro_clip_micro_rads": 34208453,
+  "decision_operators": {
+    "positive_vertical_impulse": ">",
+    "mean_gyro_norm": "<",
+    "axis_consistency": "<"
+  },
+  "unsupported_manifest_labels": [
+    "rolling_pickup"
+  ]
+}

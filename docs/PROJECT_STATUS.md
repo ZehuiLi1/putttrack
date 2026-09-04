@@ -23,8 +23,8 @@ It also has a powered NFC service plus System OFF
 cold-wake path and a complete software-only one-hole scoring path. The latest
 temporal analysis gives a promising pickup hypothesis, but there is still no
 independently labelled/held-out action classifier or physically automatic hole.
-The existing same-day data is sufficient to implement the frozen research
-detector and expose its failure modes. The largest remaining validation gap is
+The frozen research detector and raw-source evaluator are now implemented and
+have exposed their failure modes. The largest remaining validation gap is
 independent date/operator/Ball/surface evidence; the next product uncertainty
 is real tee/cup evidence.
 
@@ -41,7 +41,7 @@ is real tee/cup evidence.
 | Bare-Tag motion data | Physical pass, limited scope | Stationary, handling and pickup datasets show generic motion separation and semantic overlap | Do not tune putt/roll logic from more hand-held Tag data |
 | Research-ball mechanics/data | Physical pass; current same-session collection gate complete | Printed halves close fully. In addition to 86/86 roller captures, reviewed batches now cover 10 no-lift handling, 10 rolling pickup, 10 pickup/carry, 10 pickup/drop, 11 gentle putt, 10 rail collision and 11 course-step episodes. Labels remain operator-confirmed rather than video truth | Stop repeated same-environment capture; run the source-derived frozen evaluator, then collect only targeted failures and an independent session/operator/Ball holdout |
 | Sensor fault recovery | Healthy-path physical pass | A real assembled-ball ADXL367 boot-init fault was diagnosed; confirmed `0.1.17` retains retries, capture-generation invalidation, one guarded reboot and quarantine | Fault injection and ten sealed reset cycles |
-| Motion analysis pipeline | Software pass; frozen detector not yet executable | Strict validation, deterministic generic features and fail-closed candidates exist. The V0 vertical-impulse + gyro-energy + axis-consistency hypothesis is frozen, but no repository tool yet derives and evaluates it from raw JSONL | Implement the source-derived, configuration-hashed evaluator and run all reviewed datasets with `authority=false` |
+| Motion analysis pipeline | Software/research pass; non-authoritative | The configuration-hashed frozen V0 evaluator runs directly from raw JSONL. Across 60 metric-eligible precision episodes it makes 41 definitive decisions (TP=20/TN=21/FP=0/FN=0) and returns 19 UNKNOWN; rail collisions expose gyro clipping. PG-DH-HSMM primitives and trainer/export integration are tested but have no validated production coefficients | Freeze and run a new-day/operator/second-Ball/surface holdout; target clipping and then validate trained V1 emissions/HSMM without Gameplay authority |
 | IMU research export | Software pass | The first 161-capture / 113,867-record archive and complete manifest are versioned; all newer reviewed batches preserve raw JSONL, analysis and provenance separately | Keep the historical archive immutable; review new captures into named experiment directories rather than committing live/duplicate `runs/` |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
 | Tee/cup ingress | Software pass | Identity/order/health checks; tee presence and two-stage cup completion contracts | Select/build mechanisms and measure false-positive/latency behavior |
@@ -54,7 +54,7 @@ is real tee/cup evidence.
 
 ```text
 completed roller + reviewed motion-class batches
-        -> executable frozen pickup evaluator
+        -> completed executable frozen pickup evaluator
         -> targeted independent holdout from measured failures
         -> physical tee + independent cup evidence
         -> real automatic one-hole rounds
@@ -67,11 +67,10 @@ BLE transport, signed images or DAPLink recovery.
 
 ## Immediate order
 
-1. Implement the raw-source-derived frozen V0 pickup evaluator, run every
-   reviewed class, and publish per-episode decisions, UNKNOWN reasons, grouped
-   confusion matrices and confidence bounds. Do not collect more duplicate
-   same-session motion first. See
-   [`NEXT_IMU_ENGINEERING_PLAN_20260904.md`](research/NEXT_IMU_ENGINEERING_PLAN_20260904.md).
+1. Keep frozen V0 unchanged and use its published per-episode UNKNOWN/clipping
+   audit to define a future independent date/operator/second-Ball/surface batch;
+   do not collect more duplicate same-session motion first. See
+   [`pickup_v0_holdout_eval`](research/imu_analysis_20260904/pickup_v0_holdout_eval/README.md).
 2. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
    connect them to the implemented activation and evidence policies.
 3. In parallel, characterize NFC range/orientation and the provisional 1.0 uH
@@ -87,13 +86,12 @@ BLE transport, signed images or DAPLink recovery.
 Powered NFC service identity, bounded handoff, battery voltage and System OFF
 cold wake have passed. The research ball is assembled, roller characterization
 is closed, and a pickup detector now has an encouraging in-sample hypothesis.
-The primary IMU work is now evaluator implementation followed by targeted
-independent validation; the primary product work is physical gameplay
+The primary IMU software evaluator is complete; the next IMU gate is targeted
+independent validation. The primary product work is physical gameplay
 characterization. The next honest advances require one of:
 
-- a reproducible frozen-V0 report derived directly from the checked-in raw
-  JSONL, followed only then by a targeted separate session/operator/Ball
-  holdout;
+- a targeted separate date/operator/Ball/surface holdout against the already
+  frozen and published V0 report;
 - an independently labelled assembled-ball free roll, putter impact, collision
   or cup episode;
 - an instrumented NFC range/tuning/current experiment;

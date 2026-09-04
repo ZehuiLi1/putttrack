@@ -1,0 +1,921 @@
+{
+  "authority": false,
+  "by_core_revision": {
+    "PCA20072-carrier-R0": {
+      "definitive_coverage": 0.6833333333333333,
+      "definitive_coverage_wilson95": [
+        0.5576623297382323,
+        0.7869413244763347
+      ],
+      "definitive_episodes": 41,
+      "eligible_episodes": 60,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.08762160119728664
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.8388748419471806,
+        1.0
+      ],
+      "pickup_recall_wilson95": [
+        0.8388748419471806,
+        1.0
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 21,
+      "tp": 20,
+      "unknown_episodes": 19
+    }
+  },
+  "by_label": {
+    "handling": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 10,
+      "tp": 0,
+      "unknown_episodes": 0
+    },
+    "pickup_carry": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 10,
+      "unknown_episodes": 0
+    },
+    "pickup_drop": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 10,
+      "unknown_episodes": 0
+    },
+    "putt_gentle": {
+      "definitive_coverage": 0.1,
+      "definitive_coverage_wilson95": [
+        0.017876213095072896,
+        0.4041500267952385
+      ],
+      "definitive_episodes": 1,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 1,
+      "tp": 0,
+      "unknown_episodes": 9
+    },
+    "putt_rail_collision": {
+      "definitive_coverage": 0.0,
+      "definitive_coverage_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "definitive_episodes": 0,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 0,
+      "tp": 0,
+      "unknown_episodes": 10
+    },
+    "rolling_pickup": {
+      "definitive_coverage": null,
+      "definitive_coverage_wilson95": [
+        null,
+        null
+      ],
+      "definitive_episodes": 0,
+      "eligible_episodes": 0,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 0,
+      "tp": 0,
+      "unknown_episodes": 0
+    },
+    "track_step_drop": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 10,
+      "tp": 0,
+      "unknown_episodes": 0
+    }
+  },
+  "by_operator": {
+    "A": {
+      "definitive_coverage": 0.6833333333333333,
+      "definitive_coverage_wilson95": [
+        0.5576623297382323,
+        0.7869413244763347
+      ],
+      "definitive_episodes": 41,
+      "eligible_episodes": 60,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.08762160119728664
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.8388748419471806,
+        1.0
+      ],
+      "pickup_recall_wilson95": [
+        0.8388748419471806,
+        1.0
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 21,
+      "tp": 20,
+      "unknown_episodes": 19
+    }
+  },
+  "by_session": {
+    "pickup-precision-1a-20260904-183730": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 10,
+      "tp": 0,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1b-20260904": {
+      "definitive_coverage": null,
+      "definitive_coverage_wilson95": [
+        null,
+        null
+      ],
+      "definitive_episodes": 0,
+      "eligible_episodes": 0,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 0,
+      "tp": 0,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1c-20260904": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 10,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1c-drop-20260904": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.20654931437723745,
+        1.0
+      ],
+      "definitive_episodes": 1,
+      "eligible_episodes": 1,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.20654931437723745,
+        1.0
+      ],
+      "pickup_recall_wilson95": [
+        0.20654931437723745,
+        1.0
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 1,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1c-drop-20260904-b": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7008549515804559,
+        1.0
+      ],
+      "definitive_episodes": 9,
+      "eligible_episodes": 9,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7008549515804559,
+        1.0
+      ],
+      "pickup_recall_wilson95": [
+        0.7008549515804559,
+        1.0
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 9,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1d-gentle-20260904": {
+      "definitive_coverage": 0.1111111111111111,
+      "definitive_coverage_wilson95": [
+        0.019890887638544907,
+        0.434999705576656
+      ],
+      "definitive_episodes": 1,
+      "eligible_episodes": 9,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2991450484195441
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 1,
+      "tp": 0,
+      "unknown_episodes": 8
+    },
+    "pickup-precision-1d-gentle-replacement-20260904": {
+      "definitive_coverage": 0.0,
+      "definitive_coverage_wilson95": [
+        0.0,
+        0.7934506856227626
+      ],
+      "definitive_episodes": 0,
+      "eligible_episodes": 1,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.7934506856227626
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 0,
+      "tp": 0,
+      "unknown_episodes": 1
+    },
+    "pickup-precision-1e-rail-20260904": {
+      "definitive_coverage": 0.0,
+      "definitive_coverage_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "definitive_episodes": 0,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2775327998628892
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 0,
+      "tp": 0,
+      "unknown_episodes": 10
+    },
+    "pickup-precision-1e-step-20260904": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7008549515804559,
+        1.0
+      ],
+      "definitive_episodes": 9,
+      "eligible_episodes": 9,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.2991450484195441
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 9,
+      "tp": 0,
+      "unknown_episodes": 0
+    },
+    "pickup-precision-1e-step-replacement-20260904": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.20654931437723745,
+        1.0
+      ],
+      "definitive_episodes": 1,
+      "eligible_episodes": 1,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.7934506856227626
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": null,
+      "pickup_precision_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_wilson95": [
+        null,
+        null
+      ],
+      "pickup_recall_with_unknown_as_miss": null,
+      "tn": 1,
+      "tp": 0,
+      "unknown_episodes": 0
+    }
+  },
+  "by_surface": {
+    "unspecified": {
+      "definitive_coverage": 0.62,
+      "definitive_coverage_wilson95": [
+        0.4815044693099298,
+        0.7413721068980641
+      ],
+      "definitive_episodes": 31,
+      "eligible_episodes": 50,
+      "false_pickup_rate_all_negatives": 0.0,
+      "false_pickup_rate_wilson95": [
+        0.0,
+        0.08762160119728664
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 21,
+      "tp": 10,
+      "unknown_episodes": 19
+    },
+    "unspecified-safe": {
+      "definitive_coverage": 1.0,
+      "definitive_coverage_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "definitive_episodes": 10,
+      "eligible_episodes": 10,
+      "false_pickup_rate_all_negatives": null,
+      "false_pickup_rate_wilson95": [
+        null,
+        null
+      ],
+      "fn": 0,
+      "fp": 0,
+      "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+      "pickup_precision": 1.0,
+      "pickup_precision_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_wilson95": [
+        0.7224672001371107,
+        0.9999999999999999
+      ],
+      "pickup_recall_with_unknown_as_miss": 1.0,
+      "tn": 0,
+      "tp": 10,
+      "unknown_episodes": 0
+    }
+  },
+  "detector_id": "pickup_detector_v0_stationary_start",
+  "excluded_mixed_or_diagnostic": [
+    "putt-gentle-plus-obstacle-r05",
+    "track-step-plus-obstacle-r08"
+  ],
+  "overall": {
+    "definitive_coverage": 0.6833333333333333,
+    "definitive_coverage_wilson95": [
+      0.5576623297382323,
+      0.7869413244763347
+    ],
+    "definitive_episodes": 41,
+    "eligible_episodes": 60,
+    "false_pickup_rate_all_negatives": 0.0,
+    "false_pickup_rate_wilson95": [
+      0.0,
+      0.08762160119728664
+    ],
+    "fn": 0,
+    "fp": 0,
+    "note": "UNKNOWN is reported separately and is never coerced to NOT_PICKUP.",
+    "pickup_precision": 1.0,
+    "pickup_precision_wilson95": [
+      0.8388748419471806,
+      1.0
+    ],
+    "pickup_recall_wilson95": [
+      0.8388748419471806,
+      1.0
+    ],
+    "pickup_recall_with_unknown_as_miss": 1.0,
+    "tn": 21,
+    "tp": 20,
+    "unknown_episodes": 19
+  },
+  "schema_version": 1,
+  "unsupported": [
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r09.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-near-stop-r09",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r10.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-near-stop-r10",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r06.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-normal-r06",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r07.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-normal-r07",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r08.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-normal-r08",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r03.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-slow-r03",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r04.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-slow-r04",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r05.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-slow-r05",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r01.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-stress-r01",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    },
+    {
+      "authority": false,
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r02.jsonl",
+      "core_revision": "PCA20072-carrier-R0",
+      "correct": null,
+      "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+      "decision": "UNKNOWN",
+      "detector_config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+      "detector_id": "pickup_detector_v0_stationary_start",
+      "episode_id": "rolling-pickup-stress-r02",
+      "evaluation_profile_sha256": "a4ab18d6ce1477334b55b891f85cc955893db1101fd03343e176e6768b3a5063",
+      "label": "rolling_pickup",
+      "manifest": "experiments/research_ball_r1_pickup_precision_1b/manifest.json",
+      "metric_eligible": false,
+      "mixed_or_diagnostic": false,
+      "operator": "A",
+      "prediction": null,
+      "reason_codes": "unsupported_rolling_start_path",
+      "session": "pickup-precision-1b-20260904",
+      "shell_revision": "printed-two-half-R1",
+      "surface": "unspecified",
+      "target": null,
+      "unknown": true
+    }
+  ]
+}
