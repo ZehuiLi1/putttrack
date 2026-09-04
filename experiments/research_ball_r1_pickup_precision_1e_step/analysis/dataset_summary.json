@@ -491,6 +491,55 @@
         "adxl367_clipping"
       ],
       "quality_status": "WARN"
+    },
+    {
+      "boot_id": "510a596420360248",
+      "capture_path": "raw/field-pickup-precision-1e-step-replacement-20260904-track_step_drop-r01.jsonl",
+      "device_id": "f383571202836e6f",
+      "diagnostic_passed": true,
+      "diagnostic_state": "ACTIVE_MOTION_CANDIDATE",
+      "features": {
+        "accel_norm_max_mps2": 63.70524520564117,
+        "accel_norm_mean_mps2": 10.057673143736288,
+        "accel_norm_min_mps2": 0.7854676892673562,
+        "accel_norm_stdev_mps2": 3.004888449626478,
+        "active_sample_fraction": 0.26897470039946736,
+        "adxl367_clip_samples": 6,
+        "bmi270_accel_clip_samples": 0,
+        "bmi270_gyro_clip_samples": 0,
+        "duration_s": 14.999968,
+        "first_active_offset_s": 5.4,
+        "gyro_norm_max_rads": 37.20218870715773,
+        "gyro_norm_rms_rads": 10.8110747071136,
+        "jerk_norm_peak_mps3": 2851.0056914164898,
+        "jerk_norm_rms_mps3": 213.23481478154912,
+        "last_active_offset_s": 9.439968,
+        "observed_rate_hz": 50.00010666689422,
+        "sample_count": 751,
+        "sequence_gaps": 0,
+        "valid_fraction": 1.0
+      },
+      "firmware_version": "0.1.17",
+      "metadata": {
+        "capture": "raw/field-pickup-precision-1e-step-replacement-20260904-track_step_drop-r01.jsonl",
+        "core_revision": "PCA20072-carrier-R0",
+        "episode_id": "track-step-fast-r08-replacement",
+        "label": "track_step_drop",
+        "mass_g": null,
+        "notes": "Clean replacement for mixed original r08. Obstacle path was cleared; operator reported one roll over the same step followed by natural settling without another collision.",
+        "operator": "A",
+        "orientation": "uncontrolled",
+        "session": "pickup-precision-1e-step-replacement-20260904",
+        "shell_revision": "printed-two-half-R1",
+        "strength": "fast-planned",
+        "surface": "unspecified",
+        "trial": "008R",
+        "video_ref": null
+      },
+      "quality_issues": [
+        "adxl367_clipping"
+      ],
+      "quality_status": "WARN"
     }
   ]
 }

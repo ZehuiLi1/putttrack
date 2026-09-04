@@ -82,6 +82,15 @@
       "label": "track_step_drop",
       "trial": "010",
       "strength": "fast-planned"
+    },
+    {
+      "episode_id": "track-step-fast-r08-replacement",
+      "capture": "raw/field-pickup-precision-1e-step-replacement-20260904-track_step_drop-r01.jsonl",
+      "label": "track_step_drop",
+      "session": "pickup-precision-1e-step-replacement-20260904",
+      "trial": "008R",
+      "strength": "fast-planned",
+      "notes": "Clean replacement for mixed original r08. Obstacle path was cleared; operator reported one roll over the same step followed by natural settling without another collision."
     }
   ]
 }

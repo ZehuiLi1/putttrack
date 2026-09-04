@@ -2,8 +2,8 @@
 
 ## Scope
 
-This evidence set preserves ten successful `track_step_drop` captures plus one
-automatically rejected diagnostic attempt. The planned action was a single
+This evidence set preserves eleven successful `track_step_drop` captures plus
+three automatically rejected diagnostic attempts. The planned action was a single
 manual push over one fixed small course-like step followed by natural settling,
 without pickup. Planned speeds were three slow, four normal and three faster
 runs.
@@ -11,7 +11,7 @@ runs.
 The operator reported that successful episode r08 rolled after the step and
 then collided with an obstacle. It is preserved as a mixed step-plus-collision
 negative and excluded from clean step-only comparisons. A separately named
-replacement capture is planned rather than overwriting or relabelling r08.
+clean replacement was collected rather than overwriting or relabelling r08.
 
 Step height, surface and independent video truth were not measured. These are
 pickup hard-negative controls, not stroke, cup or scoring authority.
@@ -21,23 +21,27 @@ pickup hard-negative controls, not stroke, cup or scoring authority.
 - device ID: `f383571202836e6f`
 - firmware: `0.1.17`
 - source rate: 50 Hz
-- successful captures: 10
-- clean step-only captures: 9
+- successful captures: 11
+- clean step-only captures: 10
 - mixed step-plus-obstacle captures: 1 (`r08`)
-- automatically rejected diagnostics: 1 (first `r09` attempt)
+- automatically rejected diagnostics: 3 (first `r09` attempt and two
+  replacement attempts)
 - successful-capture continuity/metadata failures: 0
-- successful-capture quality: 0 `PASS`, 10 `WARN`, 0 `FAIL`
-- ADXL367 clipping: 10/10 successful episodes, 102 total samples
-- BMI270 accelerometer clipping: 0/10 successful episodes
-- BMI270 gyroscope clipping: 1/10 successful episodes, 54 samples (`r08`)
+- successful-capture quality: 0 `PASS`, 11 `WARN`, 0 `FAIL`
+- ADXL367 clipping: 11/11 successful episodes, 108 total samples
+- BMI270 accelerometer clipping: 0/11 successful episodes
+- BMI270 gyroscope clipping: 1/11 successful episodes, 54 samples (`r08`)
 
 The rejected first r09 attempt had pre-GO gyro activity and failed the
 stationary baseline gate. Its diagnostic JSONL is retained under
-`diagnostics/`; the accepted retry is the canonical r09 capture.
+`diagnostics/`; the accepted retry is the canonical r09 capture. The first
+replacement attempt also failed the pre-GO gyro gate by a narrow margin. The
+second replacement attempt had a clean baseline but no post-GO motion, so the
+web workflow correctly refused to count it. The third attempt passed.
 
 ## Post-GO clean comparison
 
-| Feature | Pickup holdout, n=10 | Clean step-only, n=9 | Interpretation |
+| Feature | Pickup holdout, n=10 | Original clean step-only, n=9 | Interpretation |
 |---|---:|---:|---|
 | Accel-norm stdev (m/s²) | 1.474-4.864 | 1.956-5.121 | strongly overlaps |
 | Gyro RMS (rad/s) | 1.708-4.531 | 4.923-14.535 | separated here, near boundary |
@@ -60,9 +64,10 @@ was hit.
 ## Files
 
 - `manifest.json` provides episode identity and known provenance.
-- `raw/` contains the ten original successful JSONL captures.
-- `diagnostics/` contains the automatically rejected pre-GO-contaminated
-  attempt; it is not in the manifest or aggregate metrics.
+- `raw/` contains the ten original successful JSONL captures and the separately
+  named clean replacement.
+- `diagnostics/` contains all automatically rejected attempts; they are not in
+  the manifest or aggregate metrics.
 - `analysis/dataset_summary.csv` and `.json` contain deterministic features.
 - `analysis/quality_report.json` records structural quality outcomes.
 - `analysis/plots/` contains dependency-free per-episode traces.

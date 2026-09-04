@@ -1,11 +1,11 @@
 {
   "dataset_id": "research-ball-r1-pickup-precision-1e-step-20260904",
-  "episodes": 10,
+  "episodes": 11,
   "episodes_by_label": {
-    "track_step_drop": 10
+    "track_step_drop": 11
   },
   "episodes_with_clipping": {
-    "adxl367": 10,
+    "adxl367": 11,
     "bmi270_accel": 0,
     "bmi270_gyro": 1
   },
@@ -14,7 +14,7 @@
   "quality_status_counts": {
     "FAIL": 0,
     "PASS": 0,
-    "WARN": 10
+    "WARN": 11
   },
   "warning_episode_ids": [
     "track-step-slow-r01",
@@ -26,6 +26,7 @@
     "track-step-normal-r07",
     "track-step-plus-obstacle-r08",
     "track-step-fast-r09",
-    "track-step-fast-r10"
+    "track-step-fast-r10",
+    "track-step-fast-r08-replacement"
   ]
 }
