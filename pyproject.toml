@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 research = ["pyarrow>=16"]
 research-ml = ["scikit-learn==1.8.0"]
+research-imu = ["numpy==2.5.2", "pandas==3.0.5", "scipy==1.18.1", "scikit-learn==1.8.0"]
 hardware = ["bleak>=0.22", "pyserial>=3.5"]
 dev = ["bleak>=0.22", "pyarrow>=16", "pyserial>=3.5"]
 

@@ -1,0 +1,7 @@
+model,evaluation,n,classes,accuracy,balanced_accuracy,macro_f1,weighted_f1,median_confidence,note
+logistic,leave_one_episode_out,122,8,0.762295081967,0.65434981685,0.672898424025,0.782310987789,0.753012748997,episode-isolated but not session/operator/ball independent
+linear_lda_shrinkage,leave_one_episode_out,122,8,0.770491803279,0.631593406593,0.647020733351,0.765941143348,0.999016095204,episode-isolated but not session/operator/ball independent
+rbf_svm,leave_one_episode_out,122,8,0.729508196721,0.600610500611,0.626470698022,0.749849405516,0.617428669533,episode-isolated but not session/operator/ball independent
+random_forest,leave_one_episode_out,122,8,0.827868852459,0.717277167277,0.725952873399,0.827485563516,0.755305794031,episode-isolated but not session/operator/ball independent
+extra_trees,leave_one_episode_out,122,8,0.819672131148,0.719627594628,0.729325114093,0.830336763765,0.768833483344,episode-isolated but not session/operator/ball independent
+rocket_lite_ridge,leave_one_episode_out,122,8,0.688524590164,0.5528998779,0.560213136127,0.678475681257,,data-driven random convolution baseline; episode-isolated but not session/operator/ball independent

@@ -1,0 +1,6 @@
+model,evaluation,n,classes,accuracy,balanced_accuracy,macro_f1,weighted_f1,median_confidence,note
+logistic,leave_one_episode_out,90,2,1,1,1,1,0.991779371743,episode-isolated but not session/operator/ball independent
+linear_lda_shrinkage,leave_one_episode_out,90,2,1,1,1,1,0.999999999619,episode-isolated but not session/operator/ball independent
+rbf_svm,leave_one_episode_out,90,2,0.977777777778,0.980392156863,0.9775,0.977833333333,0.986984697806,episode-isolated but not session/operator/ball independent
+random_forest,leave_one_episode_out,90,2,0.922222222222,0.91628959276,0.92,0.921777777778,0.888849418569,episode-isolated but not session/operator/ball independent
+extra_trees,leave_one_episode_out,90,2,0.933333333333,0.929110105581,0.931680161943,0.933097165992,0.916163938391,episode-isolated but not session/operator/ball independent
