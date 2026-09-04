@@ -1,0 +1,65 @@
+{
+  "snapshot_id": "putttrack_imu_20260904_3f_baseline_reproduction",
+  "status": "reproduced_from_preserved_episode_feature_ledger",
+  "python": "3.13",
+  "scikit_learn": "1.8.0",
+  "evaluation": "LeaveOneOut over 22 complete episodes; scaler fitted inside each training fold",
+  "features": [
+    "vertical_impulse_pos_0p6",
+    "gyro_mean_1s",
+    "gyro_axis_consistency_1s"
+  ],
+  "target": "pickup=1; selected semantic negative=0",
+  "episode_count": 22,
+  "models": {
+    "logistic_3f": {
+      "pipeline": "StandardScaler -> LogisticRegression",
+      "parameters": {
+        "C": 1.0,
+        "penalty": "l2",
+        "solver": "lbfgs",
+        "max_iter": 1000
+      },
+      "random_state": null
+    },
+    "linear_svm_3f": {
+      "pipeline": "StandardScaler -> SVC",
+      "parameters": {
+        "kernel": "linear",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "random_state": null
+    },
+    "rbf_svm_3f": {
+      "pipeline": "StandardScaler -> SVC",
+      "parameters": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "random_state": null
+    },
+    "tree_depth2_3f": {
+      "pipeline": "DecisionTreeClassifier",
+      "parameters": {
+        "max_depth": 2,
+        "random_state": 42
+      },
+      "random_state": 42
+    },
+    "rf_3f": {
+      "pipeline": "RandomForestClassifier",
+      "parameters": {
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "random_state": 42
+    }
+  },
+  "notes": [
+    "physics_rule is excluded from LOEO because its thresholds were selected post-hoc on all inspected episodes",
+    "legacy 'full feature' rows from PR #21 remain historical reported values and are not reproduced here",
+    "this reproduces model evaluation from the preserved episode-level feature ledger, not feature extraction from raw JSONL"
+  ]
+}

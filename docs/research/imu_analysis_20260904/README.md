@@ -13,26 +13,36 @@ The current finding is that short positive vertical impulse combined with one-se
 - `IMU_ANALYSIS_REPORT_CN.md` — full Chinese engineering analysis and recommendation.
 - `PICKUP_DETECTOR_V0_RESEARCH_ONLY.md` — explicit research-only detector definition and authority boundary.
 - `../../../configs/research/pickup_detector_v0.json` — exact frozen V0 onset/feature thresholds for the next untouched batch.
-- `model_benchmark_leave_one_episode_out.csv` — whole-episode small-data baseline comparison.
-- `next_capture_plan.csv` — minimum next capture matrix for no-lift, rolling pickup, clean putt, collision/step and cup sequences.
+- `pickup_binary_research_set.csv` — the preserved 22-episode feature/label ledger used for the three-feature baseline replay.
+- `model_reproduction_spec.json` — exact scikit-learn version, features, preprocessing scope and hyperparameters for the reproducible three-feature baselines.
+- `model_benchmark_reproduced_3f.csv` — reproduced whole-episode LOEO metrics for Logistic, linear/RBF SVM, depth-2 tree and Random Forest.
+- `model_benchmark_fold_predictions_3f.csv` — held-out prediction for every episode/model fold.
+- `model_benchmark_leave_one_episode_out.csv` — original reviewed snapshot table; its post-hoc physics row and legacy full-feature rows remain historical/reporting artifacts.
+- `next_capture_plan.csv` — minimum next capture matrix for handling/no-lift, rolling pickup, clean putt, collision/step and later cup sequences.
 - `dataset_manifest_audit_summary.csv` — category-level audit derived from the full local manifest; the complete row-level audit remains in the local delivery bundle.
 - `GITHUB_NEXT_CHANGE_RECOMMENDATION.md` — proposed holdout-evaluator implementation scope.
-- `REVIEW_NOTES_AND_OPEN_QUESTIONS.md` — post-merge reproducibility review and naming corrections.
+- `REVIEW_NOTES_AND_OPEN_QUESTIONS.md` — post-merge review, resolved reproducibility items and remaining evidence gaps.
 - `figures/01_pickup_feature_space.svg` — current pickup/putt/roll feature-space view.
 - `figures/02_representative_gyro_traces.svg` — representative rotation traces aligned to detected onset.
 - `figures/04_model_benchmark.svg` — baseline model comparison.
 
+Executable reproduction:
+
+```bash
+pip install '.[research-ml]'
+python tools/reproduce_pickup_snapshot_20260904.py
+```
+
+The script is pinned to scikit-learn `1.8.0`, fits `StandardScaler` inside each LOEO training fold where applicable, reproduces the five three-feature model confusion matrices and rewrites the reproduced summary/fold files deterministically.
+
 ## Decision boundary
 
-Do not infer product accuracy from the current 11/11 pickup and 0/11 selected-negative replay. The detector must first pass strict no-lift controls, rolling pickup, collision/step controls and a separately collected day/session/operator holdout.
+Do not infer product accuracy from the current 11/11 pickup and 0/11 selected-negative post-hoc rule replay. The detector must first pass strict no-lift controls, rolling pickup, collision/step controls and a separately collected day/session/operator holdout.
 
 Do not copy these thresholds into Gameplay or scoring code. The next implementation target is a host/Edge holdout evaluator that reports whole-episode/session metrics, confidence intervals, clipping and provenance while keeping `authority=false`.
 
-The published small-model scores and figures are retained as supplied analysis
-artifacts. They are not yet reproducible from Git because their source episode
-ledger, exact preprocessing/hyperparameters, fold outputs and generating code
-were not included. See `REVIEW_NOTES_AND_OPEN_QUESTIONS.md` before citing them.
+The three-feature ML baseline is now reproducible from the preserved episode-level feature ledger. This does **not** make it an independent holdout result and does not make the underlying feature extraction reproducible from raw field JSONL, because those raw field runs intentionally remain outside Git. The legacy `logistic_full` / `rf_full` snapshot rows are also not promoted to reproducible evidence because their full feature definition was not preserved.
 
 ## Data policy
 
-The generated ZIP bundle, raw field `runs/`, duplicate local captures and the complete row-level manifest audit remain local. Git contains only the reviewed analysis artifacts, the compact audit summary and existing curated research evidence.
+The generated ZIP bundle, raw field `runs/`, duplicate local captures and the complete row-level manifest audit remain local. Git contains only the reviewed analysis artifacts, compact derived episode-level evidence needed for reproducibility, and existing curated research evidence.
