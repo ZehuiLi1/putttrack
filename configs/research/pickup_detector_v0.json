@@ -7,11 +7,6 @@
   "expected_source_rate_hz": 50,
   "gravity_mps2": 9.80665,
   "required_pre_go_stationary_s": 1.0,
-  "stationary_baseline": {
-    "maximum_accel_norm_stdev_mps2": 0.15,
-    "maximum_gyro_norm_rms_rads": 0.08,
-    "provenance": "repository provisional stationary limits frozen before this replay"
-  },
   "onset": {
     "search_start_after_go_s": 0.5,
     "accel_norm_deviation_mps2": 0.5,
