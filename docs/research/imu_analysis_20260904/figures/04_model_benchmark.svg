@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+<rect width="100%" height="100%" fill="white"/>
+<text x="450.0" y="28" text-anchor="middle" font-family="sans-serif" font-size="19">Small-data baseline comparison (*post-hoc rule; not holdout accuracy)</text>
+<line x1="230.0" y1="55" x2="230.0" y2="515" stroke="#ddd"/><text x="230.0" y="538" text-anchor="middle" font-family="sans-serif" font-size="11">0.80</text>
+<line x1="387.5" y1="55" x2="387.5" y2="515" stroke="#ddd"/><text x="387.5" y="538" text-anchor="middle" font-family="sans-serif" font-size="11">0.85</text>
+<line x1="545.0" y1="55" x2="545.0" y2="515" stroke="#ddd"/><text x="545.0" y="538" text-anchor="middle" font-family="sans-serif" font-size="11">0.90</text>
+<line x1="702.5" y1="55" x2="702.5" y2="515" stroke="#ddd"/><text x="702.5" y="538" text-anchor="middle" font-family="sans-serif" font-size="11">0.95</text>
+<line x1="860.0" y1="55" x2="860.0" y2="515" stroke="#ddd"/><text x="860.0" y="538" text-anchor="middle" font-family="sans-serif" font-size="11">1.00</text>
+<text x="220" y="80" text-anchor="end" font-family="sans-serif" font-size="12">Physics rule*</text><rect x="230" y="55" width="630.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="866.0" y="80" font-family="sans-serif" font-size="12">1.000</text>
+<text x="220" y="133" text-anchor="end" font-family="sans-serif" font-size="12">Logistic (3f)</text><rect x="230" y="108" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="133" font-family="sans-serif" font-size="12">0.957</text>
+<text x="220" y="186" text-anchor="end" font-family="sans-serif" font-size="12">Linear SVM (3f)</text><rect x="230" y="161" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="186" font-family="sans-serif" font-size="12">0.957</text>
+<text x="220" y="239" text-anchor="end" font-family="sans-serif" font-size="12">RBF SVM (3f)</text><rect x="230" y="214" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="239" font-family="sans-serif" font-size="12">0.957</text>
+<text x="220" y="292" text-anchor="end" font-family="sans-serif" font-size="12">Tree depth 2</text><rect x="230" y="267" width="343.6" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="579.6" y="292" font-family="sans-serif" font-size="12">0.909</text>
+<text x="220" y="345" text-anchor="end" font-family="sans-serif" font-size="12">Random forest (3f)</text><rect x="230" y="320" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="345" font-family="sans-serif" font-size="12">0.957</text>
+<text x="220" y="398" text-anchor="end" font-family="sans-serif" font-size="12">Logistic (full)</text><rect x="230" y="373" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="398" font-family="sans-serif" font-size="12">0.957</text>
+<text x="220" y="451" text-anchor="end" font-family="sans-serif" font-size="12">Random forest (full)</text><rect x="230" y="426" width="493.0" height="40" fill="#1f77b4" fill-opacity="0.78"/><text x="729.0" y="451" font-family="sans-serif" font-size="12">0.957</text>
+<text x="545.0" y="555" text-anchor="middle" font-family="sans-serif" font-size="13">Pickup F1</text></svg>
