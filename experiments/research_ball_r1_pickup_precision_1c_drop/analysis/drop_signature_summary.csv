@@ -1,0 +1,11 @@
+episode_id,source_capture,onset_offset_s,onset_1s_mean_gyro_rads,onset_1s_axis_consistency,onset_1s_accel_norm_stdev_mps2,release_low_accel_norm_mps2,release_low_offset_s,following_impact_accel_norm_mps2,following_impact_offset_s,low_to_impact_s,exploratory_release_pair
+pickup-drop-r01,field-pickup-precision-1c-drop-20260904-pickup_drop-r01.jsonl,3.260000,4.018827,0.353834,4.495688,0.562241,8.080000,49.698178,8.199968,0.119968,true
+pickup-drop-r02,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r01.jsonl,1.840000,4.011993,0.466995,2.113237,0.596726,7.239968,73.487461,7.379968,0.140000,true
+pickup-drop-r03,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r02.jsonl,2.119968,2.451810,0.316664,3.737046,1.088992,7.379968,49.615200,7.639968,0.260000,true
+pickup-drop-r04,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r03.jsonl,2.600000,4.096753,0.594041,3.651834,1.683411,7.760000,79.802359,7.860032,0.100032,true
+pickup-drop-r05,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r04.jsonl,1.859968,2.380736,0.478708,4.821753,0.535032,6.779968,47.726265,6.840000,0.060032,true
+pickup-drop-r06,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r05.jsonl,2.379968,2.466337,0.456023,3.825861,1.461268,9.579968,47.546680,9.659968,0.080000,true
+pickup-drop-r07,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r06.jsonl,1.779968,2.009878,0.751619,4.514730,1.756927,7.380000,26.002069,7.759968,0.379968,true
+pickup-drop-r08,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r07.jsonl,3.279968,2.227802,0.509856,5.293329,0.120951,8.479968,38.126000,8.499968,0.020000,true
+pickup-drop-r09,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r08.jsonl,2.619872,3.425482,0.485433,5.319776,0.674165,7.379872,93.453252,7.779840,0.399968,true
+pickup-drop-r10,field-pickup-precision-1c-drop-20260904-b-pickup_drop-r09.jsonl,2.200000,3.289483,0.723760,5.107240,1.892646,7.060000,36.689842,7.359968,0.299968,true

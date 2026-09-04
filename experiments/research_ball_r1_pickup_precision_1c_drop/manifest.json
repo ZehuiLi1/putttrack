@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1c-drop-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1c-drop-20260904",
+    "surface": "unspecified-safe",
+    "orientation": "varied-unmeasured",
+    "operator": "A",
+    "notes": "Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported a stationary-start pickup, 2-3 seconds of carrying, and a casual low-height release without throwing after every visible GO cue. Release height, landing surface and independent video truth were not measured. The continuation session followed one valid earlier capture; filenames are preserved unchanged. This is pickup-positive variation and must not be used to tune frozen V0 thresholds."
+  },
+  "episodes": [
+    {
+      "episode_id": "pickup-drop-r01",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-pickup_drop-r01.jsonl",
+      "label": "pickup_drop",
+      "trial": "001",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r02",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r01.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "002",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r03",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r02.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "003",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r04",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r03.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "004",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r05",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r04.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "005",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r06",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r05.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "006",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r07",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r06.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "007",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r08",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r07.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "008",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r09",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r08.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "009",
+      "strength": "casual-low-height-unmeasured"
+    },
+    {
+      "episode_id": "pickup-drop-r10",
+      "capture": "raw/field-pickup-precision-1c-drop-20260904-b-pickup_drop-r09.jsonl",
+      "label": "pickup_drop",
+      "session": "pickup-precision-1c-drop-20260904-b",
+      "trial": "010",
+      "strength": "casual-low-height-unmeasured"
+    }
+  ]
+}

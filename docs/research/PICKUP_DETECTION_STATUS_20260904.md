@@ -35,6 +35,9 @@ The most relevant recent sets are:
 
 - ten operator-labelled `pickup_carry` episodes at 50 Hz with zero sequence
   gaps and no BMI270 clipping;
+- ten operator-labelled `pickup_drop` episodes with zero sequence gaps and no
+  BMI270 clipping; all include a pickup, short carry and casual low-height
+  release rather than a gentle placement;
 - ten nominal `putt_normal` episodes at 50 Hz with zero sequence gaps;
 - the checked-in seven-episode manual-floor set containing stationary, two
   free rolls, pickup/carry and restrained repeated taps;
@@ -115,6 +118,14 @@ stable single-axis roll -> abrupt roll-model departure
 After confirmation the event is latched until hole reset or the next Tee
 activation. Placement is useful for dataset segmentation and state recovery,
 but does not need to be a separate gameplay event.
+
+The later `pickup_drop` batch reinforces that the decision should be made from
+the pickup onset, not from what happens when the player releases the Ball. Its
+first-second pickup features overlap the earlier `pickup_carry` set, while all
+ten terminal releases contain a separate near-weightless-then-landing pattern.
+One episode sits immediately beyond the old post-hoc axis-consistency boundary,
+so this batch must challenge the frozen combined detector rather than causing a
+single threshold to be relaxed.
 
 ## Reviewed analysis snapshot
 
