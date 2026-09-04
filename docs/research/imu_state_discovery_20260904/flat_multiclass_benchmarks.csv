@@ -1,7 +1,7 @@
 model,evaluation,n,classes,accuracy,balanced_accuracy,macro_f1,weighted_f1,median_confidence,note
-logistic,leave_one_episode_out,121,8,0.776859504132,0.661294261294,0.681384943633,0.796672170803,0.752860294378,episode-isolated but not session/operator/ball independent
-linear_lda_shrinkage,leave_one_episode_out,121,8,0.768595041322,0.631166056166,0.64867333532,0.767808890473,0.998870557861,episode-isolated but not session/operator/ball independent
-rbf_svm,leave_one_episode_out,121,8,0.743801652893,0.620589133089,0.641048762845,0.764905188863,0.612116648872,episode-isolated but not session/operator/ball independent
-random_forest,leave_one_episode_out,121,8,0.818181818182,0.697832722833,0.710021849496,0.818066994144,0.76672420885,episode-isolated but not session/operator/ball independent
-extra_trees,leave_one_episode_out,121,8,0.818181818182,0.715460927961,0.725158447427,0.828934588259,0.772290838918,episode-isolated but not session/operator/ball independent
-rocket_lite_ridge,leave_one_episode_out,121,8,0.694214876033,0.5528998779,0.561830104684,0.684190908026,,data-driven random convolution baseline; episode-isolated but not session/operator/ball independent
+logistic,leave_one_episode_out,122,8,0.762295081967,0.65434981685,0.672898424025,0.782310987789,0.753012748997,episode-isolated but not session/operator/ball independent
+linear_lda_shrinkage,leave_one_episode_out,122,8,0.770491803279,0.631593406593,0.647020733351,0.765941143348,0.999016095204,episode-isolated but not session/operator/ball independent
+rbf_svm,leave_one_episode_out,122,8,0.729508196721,0.600610500611,0.626470698022,0.749849405516,0.617428669533,episode-isolated but not session/operator/ball independent
+random_forest,leave_one_episode_out,122,8,0.827868852459,0.717277167277,0.725952873399,0.827485563516,0.755305794031,episode-isolated but not session/operator/ball independent
+extra_trees,leave_one_episode_out,122,8,0.819672131148,0.719627594628,0.729325114093,0.830336763765,0.768833483344,episode-isolated but not session/operator/ball independent
+rocket_lite_ridge,leave_one_episode_out,122,8,0.688524590164,0.5528998779,0.560213136127,0.678475681257,,data-driven random convolution baseline; episode-isolated but not session/operator/ball independent

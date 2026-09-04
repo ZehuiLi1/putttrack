@@ -1,7 +1,7 @@
 episode_key,source,label,semantic_quality,target,prediction,reason,scorable,correct
 manifest::research_ball_r1_pickup_precision_1d_gentle::putt-gentle-varied-r09,manifest::research_ball_r1_pickup_precision_1d_gentle,putt_gentle,WARNING,NOT_PICKUP,UNKNOWN,gyro_clipping,0,
 manifest::research_ball_r1_pickup_precision_1e_step::track-step-fast-r10,manifest::research_ball_r1_pickup_precision_1e_step,track_step_drop,WARNING,NOT_PICKUP,NOT_PICKUP,frozen_v0_rule,1,1
-manifest::research_ball_r1_pickup_precision_1e_step::track-step-fast-r09,manifest::research_ball_r1_pickup_precision_1e_step,track_step_drop,INVALID,NOT_PICKUP,NOT_PICKUP,frozen_v0_rule,1,1
+manifest::research_ball_r1_pickup_precision_1e_step::track-step-fast-r09,manifest::research_ball_r1_pickup_precision_1e_step,track_step_drop,WARNING,NOT_PICKUP,NOT_PICKUP,frozen_v0_rule,1,1
 manifest::research_ball_r1_pickup_precision_1a::handling-slide-r08,manifest::research_ball_r1_pickup_precision_1a,handling,WARNING,NOT_PICKUP,NOT_PICKUP,frozen_v0_rule,1,1
 manifest::research_ball_r1_pickup_precision_1c::pickup-carry-normal-r01,manifest::research_ball_r1_pickup_precision_1c,pickup_carry,WARNING,PICKUP,PICKUP,frozen_v0_rule,1,1
 manifest::research_ball_r1_pickup_precision_1c::pickup-carry-normal-r04,manifest::research_ball_r1_pickup_precision_1c,pickup_carry,WARNING,PICKUP,PICKUP,frozen_v0_rule,1,1

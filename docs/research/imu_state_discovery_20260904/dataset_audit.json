@@ -1,6 +1,6 @@
 {
   "unique_episodes": 233,
-  "model_episodes": 121,
+  "model_episodes": 122,
   "archive_plus_manifest_before_dedup": 242,
   "duplicates": 9,
   "parse_errors": 0,
@@ -80,10 +80,10 @@
     "low_speed_boundary__3rpm": 1
   },
   "semantic_quality": {
-    "WARNING": 212,
+    "WARNING": 213,
     "CLEAN_OPERATOR_LABEL": 10,
     "MIXED": 6,
-    "INVALID": 5
+    "INVALID": 4
   },
   "devices": 1,
   "boots": 17,

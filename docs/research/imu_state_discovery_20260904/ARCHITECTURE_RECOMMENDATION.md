@@ -5,7 +5,7 @@ Generated from repository data; research-only; `authority=false`.
 ## Data audit
 
 - unique raw episodes analysed: **233**
-- semantic manifest episodes used for model discovery: **121**
+- semantic manifest episodes used for model discovery: **122**
 - devices / boots / sessions / operators: **1 / 17 / 26 / 2**
 - median sample rate: **50.00 Hz**
 - sequence-gap episodes: **3**
@@ -15,11 +15,11 @@ Classes confined to one session/manifest group: `COLLISION_RAIL, IMPACT_TAP, ROL
 
 ## Empirical model comparison
 
-Best exploratory flat multiclass baseline: **extra_trees**, LOEO macro-F1 **0.725**. This is not a production accuracy estimate because episodes from the same day/operator/Ball remain correlated.
+Best exploratory flat multiclass baseline: **extra_trees**, LOEO macro-F1 **0.729**. This is not a production accuracy estimate because episodes from the same day/operator/Ball remain correlated.
 
-Best exploratory rolling-disruption baseline: **extra_trees**, LOEO macro-F1 **0.813**.
+Best exploratory rolling-disruption baseline: **rbf_svm**, LOEO macro-F1 **0.875**.
 
-Frozen V0 reconstruction replay (no threshold changes): `{"episodes": 72, "unknown": 31, "quality_excluded": 3, "config_path": "configs/research/pickup_detector_v0.json", "config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad", "note": "Exact frozen-config replay; UNKNOWN is retained and never counted as NOT_PICKUP.", "quality_eligible_scorable": 40, "tn": 20, "fp": 0, "fn": 0, "tp": 20, "precision": 1.0, "recall": 1.0, "f1": 1.0, "specificity": 1.0, "mcc": 1.0}`. UNKNOWN is retained and is not counted as a true negative.
+Frozen V0 reconstruction replay (no threshold changes): `{"episodes": 72, "unknown": 31, "quality_excluded": 2, "unsupported_path_episodes": 10, "metric_eligible_episodes": 60, "metric_eligible_unknown": 19, "config_path": "configs/research/pickup_detector_v0.json", "config_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad", "note": "Exact frozen-config replay; UNKNOWN is retained and never counted as NOT_PICKUP.", "metric_eligible_definitive": 41, "tn": 21, "fp": 0, "fn": 0, "tp": 20, "precision": 1.0, "recall": 1.0, "f1": 1.0, "specificity": 1.0, "mcc": 1.0}`. UNKNOWN is retained and is not counted as a true negative.
 
 ## Final architecture decision
 

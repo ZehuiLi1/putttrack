@@ -516,8 +516,15 @@ def detect_onset(
 
 def classify_semantic_quality(ep: Episode, cap: Capture, has_onset: bool) -> tuple[str, list[str]]:
     reasons: list[str] = []
-    p = (ep.capture_path + " " + ep.notes + " " + ep.quality_declared).lower()
-    if ".failed" in p or "invalid_label" in p or "diagnostic" in p or not cap.capture_pass or cap.malformed_lines:
+    evidence_identity = (ep.capture_path + " " + ep.quality_declared).lower()
+    p = ep.notes.lower()
+    if (
+        ".failed" in evidence_identity
+        or "invalid_label" in evidence_identity
+        or "diagnostic" in evidence_identity
+        or not cap.capture_pass
+        or cap.malformed_lines
+    ):
         reasons.append("invalid_or_failed_capture")
         return "INVALID", reasons
     if len(cap.embedded_labels) > 1 or (cap.embedded_labels and ep.label not in cap.embedded_labels):
@@ -1044,10 +1051,17 @@ def main() -> int:
                         "correct":int(p==target) if p in {"PICKUP","NOT_PICKUP"} else ""})
     v0_df = pd.DataFrame(v0_rows)
     write_csv(v0_df, out/"frozen_v0_reconstruction_replay.csv")
+    metric_eligible = v0_df[
+        ~v0_df["semantic_quality"].isin(["INVALID", "MIXED"])
+        & ~v0_df["label"].isin(UNSUPPORTED_V0_LABELS)
+    ]
     v0_summary: dict[str,Any] = {
         "episodes":len(v0_df),
         "unknown":int((~v0_df["prediction"].isin(["PICKUP","NOT_PICKUP"])).sum()) if len(v0_df) else 0,
         "quality_excluded":int(v0_df["semantic_quality"].isin(["INVALID","MIXED"]).sum()) if len(v0_df) else 0,
+        "unsupported_path_episodes":int(v0_df["label"].isin(UNSUPPORTED_V0_LABELS).sum()) if len(v0_df) else 0,
+        "metric_eligible_episodes":int(len(metric_eligible)),
+        "metric_eligible_unknown":int((metric_eligible["prediction"] == "UNKNOWN").sum()),
         "config_path": "configs/research/pickup_detector_v0.json",
         "config_sha256": sha256_text(json.dumps(v0_config, sort_keys=True, separators=(",", ":"))),
         "note": "Exact frozen-config replay; UNKNOWN is retained and never counted as NOT_PICKUP.",
@@ -1056,7 +1070,7 @@ def main() -> int:
         v0_df["prediction"].isin(["PICKUP","NOT_PICKUP"])
         & ~v0_df["semantic_quality"].isin(["INVALID","MIXED"])
     ]
-    v0_summary["quality_eligible_scorable"] = int(len(scored))
+    v0_summary["metric_eligible_definitive"] = int(len(scored))
     if len(scored) and scored["target"].nunique()>1:
         v0_summary.update(binary_summary((scored["target"]=="PICKUP").astype(int), (scored["prediction"]=="PICKUP").astype(int)))
     (out/"frozen_v0_summary.json").write_text(json.dumps(v0_summary,indent=2,ensure_ascii=False),encoding="utf-8")

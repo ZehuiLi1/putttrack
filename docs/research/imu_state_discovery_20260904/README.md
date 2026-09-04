@@ -17,9 +17,10 @@
 - `NOT_PICKUP`
 - `UNKNOWN`
 
-72 个 precision 批次 episode 中有 3 个因 `INVALID/MIXED` 质量排除；剩余
-69 个中只有 40 个可以评分，29 个 fail closed 为 `UNKNOWN`。40 个可评分样本
-得到 TP=20、TN=20、FP=0、FN=0。
+72 个 precision 批次 episode 中有 2 个因 `INVALID/MIXED` 质量排除，10 个
+`rolling_pickup` 因超出 V0 支持范围而单独报告。剩余 60 个指标合格 episode
+中有 41 个明确判定、19 个 fail closed 为 `UNKNOWN`。41 个明确判定得到
+TP=20、TN=21、FP=0、FN=0。
 
 这个 100% **不能解释为产品准确率**：
 
@@ -90,4 +91,3 @@ python tools/imu_state_discovery.py \
 4. 对边轨碰撞、轻推杆等 gyro clipping 事件，提高采样率并审查量程/FIFO，不能把
    `UNKNOWN` 当成负例。
 5. 产品闭环优先继续 Tee PN532 + Cup 光学候选/PN532 身份确认。
-

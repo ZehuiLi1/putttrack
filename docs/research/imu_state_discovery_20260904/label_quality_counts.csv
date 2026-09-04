@@ -75,6 +75,5 @@ rolling_pickup,WARNING,10
 stationary,INVALID,1
 stationary,WARNING,20
 stationary_wait,WARNING,1
-track_step_drop,INVALID,1
 track_step_drop,MIXED,1
-track_step_drop,WARNING,9
+track_step_drop,WARNING,10

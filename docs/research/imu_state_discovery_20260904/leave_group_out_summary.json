@@ -1,9 +1,9 @@
 {
   "evaluation": "leave_one_session_or_manifest_group_out",
-  "n": 121,
+  "n": 122,
   "groups": 22,
-  "seen_class_test_n": 100,
-  "seen_class_accuracy": 0.68,
+  "seen_class_test_n": 101,
+  "seen_class_accuracy": 0.6831683168316832,
   "unseen_class_test_n": 21,
   "note": "Unseen-class rows expose class/session confounding and are not scored as ordinary errors."
 }

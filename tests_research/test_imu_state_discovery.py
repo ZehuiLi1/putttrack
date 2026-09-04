@@ -133,6 +133,47 @@ class ImuStateDiscoveryTests(unittest.TestCase):
         self.assertEqual(quality, "CLEAN_OPERATOR_LABEL")
         self.assertEqual(reasons, [])
 
+    def test_successful_retry_note_does_not_make_capture_invalid(self) -> None:
+        episode = Episode(
+            key="step-r09",
+            source="manifest::test",
+            dataset_id="d",
+            capture_path="experiments/test/raw/track-step-r09.jsonl",
+            label="track_step_drop",
+            session="s",
+            operator="A",
+            device_id="device",
+            boot_id="boot",
+            firmware_version="fw",
+            core_revision="core",
+            shell_revision="shell",
+            surface="felt",
+            orientation="varied",
+            strength="fast-planned",
+            notes="Successful retry; rejected diagnostic capture is preserved separately.",
+            quality_declared="manifest_operator_label",
+            raw_text="",
+            sha256="sha",
+        )
+        capture = Capture(
+            t=np.asarray([0.0, 0.02]),
+            seq=np.asarray([1, 2]),
+            acc=np.zeros((2, 3)),
+            gyro=np.zeros((2, 3)),
+            adxl=np.zeros((2, 3)),
+            valid=np.ones(2, dtype=bool),
+            error_bits=np.zeros(2, dtype=int),
+            go_us=0,
+            status={},
+            final_status={},
+            malformed_lines=0,
+            capture_pass=True,
+            embedded_labels=("track_step_drop",),
+        )
+        quality, reasons = classify_semantic_quality(episode, capture, has_onset=True)
+        self.assertEqual(quality, "CLEAN_OPERATOR_LABEL")
+        self.assertEqual(reasons, [])
+
     def test_config_is_valid_json(self) -> None:
         path = ROOT / "configs" / "research" / "pickup_detector_v0.json"
         self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)

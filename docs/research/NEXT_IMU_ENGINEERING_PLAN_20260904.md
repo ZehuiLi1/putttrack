@@ -6,9 +6,9 @@
 `docs/research/imu_state_discovery_20260904/README.md`。该运行完成了数据审计、
 冻结 V0 回放和探索性模型挑战，但**没有把检测器接入 Gameplay**。
 
-关键结果是：69 个质量合格的 precision episode 中有 29 个返回 `UNKNOWN`；
-边轨碰撞全部因 gyro clipping fail closed。可评分的 40 个 episode 为
-TP=20、TN=20、FP=0、FN=0，但不能据此宣称产品准确率。
+关键结果是：60 个指标合格的 precision episode 中有 19 个返回 `UNKNOWN`；
+边轨碰撞全部因 gyro clipping fail closed。明确判定的 41 个 episode 为
+TP=20、TN=21、FP=0、FN=0，但不能据此宣称产品准确率。
 
 下方 Phase A 的产品化结构拆分、原始记录 fixture、置信区间和独立盲测仍是后续
 工作，不因这次探索性报告而自动视为完成。
