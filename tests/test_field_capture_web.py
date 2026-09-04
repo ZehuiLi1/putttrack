@@ -12,6 +12,8 @@ import unittest
 from tools.run_field_capture_ui import (
     ANALYZE_TOOL,
     FieldCaptureApp,
+    capture_telemetry,
+    normalized_device_status,
     page_for_token,
     validate_server_args,
 )
@@ -55,6 +57,29 @@ class FakeProcess:
         self.terminated = True
 
 
+def power_result(
+    command: list[str], *, voltage_mv: int = 2_850
+) -> subprocess.CompletedProcess[str]:
+    mode = "research" if "research" in command else "auto"
+    payload = {
+        "device_id": "f383571202836e6f",
+        "firmware_version": "0.1.17",
+        "battery_sample_valid": True,
+        "battery_voltage_mv": voltage_mv,
+        "battery_soc_percent": 40,
+        "battery_soc_estimated": True,
+        "sensor_health": "healthy",
+        "capture_safe": mode == "research",
+        "mode": mode,
+        "runtime_state": "active" if mode == "research" else "idle",
+        "stream_rate_hz": 50 if mode == "research" else 0,
+        "bmi270_spi_suspended": mode == "auto",
+        "adxl367_wakeup_mode_enabled": mode == "auto",
+        "sensor_error_count": 0,
+    }
+    return subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload), stderr="")
+
+
 def wait_for_phase(app: FieldCaptureApp, phase: str) -> dict[str, object]:
     deadline = time.monotonic() + 1.0
     while time.monotonic() < deadline:
@@ -72,6 +97,40 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertIn('const TOKEN="secret-token"', page)
         self.assertIn("textContent", page)
         self.assertNotIn("innerHTML", page)
+        self.assertIn("battery-chart", page)
+        self.assertIn("imu-chart", page)
+        self.assertIn("剩余电量", page)
+
+    def test_device_status_requires_expected_ball_and_marks_estimated_soc(self) -> None:
+        payload = json.loads(power_result(["research"]).stdout)
+        status = normalized_device_status(payload, "f383571202836e6f")
+        self.assertEqual(status["battery_voltage_mv"], 2_850)
+        self.assertEqual(status["battery_soc_percent"], 40)
+        self.assertTrue(status["battery_soc_estimated"])
+        with self.assertRaisesRegex(ValueError, "设备 ID 不匹配"):
+            normalized_device_status(payload, "wrong-ball")
+
+    def test_capture_telemetry_reads_final_status_and_continuity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            capture = Path(directory) / "capture.jsonl"
+            final = json.loads(power_result(["research"], voltage_mv=2_832).stdout)
+            final["record_type"] = "tag_status_final"
+            final["power_policy"] = final.pop("mode")
+            result = {
+                "record_type": "tag_capture_result",
+                "status": "PASS",
+                "issues": [],
+            }
+            capture.write_text(
+                json.dumps(final) + "\n" + json.dumps(result) + "\n",
+                encoding="utf-8",
+            )
+            status, continuity = capture_telemetry(capture, "f383571202836e6f")
+
+        self.assertIsNotNone(status)
+        self.assertIsNotNone(continuity)
+        self.assertEqual(status["battery_voltage_mv"], 2_832)
+        self.assertEqual(continuity["status"], "PASS")
 
     def test_server_rejects_non_loopback_and_invalid_timeout(self) -> None:
         for values, message in (
@@ -97,6 +156,12 @@ class FieldCaptureWebTests(unittest.TestCase):
                             "features": {
                                 "sample_count": 500,
                                 "gyro_norm_max_rads": 4.25,
+                                "gyro_norm_rms_rads": 1.25,
+                                "accel_norm_stdev_mps2": 0.8,
+                                "sequence_gaps": 0,
+                                "adxl367_clip_samples": 0,
+                                "bmi270_accel_clip_samples": 0,
+                                "bmi270_gyro_clip_samples": 0,
                             },
                             "provisional_diagnostic": {
                                 "state": "ACTIVE_MOTION_CANDIDATE"
@@ -105,7 +170,7 @@ class FieldCaptureWebTests(unittest.TestCase):
                     ),
                     stderr="",
                 )
-            return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+            return power_result(command)
 
         with tempfile.TemporaryDirectory() as directory:
             app = FieldCaptureApp(
@@ -129,6 +194,10 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertEqual(state["completed"], 1)
         self.assertTrue(state["low_power"])
         self.assertEqual(state["last_result"]["samples"], 500)
+        self.assertEqual(state["last_result"]["gyro_rms"], 1.25)
+        self.assertEqual(len(state["result_history"]), 1)
+        self.assertEqual(len(state["battery_history"]), 2)
+        self.assertEqual(state["device_status"]["mode"], "auto")
         self.assertIn("research", commands[0])
         self.assertTrue(any(str(ANALYZE_TOOL) in command for command in commands))
         self.assertIn("auto", commands[-1])
@@ -164,7 +233,7 @@ class FieldCaptureWebTests(unittest.TestCase):
 
         def command_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
             commands.append(command)
-            return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+            return power_result(command)
 
         with tempfile.TemporaryDirectory() as directory:
             app = FieldCaptureApp(
@@ -183,6 +252,8 @@ class FieldCaptureWebTests(unittest.TestCase):
             app.close()
 
         self.assertTrue(state["low_power"])
+        self.assertEqual(state["device_status"]["mode"], "auto")
+        self.assertEqual(len(state["battery_history"]), 2)
         self.assertEqual(len(commands), 2)
         self.assertIn("research", commands[0])
         self.assertIn("auto", commands[1])

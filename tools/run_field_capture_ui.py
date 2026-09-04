@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -48,8 +49,9 @@ PAGE_HTML = r'''<!doctype html>
     main{width:min(980px,calc(100% - 32px));margin:0 auto;padding:38px 0 64px}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.16em;color:var(--green);text-transform:uppercase}h1{font-size:clamp(32px,6vw,58px);line-height:1;margin:8px 0 12px;letter-spacing:-.045em}.subtitle{color:var(--muted);max-width:620px;margin:0;line-height:1.6}.status-pill{white-space:nowrap;border:1px solid var(--line);background:#ffffffc7;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:750}.status-pill.busy{color:var(--warn);border-color:#e6c483}.status-pill.good{color:var(--green);border-color:#9ccbb4}.status-pill.bad{color:var(--bad);border-color:#e4a1a1}
     .panel{background:var(--card);border:1px solid #e3eae5;border-radius:24px;box-shadow:var(--shadow);padding:24px;margin-bottom:18px}.panel h2{font-size:18px;margin:0 0 16px}.profiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.profile{position:relative}.profile input{position:absolute;opacity:0}.profile label{display:block;height:100%;padding:16px;border:1px solid var(--line);border-radius:15px;cursor:pointer;transition:.15s;background:#fbfdfb}.profile label:hover{border-color:#8ebb9f;transform:translateY(-1px)}.profile input:checked+label{border:2px solid var(--green);padding:15px;background:#eff8f2;box-shadow:0 0 0 3px #dff0e5}.profile strong{display:block;font-size:15px;margin-bottom:5px}.profile span{display:block;color:var(--muted);font-size:12px;line-height:1.45}
     .form-row{display:grid;grid-template-columns:1fr 130px;gap:12px;margin-top:18px}label.field{font-size:12px;font-weight:750;color:var(--muted)}input[type=text],select{display:block;width:100%;margin-top:7px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font:inherit}button{border:0;border-radius:14px;padding:15px 18px;font:inherit;font-weight:800;cursor:pointer;transition:.15s}button:hover:not(:disabled){transform:translateY(-1px)}button:disabled{cursor:not-allowed;opacity:.42}.primary{background:var(--green);color:white;width:100%;font-size:16px}.primary:hover:not(:disabled){background:var(--green2)}.go{background:var(--lime);color:#173016;width:100%;font-size:22px;padding:21px}.secondary{background:#edf2ee;color:var(--ink);width:100%;margin-top:9px}
-    .capture{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.stage{min-height:245px;display:flex;flex-direction:column;justify-content:space-between}.stage-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.message{font-size:clamp(25px,4vw,42px);line-height:1.12;font-weight:850;letter-spacing:-.035em;margin:12px 0}.instruction{color:var(--muted);line-height:1.55}.progress{height:9px;border-radius:99px;background:#edf1ee;overflow:hidden;margin-top:20px}.progress div{height:100%;background:var(--green);width:0;transition:width .3s}.stats{display:grid;gap:10px}.stat{background:#f3f7f4;border-radius:15px;padding:15px}.stat small{display:block;color:var(--muted);margin-bottom:4px}.stat strong{font-size:20px}.result{margin-top:15px;padding:12px 14px;background:#f7faf8;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.5;min-height:44px}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
-    @media(max-width:720px){main{padding-top:24px}.top{display:block}.status-pill{display:inline-block;margin-top:16px}.profiles{grid-template-columns:1fr 1fr}.capture{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.panel{padding:18px;border-radius:19px}}
+    .capture{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.stage{min-height:245px;display:flex;flex-direction:column;justify-content:space-between}.stage-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.message{font-size:clamp(25px,4vw,42px);line-height:1.12;font-weight:850;letter-spacing:-.035em;margin:12px 0}.instruction{color:var(--muted);line-height:1.55}.progress{height:9px;border-radius:99px;background:#edf1ee;overflow:hidden;margin-top:20px}.progress div{height:100%;background:var(--green);width:0;transition:width .3s}.stats{display:grid;gap:10px}.stat{background:#f3f7f4;border-radius:15px;padding:15px}.stat small{display:block;color:var(--muted);margin-bottom:4px}.stat strong{font-size:20px}.result{margin-top:15px;padding:12px 14px;background:#f7faf8;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.5;min-height:44px}
+    .telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.telemetry-grid .panel{margin-bottom:0}.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.panel-head h2{margin:0}.mini-pill{padding:6px 10px;border-radius:999px;background:#edf4ef;color:var(--green);font-size:11px;font-weight:800}.device-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}.metric{border:1px solid #e5ebe7;background:#fbfdfb;border-radius:13px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.metric strong{font-size:17px;overflow-wrap:anywhere}.metric.wide{grid-column:1/-1}.chart-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 2px 4px}.chart-title strong{font-size:13px}.legend{display:flex;gap:12px;color:var(--muted);font-size:11px}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--dot)}.chart-wrap{height:205px;width:100%}.chart-wrap canvas{display:block;width:100%;height:100%}.quality{border-radius:12px;background:#f3f7f4;padding:11px 13px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:8px}.quality.warn{background:#fff7e8;color:var(--warn)}.quality.bad{background:#fff0f0;color:var(--bad)}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+    @media(max-width:720px){main{padding-top:24px}.top{display:block}.status-pill{display:inline-block;margin-top:16px}.profiles{grid-template-columns:1fr 1fr}.capture,.telemetry-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.panel{padding:18px;border-radius:19px}}
     @media(max-width:440px){.profiles{grid-template-columns:1fr}}
   </style>
 </head>
@@ -58,6 +60,10 @@ PAGE_HTML = r'''<!doctype html>
   <header class="top"><div><div class="eyebrow">PuttTrack Research</div><h1>IMU 数据采集台</h1><p class="subtitle">选择一种动作，准备好球后按一次开始。倒计时、采集、保存、检查和低功耗恢复全部自动完成。</p></div><div id="status-pill" class="status-pill">正在连接…</div></header>
   <section class="panel" id="setup-panel"><h2>1. 选择要采集的数据</h2><div id="profiles" class="profiles"></div><div class="form-row"><label class="field">批次名称<input id="session-id" type="text" maxlength="64"></label><label class="field">采集次数<select id="count"><option>1</option><option>5</option><option selected>10</option><option>20</option></select></label></div><label class="field" style="display:block;margin-top:12px">备注（可选）<input id="notes" type="text" maxlength="300" placeholder="例如：客厅短绒地毯、操作者 A"></label><button id="prepare" class="primary" style="margin-top:18px">准备这个批次</button></section>
   <section class="panel capture"><div class="stage"><div><div class="stage-label">当前步骤</div><div id="message" class="message">先选择动作并准备批次</div><div id="instruction" class="instruction">Ball 保持静止；程序准备完成后再开始动作。</div><div class="progress"><div id="progress"></div></div></div><div><button id="start" class="go" disabled>开始本组采集</button><button id="finish" class="secondary" disabled>结束批次并恢复低功耗</button></div></div><div class="stats"><div class="stat"><small>动作</small><strong id="active-profile">—</strong></div><div class="stat"><small>进度</small><strong id="counter">0 / 0</strong></div><div class="stat"><small>最近结果</small><strong id="last-state">—</strong></div><div id="result" class="result">还没有采集结果。</div></div></section>
+  <section class="telemetry-grid">
+    <article class="panel"><div class="panel-head"><h2>Ball 状态</h2><span id="device-link" class="mini-pill">未读取</span></div><div class="device-grid"><div class="metric"><small>电池电压</small><strong id="battery-voltage">—</strong></div><div class="metric"><small>剩余电量</small><strong id="battery-soc">—</strong></div><div class="metric"><small>功耗 / 运行状态</small><strong id="power-state">—</strong></div><div class="metric"><small>IMU 采样</small><strong id="stream-state">—</strong></div><div class="metric wide"><small>传感器 / 固件</small><strong id="sensor-state">—</strong></div></div><div class="chart-title"><strong>本批次电压趋势</strong><span id="battery-points" class="legend">0 个读数</span></div><div class="chart-wrap"><canvas id="battery-chart" role="img" aria-label="本批次电池电压趋势图">浏览器不支持图表。</canvas></div></article>
+    <article class="panel"><div class="panel-head"><h2>每组 IMU 趋势</h2><span id="run-count" class="mini-pill">0 组</span></div><div class="chart-title"><strong>角速度（rad/s）</strong><div class="legend"><span style="--dot:#126a45">峰值</span><span style="--dot:#d68b1d">RMS</span></div></div><div class="chart-wrap"><canvas id="imu-chart" role="img" aria-label="每组 IMU 角速度峰值和均方根趋势图">浏览器不支持图表。</canvas></div><div id="quality" class="quality">完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。</div></article>
+  </section>
   <div class="footer-note">页面只在本机开放。采集期间不要关闭此窗口或拔下 XIAO nRF52840。</div>
 </main>
 <script>
@@ -67,9 +73,11 @@ const $=s=>document.querySelector(s);
 async function api(path,options={}){options.headers={...(options.headers||{}),'X-PuttTrack-Token':TOKEN};if(options.body)options.headers['Content-Type']='application/json';const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||'请求失败');return j}
 function profileTitle(id){return config?.profiles[id]?.title||id||'—'}
 function renderProfiles(){const root=$('#profiles');root.textContent='';Object.entries(config.profiles).forEach(([id,p],i)=>{const d=document.createElement('div');d.className='profile';const input=document.createElement('input');input.type='radio';input.name='profile';input.id='p-'+id;input.value=id;input.checked=i===0;const label=document.createElement('label');label.htmlFor=input.id;const strong=document.createElement('strong');strong.textContent=p.title;const span=document.createElement('span');span.textContent=p.short;label.append(strong,span);d.append(input,label);root.append(d)})}
-function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'低功耗 / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / 低功耗':phase==='error'?'出现错误':phase==='capturing'?'正在采集':'处理中'}
+function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'auto / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / auto':phase==='error'?'出现错误':phase==='capturing'?'正在采集':'处理中'}
 function beep(){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=880;g.gain.setValueAtTime(.15,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.22);o.connect(g).connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.22)}catch(e){}}
-function render(s){if(s.phase==='capturing'&&lastPhase!=='capturing')beep();lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';$('#start').disabled=s.phase!=='ready';$('#start').textContent=s.phase==='ready'?`开始第 ${s.completed+1} / ${s.count} 组`:'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}}
+function drawChart(canvas,series,labels,emptyText){const rect=canvas.getBoundingClientRect(),width=Math.max(280,Math.round(rect.width)),height=Math.max(180,Math.round(rect.height)),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=width*dpr;canvas.height=height*dpr;const c=canvas.getContext('2d');c.scale(dpr,dpr);c.clearRect(0,0,width,height);c.font='11px system-ui';c.fillStyle='#617067';if(!series.length||!series.some(x=>x.values.length)){c.textAlign='center';c.fillText(emptyText,width/2,height/2);return}const all=series.flatMap(x=>x.values).filter(Number.isFinite);if(!all.length)return;let lo=Math.min(...all),hi=Math.max(...all),pad=Math.max((hi-lo)*.18,series[0].minimumPad||.05);lo=Math.max(series[0].floor??-Infinity,lo-pad);hi+=pad;const left=46,right=12,top=14,bottom=28,w=width-left-right,h=height-top-bottom;c.strokeStyle='#e3eae5';c.fillStyle='#617067';c.textAlign='right';for(let i=0;i<4;i++){const y=top+h*i/3,value=hi-(hi-lo)*i/3;c.beginPath();c.moveTo(left,y);c.lineTo(width-right,y);c.stroke();c.fillText(value.toFixed(series[0].digits??2),left-7,y+4)}const n=Math.max(...series.map(x=>x.values.length));const xAt=i=>left+(n<=1?w/2:w*i/(n-1));c.textAlign='center';labels.forEach((label,i)=>{if(labels.length<=8||i===0||i===labels.length-1)c.fillText(label,xAt(i),height-8)});series.forEach(item=>{c.strokeStyle=item.color;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();item.values.forEach((value,i)=>{const x=xAt(i),y=top+(hi-value)/(hi-lo)*h;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();item.values.forEach((value,i)=>{c.fillStyle=item.color;c.beginPath();c.arc(xAt(i),top+(hi-value)/(hi-lo)*h,3,0,Math.PI*2);c.fill()})})}
+function renderTelemetry(s){const d=s.device_status,b=s.battery_history||[],runs=s.result_history||[];$('#device-link').textContent=d?`已读取 · ${d.device_id.slice(-6)}`:'未读取';$('#battery-voltage').textContent=d?.battery_voltage_mv!=null?`${(d.battery_voltage_mv/1000).toFixed(3)} V`:'—';$('#battery-soc').textContent=d?.battery_soc_percent!=null?`${d.battery_soc_percent}%${d.battery_soc_estimated?'（估算）':''}`:'—';$('#power-state').textContent=d?`${d.mode} / ${d.runtime_state}`:'—';$('#stream-state').textContent=d?(d.stream_rate_hz?`${d.stream_rate_hz} Hz`:(d.bmi270_spi_suspended?'0 Hz · BMI270 休眠':'0 Hz')):'—';const health=d?.sensor_health==='healthy'?'正常':(d?.sensor_health||'—');$('#sensor-state').textContent=d?`${health} · FW ${d.firmware_version}`:'—';$('#battery-points').textContent=`${b.length} 个读数`;$('#run-count').textContent=`${runs.length} 组`;drawChart($('#battery-chart'),b.length?[{values:b.map(x=>x.voltage_mv/1000),color:'#126a45',digits:3,minimumPad:.01,floor:0}]:[],b.map(x=>x.source),'等待设备电压读数');drawChart($('#imu-chart'),runs.length?[{values:runs.map(x=>x.gyro_peak),color:'#126a45',digits:2,minimumPad:.1,floor:0},{values:runs.map(x=>x.gyro_rms),color:'#d68b1d'}]:[],runs.map(x=>String(x.index)),'完成采集后显示角速度趋势');const q=$('#quality');q.className='quality';if(!runs.length){q.textContent='完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。';return}const last=runs[runs.length-1],problems=[];if(last.continuity!=='PASS')problems.push(`连续性 ${last.continuity}`);if(last.sequence_gaps)problems.push(`${last.sequence_gaps} 个序列缺口`);if(last.clip_samples)problems.push(`${last.clip_samples} 个饱和样本`);if(problems.length){q.classList.add(last.continuity==='FAIL'||last.sequence_gaps?'bad':'warn');q.textContent=`第 ${last.index} 组需检查：${problems.join(' · ')}`;}else{q.textContent=`第 ${last.index} 组数据完整：连续性 PASS，无序列缺口，无量程饱和。`}}
+function render(s){if(s.phase==='capturing'&&lastPhase!=='capturing')beep();lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';$('#start').disabled=s.phase!=='ready';$('#start').textContent=s.phase==='ready'?`开始第 ${s.completed+1} / ${s.count} 组`:'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s)}
 async function refresh(){try{render(await api('/api/state'))}catch(e){$('#status-pill').className='status-pill bad';$('#status-pill').textContent='服务连接失败'}}
 $('#prepare').addEventListener('click',async()=>{const profile=document.querySelector('input[name=profile]:checked')?.value;try{await api('/api/session',{method:'POST',body:JSON.stringify({profile,count:Number($('#count').value),session_id:$('#session-id').value.trim(),notes:$('#notes').value.trim()})});refresh()}catch(e){alert(e.message)}});
 $('#start').addEventListener('click',async()=>{try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();await api('/api/capture/start',{method:'POST',body:'{}'});refresh()}catch(e){alert(e.message)}});
@@ -99,6 +107,92 @@ def completed_process(command: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+def normalized_device_status(
+    payload: dict[str, Any], expected_device_id: str
+) -> dict[str, Any]:
+    """Normalize status from a power command or a capture JSONL record."""
+
+    device_id = str(payload.get("device_id", "")).lower()
+    if device_id != expected_device_id.lower():
+        raise ValueError(
+            f"设备 ID 不匹配：期望 {expected_device_id}，实际 {device_id or '缺失'}"
+        )
+    mode = payload.get("mode", payload.get("power_policy"))
+    if not isinstance(mode, str) or not mode:
+        raise ValueError("设备状态缺少功耗策略")
+
+    voltage = payload.get("battery_voltage_mv")
+    soc = payload.get("battery_soc_percent")
+    return {
+        "device_id": device_id,
+        "firmware_version": str(payload.get("firmware_version", "—")),
+        "battery_voltage_mv": (
+            int(voltage)
+            if payload.get("battery_sample_valid") and isinstance(voltage, (int, float))
+            else None
+        ),
+        "battery_soc_percent": (
+            int(soc) if isinstance(soc, (int, float)) else None
+        ),
+        "battery_soc_estimated": bool(payload.get("battery_soc_estimated", False)),
+        "battery_sample_valid": bool(payload.get("battery_sample_valid", False)),
+        "sensor_health": str(payload.get("sensor_health", "unknown")),
+        "capture_safe": bool(payload.get("capture_safe", False)),
+        "mode": mode,
+        "runtime_state": str(payload.get("runtime_state", "unknown")),
+        "stream_rate_hz": int(payload.get("stream_rate_hz", 0) or 0),
+        "bmi270_spi_suspended": bool(payload.get("bmi270_spi_suspended", False)),
+        "adxl367_wakeup_mode_enabled": bool(
+            payload.get("adxl367_wakeup_mode_enabled", False)
+        ),
+        "sensor_error_count": int(payload.get("sensor_error_count", 0) or 0),
+    }
+
+
+def power_status_from_result(
+    result: subprocess.CompletedProcess[str],
+    expected_device_id: str,
+    expected_mode: str,
+) -> dict[str, Any]:
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or f"exit {result.returncode}")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError("功耗命令没有返回有效的 JSON 状态") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("功耗命令返回的状态不是 JSON 对象")
+    status = normalized_device_status(payload, expected_device_id)
+    if status["mode"] != expected_mode:
+        raise ValueError(
+            f"功耗策略未生效：期望 {expected_mode}，实际 {status['mode']}"
+        )
+    return status
+
+
+def capture_telemetry(
+    capture: Path, expected_device_id: str
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Read the final device status and continuity result from one capture."""
+
+    if not capture.exists():
+        return None, None
+    final_status = None
+    capture_result = None
+    for line_number, line in enumerate(capture.read_text(encoding="utf-8").splitlines(), 1):
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"采集文件第 {line_number} 行不是有效 JSON") from exc
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("record_type") == "tag_status_final":
+            final_status = normalized_device_status(payload, expected_device_id)
+        elif payload.get("record_type") == "tag_capture_result":
+            capture_result = payload
+    return final_status, capture_result
+
+
 class FieldCaptureApp:
     def __init__(
         self,
@@ -123,12 +217,15 @@ class FieldCaptureApp:
             "count": 0,
             "completed": 0,
             "last_result": None,
+            "device_status": None,
+            "battery_history": [],
+            "result_history": [],
             "low_power": True,
         }
 
     def snapshot(self) -> dict[str, Any]:
         with self.lock:
-            return dict(self.state)
+            return copy.deepcopy(self.state)
 
     def config(self) -> dict[str, Any]:
         return {
@@ -147,6 +244,24 @@ class FieldCaptureApp:
     def _set(self, **changes: Any) -> None:
         with self.lock:
             self.state.update(changes)
+
+    def _record_device_status(self, status: dict[str, Any], source: str) -> None:
+        with self.lock:
+            self.state["device_status"] = status
+            voltage = status.get("battery_voltage_mv")
+            if isinstance(voltage, int):
+                self.state["battery_history"].append(
+                    {
+                        "source": source,
+                        "voltage_mv": voltage,
+                        "soc_percent": status.get("battery_soc_percent"),
+                    }
+                )
+
+    def _set_power_mode(self, args: argparse.Namespace, mode: str, source: str) -> None:
+        result = self.command_runner(build_power_command(args, mode))
+        status = power_status_from_result(result, args.expected_device_id, mode)
+        self._record_device_status(status, source)
 
     def _session_from_payload(self, payload: dict[str, Any]) -> argparse.Namespace:
         profile = str(payload.get("profile", ""))
@@ -201,15 +316,19 @@ class FieldCaptureApp:
                 count=args.count,
                 completed=0,
                 last_result=None,
+                device_status=None,
+                battery_history=[],
+                result_history=[],
                 low_power=False,
             )
         threading.Thread(target=self._prepare_worker, daemon=True).start()
 
     def _prepare_worker(self) -> None:
         assert self.session_args is not None
-        result = self.command_runner(build_power_command(self.session_args, "research"))
-        if result.returncode != 0:
-            self._fail_and_restore("无法连接 Ball 或进入 research 模式", result.stderr)
+        try:
+            self._set_power_mode(self.session_args, "research", "准备")
+        except (RuntimeError, ValueError) as exc:
+            self._fail_and_restore("无法连接 Ball 或进入 research 模式", str(exc))
             return
         self._set(
             phase="ready",
@@ -315,10 +434,29 @@ class FieldCaptureApp:
             payload = json.loads(analysis.stdout)
             features = payload["features"]
             diagnostic = payload["provisional_diagnostic"]
+            final_status, continuity = capture_telemetry(
+                capture, self.session_args.expected_device_id
+            )
+            continuity_status = (
+                str(continuity.get("status", "UNKNOWN")) if continuity else "UNKNOWN"
+            )
+            clip_samples = sum(
+                int(features.get(key, 0) or 0)
+                for key in (
+                    "adxl367_clip_samples",
+                    "bmi270_accel_clip_samples",
+                    "bmi270_gyro_clip_samples",
+                )
+            )
             last_result = {
                 "file": capture.name,
                 "samples": int(features["sample_count"]),
                 "gyro_peak": float(features["gyro_norm_max_rads"]),
+                "gyro_rms": float(features.get("gyro_norm_rms_rads", 0.0)),
+                "accel_stdev": float(features.get("accel_norm_stdev_mps2", 0.0)),
+                "sequence_gaps": int(features.get("sequence_gaps", 0) or 0),
+                "clip_samples": clip_samples,
+                "continuity": continuity_status,
                 "state": str(diagnostic["state"]),
             }
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -326,7 +464,22 @@ class FieldCaptureApp:
             return
 
         completed = repetition
-        self._set(completed=completed, last_result=last_result)
+        with self.lock:
+            self.state["completed"] = completed
+            self.state["last_result"] = last_result
+            self.state["result_history"].append(
+                {
+                    "index": completed,
+                    "gyro_peak": last_result["gyro_peak"],
+                    "gyro_rms": last_result["gyro_rms"],
+                    "accel_stdev": last_result["accel_stdev"],
+                    "sequence_gaps": last_result["sequence_gaps"],
+                    "clip_samples": last_result["clip_samples"],
+                    "continuity": last_result["continuity"],
+                }
+            )
+        if final_status is not None:
+            self._record_device_status(final_status, f"第 {completed} 组")
         if completed >= self.session_args.count:
             self._restore_worker(completed=True)
         else:
@@ -352,8 +505,9 @@ class FieldCaptureApp:
             self._set(phase="idle", low_power=True)
             return
         self._set(phase="restoring", message="正在恢复 auto 低功耗模式…")
-        result = self.command_runner(build_power_command(args, "auto"))
-        if result.returncode != 0:
+        try:
+            self._set_power_mode(args, "auto", "结束")
+        except (RuntimeError, ValueError):
             self._set(
                 phase="error",
                 message="无法确认低功耗恢复",
@@ -363,8 +517,12 @@ class FieldCaptureApp:
             return
         self._set(
             phase="complete" if completed else "idle",
-            message="批次完成，Ball 已恢复低功耗" if completed else "批次已结束",
-            instruction="现在可以移动 Ball，或选择新的采集类型。",
+            message=(
+                "批次完成，Ball 已切回 auto"
+                if completed
+                else "批次已结束，Ball 已切回 auto"
+            ),
+            instruction="静止超时后会进入 idle；现在可以移动 Ball 或开始新批次。",
             low_power=True,
         )
 
@@ -373,9 +531,10 @@ class FieldCaptureApp:
         args = self.session_args
         restored = True
         if args is not None:
-            restored = (
-                self.command_runner(build_power_command(args, "auto")).returncode == 0
-            )
+            try:
+                self._set_power_mode(args, "auto", "异常恢复")
+            except (RuntimeError, ValueError):
+                restored = False
         instruction = detail or "请检查连接后重新准备批次"
         if not restored:
             instruction = f"{instruction}；低功耗恢复未确认，请点击结束批次重试"

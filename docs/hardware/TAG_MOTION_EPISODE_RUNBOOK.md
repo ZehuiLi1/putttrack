@@ -22,10 +22,16 @@ python3 tools/run_field_capture_ui.py
 The browser opens `http://127.0.0.1:8765/`. Select the physical action and
 repetition count, press **Prepare batch**, then use the single large button to
 start each episode. The page shows countdown, GO, save/analysis progress and
-the last sample result. It never listens on the LAN, rejects concurrent
-captures and existing filenames, and automatically restores `auto` mode after
-the final run, manual finish, failure, server shutdown or ten minutes waiting
-between runs.
+the last sample result. The device panel uses actual Tag status responses to
+show battery voltage, explicitly estimated state of charge, firmware, sensor
+health, power/runtime state and IMU sampling state. Its batch charts plot
+battery readbacks plus per-episode gyroscope peak/RMS values; continuity,
+sequence gaps and clipping remain visible quality checks rather than being
+hidden. No values are synthesized before a Tag response is received. It never
+listens on the LAN, rejects a status response from the wrong device, rejects
+concurrent captures and existing filenames, and automatically restores `auto`
+mode after the final run, manual finish, failure, server shutdown or ten
+minutes waiting between runs.
 
 The command-line wrapper below remains the fallback when a browser is
 inconvenient.
