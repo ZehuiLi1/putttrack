@@ -67,4 +67,3 @@ python tools/analyze_motion_dataset.py \
   experiments/research_ball_r1_pickup_precision_1a/manifest.json \
   --output-dir experiments/research_ball_r1_pickup_precision_1a/analysis
 ```
-
