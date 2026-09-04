@@ -49,7 +49,7 @@ PAGE_HTML = r'''<!doctype html>
     main{width:min(980px,calc(100% - 32px));margin:0 auto;padding:38px 0 64px}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.16em;color:var(--green);text-transform:uppercase}h1{font-size:clamp(32px,6vw,58px);line-height:1;margin:8px 0 12px;letter-spacing:-.045em}.subtitle{color:var(--muted);max-width:620px;margin:0;line-height:1.6}.status-pill{white-space:nowrap;border:1px solid var(--line);background:#ffffffc7;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:750}.status-pill.busy{color:var(--warn);border-color:#e6c483}.status-pill.good{color:var(--green);border-color:#9ccbb4}.status-pill.bad{color:var(--bad);border-color:#e4a1a1}
     .panel{background:var(--card);border:1px solid #e3eae5;border-radius:24px;box-shadow:var(--shadow);padding:24px;margin-bottom:18px}.panel h2{font-size:18px;margin:0 0 16px}.profiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.profile{position:relative}.profile input{position:absolute;opacity:0}.profile label{display:block;height:100%;padding:16px;border:1px solid var(--line);border-radius:15px;cursor:pointer;transition:.15s;background:#fbfdfb}.profile label:hover{border-color:#8ebb9f;transform:translateY(-1px)}.profile input:checked+label{border:2px solid var(--green);padding:15px;background:#eff8f2;box-shadow:0 0 0 3px #dff0e5}.profile strong{display:block;font-size:15px;margin-bottom:5px}.profile span{display:block;color:var(--muted);font-size:12px;line-height:1.45}
     .form-row{display:grid;grid-template-columns:1fr 130px;gap:12px;margin-top:18px}label.field{font-size:12px;font-weight:750;color:var(--muted)}input[type=text],select{display:block;width:100%;margin-top:7px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font:inherit}button{border:0;border-radius:14px;padding:15px 18px;font:inherit;font-weight:800;cursor:pointer;transition:.15s}button:hover:not(:disabled){transform:translateY(-1px)}button:disabled{cursor:not-allowed;opacity:.42}.primary{background:var(--green);color:white;width:100%;font-size:16px}.primary:hover:not(:disabled){background:var(--green2)}.go{background:var(--lime);color:#173016;width:100%;font-size:22px;padding:21px}.secondary{background:#edf2ee;color:var(--ink);width:100%;margin-top:9px}
-    .capture{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.stage{min-height:245px;display:flex;flex-direction:column;justify-content:space-between}.stage-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.message{font-size:clamp(25px,4vw,42px);line-height:1.12;font-weight:850;letter-spacing:-.035em;margin:12px 0}.instruction{color:var(--muted);line-height:1.55}.progress{height:9px;border-radius:99px;background:#edf1ee;overflow:hidden;margin-top:20px}.progress div{height:100%;background:var(--green);width:0;transition:width .3s}.stats{display:grid;gap:10px}.stat{background:#f3f7f4;border-radius:15px;padding:15px}.stat small{display:block;color:var(--muted);margin-bottom:4px}.stat strong{font-size:20px}.result{margin-top:15px;padding:12px 14px;background:#f7faf8;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.5;min-height:44px}
+    .capture{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.stage{min-height:245px;display:flex;flex-direction:column;justify-content:space-between}.stage-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.message{font-size:clamp(25px,4vw,42px);line-height:1.12;font-weight:850;letter-spacing:-.035em;margin:12px 0}.message.go-active{color:var(--green);font-size:clamp(38px,7vw,68px);text-shadow:0 7px 24px rgba(18,106,69,.18)}.instruction{color:var(--muted);line-height:1.55}.progress{height:9px;border-radius:99px;background:#edf1ee;overflow:hidden;margin-top:20px}.progress div{height:100%;background:var(--green);width:0;transition:width .3s}.stats{display:grid;gap:10px}.stat{background:#f3f7f4;border-radius:15px;padding:15px}.stat small{display:block;color:var(--muted);margin-bottom:4px}.stat strong{font-size:20px}.result{margin-top:15px;padding:12px 14px;background:#f7faf8;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.5;min-height:44px}
     .telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.telemetry-grid .panel{margin-bottom:0}.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.panel-head h2{margin:0}.mini-pill{padding:6px 10px;border-radius:999px;background:#edf4ef;color:var(--green);font-size:11px;font-weight:800}.device-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}.metric{border:1px solid #e5ebe7;background:#fbfdfb;border-radius:13px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.metric strong{font-size:17px;overflow-wrap:anywhere}.metric.wide{grid-column:1/-1}.chart-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 2px 4px}.chart-title strong{font-size:13px}.legend{display:flex;gap:12px;color:var(--muted);font-size:11px}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--dot)}.chart-wrap{height:205px;width:100%}.chart-wrap canvas{display:block;width:100%;height:100%}.quality{border-radius:12px;background:#f3f7f4;padding:11px 13px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:8px}.quality.warn{background:#fff7e8;color:var(--warn)}.quality.bad{background:#fff0f0;color:var(--bad)}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
     @media(max-width:720px){main{padding-top:24px}.top{display:block}.status-pill{display:inline-block;margin-top:16px}.profiles{grid-template-columns:1fr 1fr}.capture,.telemetry-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.panel{padding:18px;border-radius:19px}}
     @media(max-width:440px){.profiles{grid-template-columns:1fr}}
@@ -68,16 +68,17 @@ PAGE_HTML = r'''<!doctype html>
 </main>
 <script>
 const TOKEN=__TOKEN__;
-let config=null,lastPhase=null,audioContext=null;
+let config=null,lastPhase=null,audioContext=null,lastGoAckAttempt=null,goAckPending=false;
 const $=s=>document.querySelector(s);
 async function api(path,options={}){options.headers={...(options.headers||{}),'X-PuttTrack-Token':TOKEN};if(options.body)options.headers['Content-Type']='application/json';const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||'请求失败');return j}
 function profileTitle(id){return config?.profiles[id]?.title||id||'—'}
 function renderProfiles(){const root=$('#profiles');root.textContent='';Object.entries(config.profiles).forEach(([id,p],i)=>{const d=document.createElement('div');d.className='profile';const input=document.createElement('input');input.type='radio';input.name='profile';input.id='p-'+id;input.value=id;input.checked=i===0;const label=document.createElement('label');label.htmlFor=input.id;const strong=document.createElement('strong');strong.textContent=p.title;const span=document.createElement('span');span.textContent=p.short;label.append(strong,span);d.append(input,label);root.append(d)})}
-function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'auto / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / auto':phase==='error'?'需要重新连接':phase==='capturing'?'正在采集':phase==='arming'?'确认 GO 标记':phase==='recovering'?'恢复连接中':'处理中'}
+function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle','go_ready'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'auto / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / auto':phase==='error'?'需要重新连接':phase==='go_ready'?'GO':phase==='capturing'?'正在采集':phase==='arming'?'确认 GO 标记':phase==='recovering'?'恢复连接中':'处理中'}
 function beep(){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=880;g.gain.setValueAtTime(.15,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.22);o.connect(g).connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.22)}catch(e){}}
 function drawChart(canvas,series,labels,emptyText){const rect=canvas.getBoundingClientRect(),width=Math.max(280,Math.round(rect.width)),height=Math.max(180,Math.round(rect.height)),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=width*dpr;canvas.height=height*dpr;const c=canvas.getContext('2d');c.scale(dpr,dpr);c.clearRect(0,0,width,height);c.font='11px system-ui';c.fillStyle='#617067';if(!series.length||!series.some(x=>x.values.length)){c.textAlign='center';c.fillText(emptyText,width/2,height/2);return}const all=series.flatMap(x=>x.values).filter(Number.isFinite);if(!all.length)return;let lo=Math.min(...all),hi=Math.max(...all),pad=Math.max((hi-lo)*.18,series[0].minimumPad||.05);lo=Math.max(series[0].floor??-Infinity,lo-pad);hi+=pad;const left=46,right=12,top=14,bottom=28,w=width-left-right,h=height-top-bottom;c.strokeStyle='#e3eae5';c.fillStyle='#617067';c.textAlign='right';for(let i=0;i<4;i++){const y=top+h*i/3,value=hi-(hi-lo)*i/3;c.beginPath();c.moveTo(left,y);c.lineTo(width-right,y);c.stroke();c.fillText(value.toFixed(series[0].digits??2),left-7,y+4)}const n=Math.max(...series.map(x=>x.values.length));const xAt=i=>left+(n<=1?w/2:w*i/(n-1));c.textAlign='center';labels.forEach((label,i)=>{if(labels.length<=8||i===0||i===labels.length-1)c.fillText(label,xAt(i),height-8)});series.forEach(item=>{c.strokeStyle=item.color;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();item.values.forEach((value,i)=>{const x=xAt(i),y=top+(hi-value)/(hi-lo)*h;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();item.values.forEach((value,i)=>{c.fillStyle=item.color;c.beginPath();c.arc(xAt(i),top+(hi-value)/(hi-lo)*h,3,0,Math.PI*2);c.fill()})})}
 function renderTelemetry(s){const d=s.device_status,b=s.battery_history||[],runs=s.result_history||[];$('#device-link').textContent=d?`已读取 · ${d.device_id.slice(-6)}`:'未读取';$('#battery-voltage').textContent=d?.battery_voltage_mv!=null?`${(d.battery_voltage_mv/1000).toFixed(3)} V`:'—';$('#battery-soc').textContent=d?.battery_soc_percent!=null?`${d.battery_soc_percent}%${d.battery_soc_estimated?'（估算）':''}`:'—';$('#power-state').textContent=d?`${d.mode} / ${d.runtime_state}`:'—';$('#stream-state').textContent=d?(d.stream_rate_hz?`${d.stream_rate_hz} Hz`:(d.bmi270_spi_suspended?'0 Hz · BMI270 休眠':'0 Hz')):'—';const health=d?.sensor_health==='healthy'?'正常':(d?.sensor_health||'—');$('#sensor-state').textContent=d?`${health} · FW ${d.firmware_version}`:'—';$('#battery-points').textContent=`${b.length} 个读数`;$('#run-count').textContent=`${runs.length} 组`;drawChart($('#battery-chart'),b.length?[{values:b.map(x=>x.voltage_mv/1000),color:'#126a45',digits:3,minimumPad:.01,floor:0}]:[],b.map(x=>x.source),'等待设备电压读数');drawChart($('#imu-chart'),runs.length?[{values:runs.map(x=>x.gyro_peak),color:'#126a45',digits:2,minimumPad:.1,floor:0},{values:runs.map(x=>x.gyro_rms),color:'#d68b1d'}]:[],runs.map(x=>String(x.index)),'完成采集后显示角速度趋势');const q=$('#quality');q.className='quality';if(!runs.length){q.textContent='完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。';return}const last=runs[runs.length-1],problems=[];if(last.continuity!=='PASS')problems.push(`连续性 ${last.continuity}`);if(last.sequence_gaps)problems.push(`${last.sequence_gaps} 个序列缺口`);if(last.clip_samples)problems.push(`${last.clip_samples} 个饱和样本`);if(problems.length){q.classList.add(last.continuity==='FAIL'||last.sequence_gaps?'bad':'warn');q.textContent=`第 ${last.index} 组需检查：${problems.join(' · ')}`;}else{q.textContent=`第 ${last.index} 组数据完整：连续性 PASS，无序列缺口，无量程饱和。`}}
-function render(s){if(s.phase==='capturing'&&lastPhase!=='capturing')beep();lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';const reconnect=s.phase==='error'&&s.low_power&&s.last_failure;$('#start').disabled=s.phase!=='ready'&&!reconnect;$('#start').textContent=reconnect?'重新连接并继续本批次':s.phase==='ready'?(s.last_failure?`重试第 ${s.completed+1} / ${s.count} 组`:`开始第 ${s.completed+1} / ${s.count} 组`):'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_failure){$('#last-state').textContent='本组未计入';const f=s.last_failure.file?` · 诊断 ${s.last_failure.file}`:'';$('#result').textContent=`第 ${s.last_failure.repetition} 组可以重试${f} · ${s.last_failure.detail}`}else if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s)}
+function acknowledgeGoAfterPaint(s){if(s.phase!=='go_ready'||lastGoAckAttempt===s.attempt_id||goAckPending)return;goAckPending=true;requestAnimationFrame(()=>requestAnimationFrame(async()=>{beep();try{await api('/api/capture/go-ack',{method:'POST',body:JSON.stringify({attempt_id:s.attempt_id})});lastGoAckAttempt=s.attempt_id}catch(e){lastGoAckAttempt=null}finally{goAckPending=false}}))}
+function render(s){lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#message').classList.toggle('go-active',['go_ready','capturing'].includes(s.phase));$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';const reconnect=s.phase==='error'&&s.low_power&&s.last_failure;$('#start').disabled=s.phase!=='ready'&&!reconnect;$('#start').textContent=reconnect?'重新连接并继续本批次':s.phase==='ready'?(s.last_failure?`重试第 ${s.completed+1} / ${s.count} 组`:`开始第 ${s.completed+1} / ${s.count} 组`):'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_failure){$('#last-state').textContent='本组未计入';const f=s.last_failure.file?` · 诊断 ${s.last_failure.file}`:'';$('#result').textContent=`第 ${s.last_failure.repetition} 组可以重试${f} · ${s.last_failure.detail}`}else if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s);acknowledgeGoAfterPaint(s)}
 async function refresh(){try{render(await api('/api/state'))}catch(e){$('#status-pill').className='status-pill bad';$('#status-pill').textContent='服务连接失败'}}
 $('#prepare').addEventListener('click',async()=>{const profile=document.querySelector('input[name=profile]:checked')?.value;try{await api('/api/session',{method:'POST',body:JSON.stringify({profile,count:Number($('#count').value),session_id:$('#session-id').value.trim(),notes:$('#notes').value.trim()})});refresh()}catch(e){alert(e.message)}});
 $('#start').addEventListener('click',async()=>{try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();await api('/api/capture/start',{method:'POST',body:'{}'});refresh()}catch(e){alert(e.message)}});
@@ -217,6 +218,7 @@ class FieldCaptureApp:
         self.token = secrets.token_urlsafe(24)
         self.lock = threading.RLock()
         self.current_process: Any | None = None
+        self.attempt_id = 0
         self.session_args: argparse.Namespace | None = None
         self.ready_timer: threading.Timer | None = None
         self.state: dict[str, Any] = {
@@ -232,6 +234,7 @@ class FieldCaptureApp:
             "result_history": [],
             "failure_count": 0,
             "last_failure": None,
+            "attempt_id": 0,
             "low_power": True,
         }
 
@@ -333,6 +336,7 @@ class FieldCaptureApp:
                 result_history=[],
                 failure_count=0,
                 last_failure=None,
+                attempt_id=0,
                 low_power=False,
             )
         threading.Thread(target=self._prepare_worker, daemon=True).start()
@@ -398,10 +402,12 @@ class FieldCaptureApp:
                 raise RuntimeError("Ball 尚未准备好，或当前正在采集")
             self._cancel_ready_timeout()
             repetition = int(self.state["completed"]) + 1
+            self.attempt_id += 1
             self.state.update(
                 phase="countdown",
                 message="保持静止，3 秒后开始",
                 instruction="看到并听到 GO 后再完成一次动作。",
+                attempt_id=self.attempt_id,
             )
         threading.Thread(
             target=self._capture_worker, args=(repetition,), daemon=True
@@ -424,7 +430,9 @@ class FieldCaptureApp:
 
     def _capture_worker(self, repetition: int) -> None:
         assert self.session_args is not None
-        command = build_capture_command(self.session_args, repetition)
+        command = build_capture_command(
+            self.session_args, repetition, wait_for_go_ack=True
+        )
         stderr_lines: list[str] = []
         try:
             process = self.popen_factory(
@@ -432,6 +440,7 @@ class FieldCaptureApp:
                 cwd=REPO_ROOT,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE,
                 text=True,
                 bufsize=1,
             )
@@ -449,6 +458,12 @@ class FieldCaptureApp:
                         phase="arming",
                         message="正在确认设备标记…",
                         instruction="继续保持静止；看到绿色 GO 后再动作。",
+                    )
+                elif line.startswith("GO_READY:"):
+                    self._set(
+                        phase="go_ready",
+                        message="GO — 现在完成一次动作",
+                        instruction=PROFILES[self.session_args.profile].instruction,
                     )
                 elif line.startswith("GO:"):
                     self._set(
@@ -558,6 +573,18 @@ class FieldCaptureApp:
                 instruction=PROFILES[self.session_args.profile].instruction,
             )
             self._arm_ready_timeout()
+
+    def acknowledge_go(self, attempt_id: int) -> None:
+        with self.lock:
+            process = self.current_process
+            if self.state["phase"] != "go_ready" or process is None:
+                raise RuntimeError("当前没有等待确认的 GO")
+            if attempt_id != self.state["attempt_id"]:
+                raise RuntimeError("GO 确认已过期")
+            if process.poll() is not None or process.stdin is None:
+                raise RuntimeError("采集进程已经结束")
+            process.stdin.write("GO\n")
+            process.stdin.flush()
 
     def _retry_after_capture_failure(
         self, *, capture: Path, repetition: int, detail: str
@@ -741,6 +768,12 @@ def make_handler(app: FieldCaptureApp) -> type[BaseHTTPRequestHandler]:
                     app.prepare(payload)
                 elif self.path == "/api/capture/start":
                     app.start_capture()
+                elif self.path == "/api/capture/go-ack":
+                    try:
+                        attempt_id = int(payload.get("attempt_id"))
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError("GO 确认缺少有效的 attempt_id") from exc
+                    app.acknowledge_go(attempt_id)
                 elif self.path == "/api/session/finish":
                     app.finish()
                 else:

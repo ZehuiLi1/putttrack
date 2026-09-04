@@ -43,14 +43,17 @@ class FakeProcess:
             or "ARMED: GO in 3\nGO: action window is 10.00 seconds\n"
             "FREEZING: keep the Ball untouched\n"
         )
+        self.stdin = io.StringIO()
         self.returncode = returncode
         self.terminated = False
+        self.finished = False
 
     def wait(self, timeout: float | None = None) -> int:
+        self.finished = True
         return self.returncode
 
     def poll(self) -> int | None:
-        return 0
+        return self.returncode if self.finished else None
 
     def terminate(self) -> None:
         self.terminated = True
@@ -104,6 +107,20 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertIn("剩余电量", page)
         self.assertIn("确认 GO 标记", page)
         self.assertIn("重新连接并继续本批次", page)
+        self.assertIn("/api/capture/go-ack", page)
+
+    def test_go_ack_is_attempt_locked_and_writes_to_capture_stdin(self) -> None:
+        app = FieldCaptureApp(args())
+        process = FakeProcess()
+        app.current_process = process
+        app._set(phase="go_ready", attempt_id=7)
+
+        with self.assertRaisesRegex(RuntimeError, "过期"):
+            app.acknowledge_go(6)
+        app.acknowledge_go(7)
+
+        self.assertEqual(process.stdin.getvalue(), "GO\n")
+        app.current_process = None
 
     def test_device_status_requires_expected_ball_and_marks_estimated_soc(self) -> None:
         payload = json.loads(power_result(["research"]).stdout)

@@ -34,8 +34,11 @@ mode after the final run, manual finish, failure, server shutdown or ten
 minutes waiting between runs.
 
 After the visible countdown, the tool confirms a device-side marker before it
-shows the green `GO`. If BLE needs to retry at that boundary, the page says to
-keep waiting instead of leaving `GO in 1` on screen. A failed episode is not
+shows the green `GO`. The web workflow then pauses the capture until the
+browser has painted `GO` and automatically acknowledged that exact attempt;
+the action window cannot begin while the page still shows marker confirmation.
+If BLE needs to retry at that boundary, the page says to keep waiting instead
+of leaving `GO in 1` on screen. A failed episode is not
 counted: its partial JSONL is renamed with a `.failed-<timestamp>` suffix,
 connection recovery runs automatically, and the same repetition becomes
 available again. Earlier successful episodes in the batch remain intact. If

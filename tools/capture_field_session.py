@@ -144,12 +144,17 @@ def build_power_command(args: argparse.Namespace, mode: str) -> list[str]:
     ]
 
 
-def build_capture_command(args: argparse.Namespace, repetition: int) -> list[str]:
+def build_capture_command(
+    args: argparse.Namespace,
+    repetition: int,
+    *,
+    wait_for_go_ack: bool = False,
+) -> list[str]:
     profile = PROFILES[args.profile]
     notes = profile.instruction
     if args.notes:
         notes = f"{notes} {args.notes}"
-    return [
+    command = [
         PYTHON,
         str(CAPTURE_TOOL),
         "--mode",
@@ -171,6 +176,9 @@ def build_capture_command(args: argparse.Namespace, repetition: int) -> list[str
         "--output",
         str(output_path(args, repetition)),
     ]
+    if wait_for_go_ack:
+        command.extend(("--wait-for-go-ack", "--go-ack-timeout", "20"))
+    return command
 
 
 def run_command(command: list[str]) -> int:

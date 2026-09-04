@@ -48,6 +48,15 @@ class CaptureFieldSessionTests(unittest.TestCase):
             command[command.index("--output") + 1],
             "runs/field-s1-putt_gentle-r03.jsonl",
         )
+        self.assertNotIn("--wait-for-go-ack", command)
+
+        web_command = build_capture_command(
+            args(profile="putt_gentle"), 3, wait_for_go_ack=True
+        )
+        self.assertIn("--wait-for-go-ack", web_command)
+        self.assertEqual(
+            web_command[web_command.index("--go-ack-timeout") + 1], "20"
+        )
 
     def test_power_commands_preserve_selector(self) -> None:
         values = args(ble_address="AA:BB:CC:DD:EE:FF", address_type="random")

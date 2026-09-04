@@ -7,6 +7,7 @@ import argparse
 import json
 import math
 from pathlib import Path
+import select
 import shutil
 import statistics
 import subprocess
@@ -97,6 +98,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="emit a terminal bell with the GO message for operator-led captures",
     )
+    parser.add_argument(
+        "--wait-for-go-ack",
+        action="store_true",
+        help="wait for a GO line on stdin after confirming the device marker",
+    )
+    parser.add_argument("--go-ack-timeout", type=float, default=20.0)
     return parser
 
 
@@ -290,6 +297,10 @@ def main() -> int:
         raise SystemExit("request retry limits must be positive")
     if args.mode == "frozen" and args.until_enter:
         raise SystemExit("--until-enter is unnecessary with the always-on frozen history")
+    if args.wait_for_go_ack and args.armed_countdown is None:
+        raise SystemExit("--wait-for-go-ack requires an armed timed capture")
+    if args.go_ack_timeout <= 0:
+        raise SystemExit("--go-ack-timeout must be positive")
     try:
         validate_armed_options(
             mode=args.mode,
@@ -393,6 +404,17 @@ def main() -> int:
                         "source_monotonic_us": action_marker.source_monotonic_us,
                     }
                 )
+                if args.wait_for_go_ack:
+                    print(
+                        "GO_READY: device marker confirmed; waiting for controller",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    readable, _, _ = select.select(
+                        [sys.stdin], [], [], args.go_ack_timeout
+                    )
+                    if not readable or sys.stdin.readline().strip() != "GO":
+                        raise RuntimeError("GO acknowledgement timed out")
                 print(
                     f"{'\\a' if args.audible_cue else ''}GO: action window is "
                     f"{args.episode_seconds:.2f} seconds",
