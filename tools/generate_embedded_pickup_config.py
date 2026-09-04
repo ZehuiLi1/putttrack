@@ -3,6 +3,7 @@
 
 The generated header is intentionally simple C so firmware and offline replay
 share one threshold source. This tool never edits the JSON or changes authority.
+Its config hash uses the same canonical-JSON definition as pickup_v0.py.
 """
 
 from __future__ import annotations
@@ -20,10 +21,21 @@ def _c_float(value: object) -> str:
     return text + "f"
 
 
+def _canonical_sha256(payload: dict[str, object]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def render(config_path: Path) -> str:
-    raw = config_path.read_bytes()
-    cfg = json.loads(raw)
-    sha = hashlib.sha256(raw).hexdigest()
+    cfg = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(cfg, dict):
+        raise ValueError("pickup detector config must be a JSON object")
+    sha = _canonical_sha256(cfg)
     stationary = cfg["stationary_baseline"]
     onset = cfg["onset"]
     impulse = cfg["vertical_impulse"]
