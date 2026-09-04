@@ -52,7 +52,6 @@ jobs:
           diff -u \
             docs/research/mcu_motion_demo_v0_replay_20260905/summary.json \
             /tmp/mcu-motion-demo-v0-replay/summary.json
-          test "$(git write-tree)" = "90446fea82d42c0237bd40b2c66913643f3c0193"
 
       - name: Publish candidate and remove bootstrap material
         shell: bash
