@@ -186,13 +186,15 @@ event log.
 captured and replayed without gaps being silently hidden.
 
 **Current result:** two distinct assembled-ball stationary orientations,
-unmistakably active generic motion and two
-natural pickup/carry episodes with pre/post rest pass through atomic
-frozen-history capture and replay. Two ordinary handling controls also fail
-closed at the semantic boundary: one remains unclassified and the stronger one
-becomes only generic active. Putter impact, rolling and settling still require
-labelled physical episodes. The current bare Tag is suitable for
-transport/sensor validation, not final instrumented-ball thresholds.
+unmistakably active generic motion, the checked-in manual-floor set, ten newer
+pickup/carry episodes and ten nominal putt episodes pass through atomic
+frozen-history capture and replay. The latest putt label audit retains only
+three clean candidates, one usable segment with pre-GO contamination, four
+suspected collision mixtures and two invalid actions. This is useful physical
+evidence, but not independently timed truth. Strict no-lift handling,
+rolling-pickup, collision/step and separate-session holdout captures are the
+immediate gate. The assembled Ball is suitable for this research; no final
+instrumented-ball threshold is claimed.
 The development-board power state machine is also verified. Although upstream
 DTS omits the property, the official PCA20072 schematic connects ADXL367 INT1
 to P0.03. The repository overlay declares it, and confirmed firmware uses ACT-
@@ -220,9 +222,12 @@ gates; adjacent windows from one episode are not split across train/test.
 **Current result:** deterministic features, canonical observation conversion and
 the fail-closed one-hole candidate router are implemented. Stationary and
 clearly active generic motion have physical data and a deliberately wide
-diagnostic separation. Pickup and desk handling already overlap at generic
-activity intensity, so action-type thresholds and calibrated confidence remain
-intentionally absent; physical context must resolve action semantics.
+diagnostic separation. Current temporal analysis indicates that vertical
+impulse combined with one-second gyro energy and rotation-axis consistency can
+separate all presently usable pickup/putt/roll/tap examples in-sample. The
+post-hoc thresholds remain intentionally absent from gameplay because no-lift
+handling, rolling pickup and independent holdout sessions have not passed. See
+[`PICKUP_DETECTION_STATUS_20260904.md`](research/PICKUP_DETECTION_STATUS_20260904.md).
 
 ### M4 — No-CS physical one-hole vertical slice
 
