@@ -30,6 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=20,
         help="Emm_V5 acceleration level 0-255; 0 requests direct acceleration",
     )
+    parser.add_argument(
+        "--deceleration",
+        type=int,
+        help="optional Emm_V5 0-255 ramp-to-zero level; omit for immediate stop",
+    )
     parser.add_argument("--pre-roll-seconds", type=float, default=3.0)
     parser.add_argument("--tail-seconds", type=float, default=3.0)
     parser.add_argument("--output", type=Path, required=True)
@@ -52,6 +57,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--seconds must be positive")
     if not 0 <= args.acceleration <= 255:
         raise ValueError("--acceleration must be between 0 and 255")
+    if args.deceleration is not None and not 0 <= args.deceleration <= 255:
+        raise ValueError("--deceleration must be between 0 and 255")
     if args.pre_roll_seconds <= 0 or args.tail_seconds <= 0:
         raise ValueError("pre-roll and tail durations must be positive")
     if args.pre_roll_seconds + args.seconds + args.tail_seconds > HISTORY_BUDGET_SECONDS:
@@ -95,7 +102,7 @@ def build_capture_command(args: argparse.Namespace) -> list[str]:
 def build_motor_command(args: argparse.Namespace, command: str = "run") -> list[str]:
     base = [sys.executable, str(MOTOR_TOOL), "--port", args.motor_port]
     if command == "run":
-        return base + [
+        command_line = base + [
             "run",
             "--rpm",
             str(args.rpm),
@@ -105,6 +112,9 @@ def build_motor_command(args: argparse.Namespace, command: str = "run") -> list[
             str(args.acceleration),
             "--confirm-clear",
         ]
+        if args.deceleration is not None:
+            command_line[-1:-1] = ["--deceleration", str(args.deceleration)]
+        return command_line
     return base + [command]
 
 

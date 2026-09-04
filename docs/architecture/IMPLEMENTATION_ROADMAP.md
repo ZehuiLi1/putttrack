@@ -153,10 +153,10 @@ prerequisites unless ADR-013 is revisited.
 
 ## Active next Issues / PRs
 
-1. **Controlled research-ball data:** the closed shell, restrained carrier,
-   stationary baseline and exploratory manual-floor comparison pass. Timed
-   ARMED capture now excludes setup delay. Assemble the programmable roller and
-   collect repeated, measured impact/rolling/settling/post-stop episodes next.
+1. **Free-motion research-ball data:** the closed shell, restrained carrier and
+   86-capture roller characterization pass with zero sequence gaps. Timed ARMED
+   capture excludes setup delay. Collect independently labelled handling,
+   putter, free-roll, collision and cup episodes next; no roller is required.
 2. **Generic motion V0:** extend the replay-first deterministic state/candidate
    baseline only from controlled physical evidence.
 3. **Physical one-hole inputs:** the hardware-neutral tee/cup adapters,

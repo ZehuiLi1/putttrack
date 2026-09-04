@@ -23,6 +23,9 @@ class RollerMotor {
   bool armed_ = false;
   bool running_ = false;
   bool enabled_ = false;
+  bool ramp_stop_requested_ = false;
+  uint8_t deceleration_ = 0;
+  int running_rpm_ = 0;
   uint8_t address_ = 1;
   uint32_t baud_ = 115200;
   uint32_t probe_deadline_ms_ = 0;
@@ -35,8 +38,9 @@ class RollerMotor {
   void scan();
   void status();
   void arm();
-  void run(int rpm, uint32_t seconds, uint8_t acceleration);
+  void run(int rpm, uint32_t seconds, uint8_t acceleration, int deceleration);
   void stop(const char *reason);
+  void rampStop(const char *reason);
   void disable();
 
   void drainRx();
@@ -47,6 +51,7 @@ class RollerMotor {
                    uint32_t timeout_ms = 180);
   bool action(uint8_t command, const uint8_t *payload, size_t payload_length,
               const char *name);
+  bool issueImmediateStop(int16_t &last_rpm, bool &accepted);
   bool waitForZeroSpeed(uint32_t timeout_ms, int16_t &last_rpm);
   bool deadlineReached(uint32_t deadline_ms) const;
 };

@@ -182,7 +182,11 @@ void RollerMotor::serviceDeadline() {
     Serial.println(F("{\"event\":\"motor_disarmed\",\"reason\":\"arm_timeout\"}"));
   }
   if (running_ && deadlineReached(stop_deadline_ms_)) {
-    stop("run_timeout");
+    if (ramp_stop_requested_) {
+      rampStop("run_timeout");
+    } else {
+      stop("run_timeout");
+    }
     disable();
   }
 }
@@ -223,18 +227,21 @@ void RollerMotor::handleLine(String line) {
   long rpm = 0;
   unsigned long seconds = 0;
   long acceleration = kDefaultAcceleration;
+  long deceleration = -1;
   char trailing = '\0';
-  const int run_fields = sscanf(line.c_str(), "motor run %ld %lu %ld %c", &rpm,
-                                &seconds, &acceleration, &trailing);
-  if (run_fields == 2 || run_fields == 3) {
+  const int run_fields =
+      sscanf(line.c_str(), "motor run %ld %lu %ld %ld %c", &rpm, &seconds,
+             &acceleration, &deceleration, &trailing);
+  if (run_fields >= 2 && run_fields <= 4) {
     if (rpm < -PT_MOTOR_MAX_RPM || rpm > PT_MOTOR_MAX_RPM ||
-        acceleration < 0 || acceleration > 255) {
+        acceleration < 0 || acceleration > 255 || deceleration < -1 ||
+        deceleration > 255) {
       Serial.println(F("{\"event\":\"motor_command_rejected\","
                        "\"reason\":\"unsafe_run_limits\"}"));
       return;
     }
     run(static_cast<int>(rpm), static_cast<uint32_t>(seconds),
-        static_cast<uint8_t>(acceleration));
+        static_cast<uint8_t>(acceleration), static_cast<int>(deceleration));
     return;
   }
 
@@ -247,7 +254,8 @@ void RollerMotor::printHelp() const {
   Serial.printf(
       "{\"event\":\"motor_help\",\"commands\":[\"motor probe\","
       "\"motor scan\",\"motor status\",\"motor arm\","
-      "\"motor run <signed_rpm> <seconds> [acceleration_0_255]\",\"motor stop\","
+      "\"motor run <signed_rpm> <seconds> [acceleration_0_255] "
+      "[deceleration_0_255]\",\"motor stop\","
       "\"motor disable\"],\"max_abs_rpm\":%d,"
       "\"max_seconds\":%d,\"default_acceleration\":%u}\n",
       PT_MOTOR_MAX_RPM, PT_MOTOR_MAX_RUN_SECONDS,
@@ -618,7 +626,8 @@ void RollerMotor::arm() {
                 PT_MOTOR_ARM_WINDOW_MS);
 }
 
-void RollerMotor::run(int rpm, uint32_t seconds, uint8_t acceleration) {
+void RollerMotor::run(int rpm, uint32_t seconds, uint8_t acceleration,
+                      int deceleration) {
   if (!probe_ok_ || !armed_) {
     Serial.println(F("{\"event\":\"motor_command_rejected\","
                      "\"reason\":\"probe_and_arm_required\"}"));
@@ -657,21 +666,28 @@ void RollerMotor::run(int rpm, uint32_t seconds, uint8_t acceleration) {
   }
 
   running_ = true;
+  running_rpm_ = rpm;
+  ramp_stop_requested_ = deceleration >= 0;
+  deceleration_ = static_cast<uint8_t>(deceleration >= 0 ? deceleration : 0);
   stop_deadline_ms_ = millis() + seconds * 1000U;
-  Serial.printf(
-      "{\"event\":\"motor_running\",\"rpm\":%d,\"seconds\":%lu,"
-      "\"acceleration\":%u}\n",
-      rpm, static_cast<unsigned long>(seconds),
-      static_cast<unsigned>(acceleration));
+  Serial.printf("{\"event\":\"motor_running\",\"rpm\":%d,\"seconds\":%lu,"
+                "\"acceleration\":%u,\"stop_mode\":\"%s\"",
+                rpm, static_cast<unsigned long>(seconds),
+                static_cast<unsigned>(acceleration),
+                ramp_stop_requested_ ? "ramp" : "immediate");
+  if (ramp_stop_requested_) {
+    Serial.printf(",\"deceleration\":%u", static_cast<unsigned>(deceleration_));
+  }
+  Serial.println('}');
 }
 
-void RollerMotor::stop(const char *reason) {
+bool RollerMotor::issueImmediateStop(int16_t &last_rpm, bool &accepted) {
   const uint8_t stop_payload[] = {0x98, 0x00};
   // Match the proven controller's redundant immediate-stop policy. Keep the
   // drive enabled briefly while speed settles; disabling immediately can let
   // the mechanism coast freely even though the first STOP was acknowledged.
   static constexpr uint16_t STOP_INTERVALS_MS[] = {0, 8, 24};
-  bool accepted = false;
+  accepted = false;
   for (const uint16_t interval_ms : STOP_INTERVALS_MS) {
     if (interval_ms > 0U) {
       delay(interval_ms);
@@ -679,14 +695,55 @@ void RollerMotor::stop(const char *reason) {
     accepted =
         action(0xFE, stop_payload, sizeof(stop_payload), "stop") || accepted;
   }
+  return waitForZeroSpeed(750U, last_rpm);
+}
+
+void RollerMotor::stop(const char *reason) {
   int16_t last_rpm = 0;
-  const bool settled = waitForZeroSpeed(750U, last_rpm);
+  bool accepted = false;
+  const bool settled = issueImmediateStop(last_rpm, accepted);
   running_ = false;
   armed_ = false;
+  ramp_stop_requested_ = false;
+  running_rpm_ = 0;
   Serial.print(F("{\"event\":\"motor_stopped\",\"reason\":\""));
   Serial.print(reason);
   Serial.print(F("\",\"acknowledged\":"));
   Serial.print(accepted ? F("true") : F("false"));
+  Serial.print(F(",\"settled\":"));
+  Serial.print(settled ? F("true") : F("false"));
+  Serial.print(F(",\"final_rpm\":"));
+  Serial.print(last_rpm);
+  Serial.println('}');
+}
+
+void RollerMotor::rampStop(const char *reason) {
+  const uint8_t speed_payload[] = {
+      static_cast<uint8_t>(running_rpm_ > 0 ? 0x01 : 0x00), 0x00, 0x00,
+      deceleration_, 0x00};
+  bool acknowledged =
+      action(0xF6, speed_payload, sizeof(speed_payload), "decelerate");
+  int16_t last_rpm = 0;
+  bool settled = acknowledged && waitForZeroSpeed(4000U, last_rpm);
+  bool fallback = false;
+  if (!settled) {
+    fallback = true;
+    bool stop_accepted = false;
+    settled = issueImmediateStop(last_rpm, stop_accepted);
+    acknowledged = acknowledged || stop_accepted;
+  }
+  running_ = false;
+  armed_ = false;
+  ramp_stop_requested_ = false;
+  running_rpm_ = 0;
+  Serial.print(F("{\"event\":\"motor_stopped\",\"reason\":\""));
+  Serial.print(reason);
+  Serial.print(F("\",\"stop_mode\":\""));
+  Serial.print(fallback ? F("ramp_fallback") : F("ramp"));
+  Serial.print(F("\",\"deceleration\":"));
+  Serial.print(deceleration_);
+  Serial.print(F(",\"acknowledged\":"));
+  Serial.print(acknowledged ? F("true") : F("false"));
   Serial.print(F(",\"settled\":"));
   Serial.print(settled ? F("true") : F("false"));
   Serial.print(F(",\"final_rpm\":"));

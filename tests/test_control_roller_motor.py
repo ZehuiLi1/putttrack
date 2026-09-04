@@ -39,6 +39,7 @@ def run_args(**overrides: object) -> argparse.Namespace:
         "rpm": 30,
         "seconds": 3,
         "acceleration": 20,
+        "deceleration": None,
         "confirm_clear": True,
         "timeout": 0.01,
     }
@@ -55,6 +56,8 @@ class RollerMotorControlTests(unittest.TestCase):
             (run_args(seconds=0), "seconds"),
             (run_args(acceleration=-1), "acceleration"),
             (run_args(acceleration=256), "acceleration"),
+            (run_args(deceleration=-1), "deceleration"),
+            (run_args(deceleration=256), "deceleration"),
             (run_args(seconds=31), "seconds"),
             (run_args(timeout=0), "timeout"),
         )
@@ -101,6 +104,24 @@ class RollerMotorControlTests(unittest.TestCase):
                 b"motor status\n",
             ],
         )
+
+    def test_optional_deceleration_is_sent_to_firmware(self) -> None:
+        port = FakeSerial(
+            [
+                {"event": "motor_probe", "ok": True},
+                {"event": "motor_status", "ok": True, "stalled": False},
+                {"event": "motor_armed"},
+                {"event": "motor_running", "rpm": 60, "seconds": 2,
+                 "stop_mode": "ramp", "deceleration": 5},
+                {"event": "motor_stopped", "reason": "run_timeout",
+                 "stop_mode": "ramp", "settled": True, "final_rpm": 0},
+                {"event": "motor_action_ack", "action": "disable", "accepted": True},
+                {"event": "motor_status", "ok": True, "rpm": 0,
+                 "enabled": False, "stalled": False, "stall_protect": False},
+            ]
+        )
+        execute(port, run_args(rpm=60, seconds=2, deceleration=5))
+        self.assertIn(b"motor run 60 2 20 5\n", port.writes)
 
     def test_run_fails_closed_if_final_status_is_not_disabled(self) -> None:
         port = FakeSerial(

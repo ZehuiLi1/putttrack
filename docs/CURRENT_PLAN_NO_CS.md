@@ -339,12 +339,13 @@ Re-open the CS track only when at least one is true:
    `DEVICE_ID` locking, address pinning, boot/session continuity and strict
    malformed/error handling are implemented. Confirmed `0.1.17` provides a
    human-readable short-ID advertising suffix.
-7. Build a repeatable, restrained research-ball core and record labelled putter
-   impact, rolling, settling and post-stop episodes. Then extend the implemented
+7. ~~Build and characterize a repeatable, restrained research-ball core.~~
+   Complete for this revision with 86 gap-free roller captures covering speed,
+   direction, clipping and powered acceleration/deceleration boundaries. Next
+   record independently labelled putter impact, free rolling, settling and
+   post-stop episodes, then extend the implemented
    feature extractor into the measured deterministic generic-motion FSM; do not
    invent action thresholds from additional bare-Tag hand movement.
-   The official STEP envelope and initial roller matrix are now documented;
-   CAD adaptation, printing and physical captures are pending.
 8. Connect physical tee and cup evidence to the existing one-hole vertical
    slice using a Tee PN532 plus Cup optical-entry/PN532 identity pair, and
    complete an automatic real one-hole path.
@@ -358,18 +359,15 @@ Re-open the CS track only when at least one is true:
     authoritative position. See
     [`research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md`](research/PUTTSHACK_TRACKABALL_TECH_REVIEW.md).
 
-The next physical action is to define and assemble the repeatable research-ball
-carrier. Its measured keep-in and roller matrix are now defined in
-[`hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md`](hardware/NRF54L15_TAG_MECHANICAL_ENVELOPE.md)
-and
-[`hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md`](hardware/RESEARCH_BALL_ROLLER_PROTOCOL.md).
-Once it exists, capture metadata and episode discipline continue to follow
+The repeatable research-ball carrier and roller phase are complete. The roller
+may now remain off-site; continue field capture metadata and episode discipline
+with the Ball and XIAO nRF52840 according to
 [`hardware/TAG_MOTION_EPISODE_RUNBOOK.md`](hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
 
 ## 8. Current priority decision
 
-The highest-value next work is the controlled research-ball core plus real
-putt/roll/settle data. It attacks the largest unmeasured Ball risk and prevents
+The highest-value next work is real, independently labelled putt/free-roll/
+settle data. It attacks the largest unmeasured Ball risk and prevents
 the motion FSM from being tuned to hand-held development-board behavior.
 
 The next product-value milestone is physical Tee/Cup integration because it

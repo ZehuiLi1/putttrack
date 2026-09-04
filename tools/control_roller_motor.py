@@ -49,6 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Emm_V5 acceleration level 0-255; 0 requests direct acceleration",
     )
     run.add_argument(
+        "--deceleration",
+        type=int,
+        help="optional Emm_V5 0-255 ramp-to-zero level; omit for immediate stop",
+    )
+    run.add_argument(
         "--confirm-clear",
         action="store_true",
         help="confirm the guarded roller is clear and the ball is secured",
@@ -69,6 +74,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError(f"--seconds must be between 1 and {MAX_RUN_SECONDS}")
     if not 0 <= args.acceleration <= 255:
         raise ValueError("--acceleration must be between 0 and 255")
+    if args.deceleration is not None and not 0 <= args.deceleration <= 255:
+        raise ValueError("--deceleration must be between 0 and 255")
 
 
 def discover_port(requested: str | None) -> str:
@@ -190,14 +197,16 @@ def execute(serial_port: SerialLike, args: argparse.Namespace) -> None:
 
     send_line(serial_port, "motor arm")
     wait_event(serial_port, "motor_armed", args.timeout)
-    send_line(
-        serial_port,
-        f"motor run {args.rpm} {args.seconds} {args.acceleration}",
-    )
+    command = f"motor run {args.rpm} {args.seconds} {args.acceleration}"
+    if args.deceleration is not None:
+        command += f" {args.deceleration}"
+    send_line(serial_port, command)
     wait_event(serial_port, "motor_running", args.timeout)
     try:
         stopped = wait_event(
-            serial_port, "motor_stopped", args.seconds + args.timeout + 1.0
+            serial_port,
+            "motor_stopped",
+            args.seconds + args.timeout + (5.0 if args.deceleration is not None else 1.0),
         )
         if stopped.get("reason") != "run_timeout":
             raise RuntimeError(f"run ended unexpectedly: {stopped}")

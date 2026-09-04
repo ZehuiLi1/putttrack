@@ -145,6 +145,7 @@ python tools/capture_roller_run.py \
   --rpm 120 \
   --seconds 3 \
   --acceleration 20 \
+  --deceleration 5 \
   --notes "roller R1; CW; slow; carrier r1; repetition 01" \
   --output runs/roller-r1-120rpm-r01.jsonl \
   --confirm-clear
@@ -164,6 +165,13 @@ an SI acceleration measurement. The default is the previously proven value
 characterize a new setting at low speed before increasing RPM, and derive the
 actual rise time from the captured IMU/encoder trace rather than assigning a
 physical unit to this controller value.
+
+`--deceleration` is optional and uses the same driver-defined `0..255` domain.
+When present, firmware commands a ramp to zero and waits up to four seconds;
+failure automatically invokes the redundant immediate STOP before disable.
+When omitted, the established immediate STOP path is unchanged. The captured
+transition is a `powered_deceleration_proxy`, never a free-roll or collision
+label.
 
 The combined path physically passed twice at +120 RPM for three seconds on
 2026-09-04. The second retained run contained 450 contiguous 50 Hz samples,
@@ -214,6 +222,7 @@ remaining physical metadata cannot be inferred in software:
 Do not label motor RPM as ball angular velocity until roller diameter, contact
 geometry and slip have been measured.
 
-The first complete 48-capture results and the boundary between automated
+The complete 86-capture roller phase, measured low/high boundaries, controlled
+stop profiles and the boundary between automated
 roller evidence and operator-labelled physical events are recorded in
 [`../research/ROLLER_DATASET_20260904.md`](../research/ROLLER_DATASET_20260904.md).

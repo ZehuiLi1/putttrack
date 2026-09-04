@@ -356,8 +356,9 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 ## Immediate dependency order
 
-1. Collect controlled roller and putter impact/roll/settle/stop repetitions
-   using timed ARMED captures and independent command/video truth.
+1. Collect genuine putter impact/free-roll/settle, handling, collision and cup
+   repetitions using timed ARMED captures and independent marker/video truth;
+   the 86-capture programmable-roller phase is complete.
 2. Fit and hold out a deterministic generic-motion FSM without giving the Ball
    direct score authority.
 3. Build the selected Tee PN532 and Cup optical-entry + PN532 identity rigs and

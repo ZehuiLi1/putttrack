@@ -18,13 +18,18 @@ reported as Ball RPM or ground speed.
 |---|---|---:|---:|---:|---:|
 | R2 speed/direction | `±30/60/90/120 RPM`, 3 repeats | 24 | 10,811 | 0 | 0 |
 | R3 start/stop | `±60 RPM`, acceleration `0/5/20/80`, 3 repeats | 24 | 13,209 | 0 | 0 |
-| **Total** |  | **48** | **24,020** | **0** | **0** |
+| R2 low-speed boundary | `±1/2/3/5/10/15/20 RPM` | 14 | 7,608 | 0 | 0 |
+| R2 high-speed boundary | `+135/150/155/165/180`, `-165/180 RPM` | 7 | 3,154 | 0 | 0 |
+| R4 controlled stop | `±60 RPM` at `0/5/20/80`; `±120 RPM` at `5/80`; `+30 RPM` safety gate | 13 | 8,002 | 0 | 0 |
+| R5 ten-second steady hold | `±60/120 RPM` | 4 | 3,000 | 0 | 0 |
+| **Total** |  | **86** | **45,784** | **0** | **0** |
 
 Every capture used Tag firmware `0.1.17`, device
 `f383571202836e6f`, boot `b7d6474ba25dbade`, a frozen device-side history,
-and a synchronized host runner. BMI270 acceleration and gyro had zero clipping
-events in all 48 captures. The ADXL367 `±2 g` wake sensor clipped in 13 of 24 R2
-captures (26 samples total) and 8 of 24 R3 captures (10 samples). This is a
+and a synchronized host runner. BMI270 acceleration had zero clipping events
+in all 86 captures. BMI270 gyro had zero clipping in 84 captures; only the two
+deliberate `±180 RPM` limit tests clipped (19 samples total). The ADXL367
+`±2 g` wake sensor clipped in dynamic tests (144 samples total). This is a
 warning about using ADXL367 for dynamic measurement, not a transport failure;
 BMI270 remains the dynamic sensor.
 
@@ -53,10 +58,36 @@ It does not establish no-slip kinematics. Direction asymmetry is largest at
 preload, dead-band or low-speed control effects that still need mechanical
 measurement.
 
-Linear extrapolation would reach the BMI270 `±2000 dps` gyro range near a
-commanded 202 RPM, but extrapolation is not an acceptance test. Higher-speed
-work must explicitly monitor gyro clipping and should not jump directly to the
-controller's 300 RPM software ceiling.
+### Measured low- and high-speed boundaries
+
+The low-speed sweep used one capture in each direction. The table reports the
+median gyro norm in the stable powered interval; stationary baseline medians
+were only `0.0057–0.0064 rad/s`.
+
+| Command | + direction (rad/s) | − direction (rad/s) | Result |
+|---:|---:|---:|---|
+| 1 RPM | 0.245 | 0.117 | Direction-dependent; the existing generic check classified `+1` active but left `-1` in its motion dead band |
+| 2 RPM | 0.333 | 0.302 | Active in both directions; lowest reliable tested command |
+| 3 RPM | 0.571 | 0.487 | Active in both directions |
+| 5 RPM | 0.797 | 0.745 | Active in both directions |
+| 10 RPM | 1.259 | 1.414 | Active in both directions |
+| 15 RPM | 2.273 | 2.240 | Active in both directions |
+| 20 RPM | 3.485 | 3.939 | Active in both directions |
+
+This does not make `2 RPM` a product threshold. It is the fixture's measured
+bidirectional detection boundary in this orientation and session.
+
+At the upper boundary, `±165 RPM` completed with no BMI270 gyro clipping.
+The peak single-axis rates were `32.688 rad/s` in the positive direction and
+`31.481 rad/s` in the negative direction. Both `±180 RPM` runs reached
+approximately `34.91 rad/s` on one axis and generated 10 and 9 clipping events.
+Therefore:
+
+- `165 RPM` is the highest bidirectionally verified no-clipping command for
+  this assembly;
+- `180 RPM` is a deliberately captured invalid/limit example, not training
+  truth for amplitude-sensitive features;
+- no `195/300 RPM` test is justified with the present `±2000 dps` range.
 
 ## Start/stop characterization
 
@@ -90,6 +121,51 @@ Every R3 run also includes the controller's redundant immediate stop and the
 post-stop settling interval. Those stop transients are useful negative/control
 examples for transition detection. They must be labelled `powered_stop_proxy`,
 not `collision` or `putter_impact`.
+
+## Controlled deceleration and stop safety
+
+The controller and synchronized runner now accept an optional deceleration
+field. If the ramp-to-zero command is not acknowledged or does not reach zero
+within four seconds, firmware falls back to the redundant immediate STOP path
+before disabling the driver. All 13 R4 captures ended at encoder-reported zero,
+disabled output, no stall flags and no fallback. BMI270 had no clipping.
+
+The following single-run values use a five-sample median filter. `90–10% fall`
+starts at the last sample at or above 90% of the steady gyro level and ends at
+the first sustained interval at or below 10%. They characterize the complete
+fixture response, not the driver's internal ramp alone.
+
+| Command | Deceleration | 90–10% fall (s) |
+|---:|---:|---:|
+| +30 RPM | 5 | 0.16 |
+| +60 RPM | 0 / 5 / 20 / 80 | 0.14 / 0.48 / 0.46 / 0.22 |
+| −60 RPM | 0 / 5 / 20 / 80 | 0.52 / 0.64 / 0.30 / 0.86 |
+| +120 RPM | 5 / 80 | 1.08 / 0.92 |
+| −120 RPM | 5 / 80 | 0.98 / 0.84 |
+
+Only one repetition exists for each controlled-stop cell, and the constrained
+ball's gyro norm oscillates with contact geometry. These results prove that the
+profiles and safety fallback work; they do not support a monotonic physical
+mapping from the Emm_V5 setting to SI deceleration. Omit the field for the
+proven immediate STOP behavior; use a supplied field only to create a labelled
+`powered_deceleration_proxy`.
+
+## Ten-second steady holds
+
+Four longer runs checked transport continuity and within-run drift. Comparing
+two equal stable windows near the beginning and end of each hold gave:
+
+| Command | First median (rad/s) | Second median (rad/s) | Change |
+|---:|---:|---:|---:|
+| +60 RPM | 11.435 | 10.962 | −4.14% |
+| −60 RPM | 11.691 | 10.748 | −8.07% |
+| +120 RPM | 22.648 | 22.278 | −1.64% |
+| −120 RPM | 22.834 | 22.715 | −0.52% |
+
+All 3,000 samples were contiguous and free of BMI270 clipping. The larger
+60 RPM change is another reason to treat commanded speed as a fixture label,
+not calibrated ball speed; contact preload, slip and speed regulation remain
+convolved.
 
 ## What the roller can automate
 
@@ -140,14 +216,27 @@ recorded before comparing small classical models or neural networks; the
 gameplay engine must continue treating IMU classification as non-authoritative
 evidence.
 
-## Immediate next gates
+## Roller-phase closure
 
-1. Measure roller diameter/contact layout and add timestamped encoder speed if
-   the driver exposes it; this converts commanded RPM into usable kinematic
-   calibration.
-2. Repeat selected `30/60/120 RPM` cases after a deliberate Ball orientation
-   change and on a second day.
-3. Collect the manual pickup/place and genuine putter/free-roll datasets before
+The required roller work for this mechanical/firmware revision is complete.
+It established transport integrity, bidirectional repeatability, low-speed
+detection, high-range clipping onset, acceleration/stop proxies, controlled
+deceleration safety and ten-second steady behavior. The roller can now be
+removed from the normal field kit; the Ball and XIAO nRF52840 HCI bridge are
+sufficient for the next manual/free-motion capture phase.
+
+Reopen roller collection only after a sensor range/rate change, firmware motion
+pipeline change, shell/carrier/contact revision, unexplained field regression,
+or a deliberate calibrated-kinematics study. Those are requalification events,
+not unfinished work in this dataset.
+
+## Next gates without the roller
+
+1. Collect the manual pickup/place and genuine putter/free-roll datasets before
    attempting semantic classification.
-4. Add a guarded repeatable striker or release ramp if automated impact/free
+2. Collect wall/rail, ball-to-ball and real cup sequences with synchronized
+   video or independent event markers.
+3. Add a guarded repeatable striker or release ramp if automated impact/free
    roll volume becomes more valuable than manual collection.
+4. Treat roller diameter/contact geometry and timestamped encoder telemetry as
+   an optional future calibration study, not a prerequisite for field capture.

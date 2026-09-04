@@ -15,13 +15,14 @@ in the architecture, ADR and hardware documents. Status labels mean:
 ## Current result
 
 The repository has a reliable smart-Tag development baseline, a mechanically
-assembled first research ball, a checked-in two-orientation stationary baseline
-plus a seven-episode exploratory/manual-floor capture set,
+assembled first research ball, a checked-in two-orientation stationary baseline,
+a seven-episode exploratory/manual-floor capture set and a completed 86-capture
+programmable-roller characterization,
 a powered NFC service plus System OFF cold-wake path and a complete software-only one-hole
-scoring path. It does **not** yet have a characterized rolling/impact dataset or a
-physically automatic hole. The largest remaining uncertainty is the IMU signal
-while the assembled ball rolls and is struck; the next product uncertainty is
-real tee/cup evidence.
+scoring path. It does **not** yet have independently labelled free-roll/putter
+impact data or a physically automatic hole. The largest remaining uncertainty
+is semantic IMU behavior during real play; the next product uncertainty is real
+tee/cup evidence.
 
 | Area | Status | What is actually established | Next gate |
 |---|---|---|---|
@@ -34,7 +35,7 @@ real tee/cup evidence.
 | NFC System OFF wake | Physical pass | Explicit encrypted command, >60 s BLE absence, NFC reset reason, changed boot ID, BLE recovery and confirmed image verified | Repeated cold-wake/storage soak; keep explicit service state |
 | Battery observation | Physical pass; current unmeasured | Internal VDD ADC reports 2.91--2.96 V; generic CR2032 OCV percentage is labelled estimated | Temperature/load characterization and current instrument |
 | Bare-Tag motion data | Physical pass, limited scope | Stationary, handling and pickup datasets show generic motion separation and semantic overlap | Do not tune putt/roll logic from more hand-held Tag data |
-| Research-ball mechanics/data | Physical pass, exploratory; roller controller physical pass | Printed halves close fully; two original stationary baselines and seven manual-floor/ARMED episodes establish clean transport, static repeatability and preliminary roll/pickup/tap separation; Emm_V5 TTL on RX4/TX5 returned valid identity/status and passed staged 30/60/120 RPM motion with matching encoder position. A 16 RPM post-disable tail was detected; triple STOP plus zero-speed-before-disable recovery passed the same -120 RPM case | Mount the assembled Ball securely and collect controlled R0/R1 episodes before increasing speed |
+| Research-ball mechanics/data | Physical pass; roller phase complete | Printed halves close fully. The formal roller set has 86/86 passing captures and 45,784 contiguous samples across ±1–180 RPM, acceleration/deceleration profiles and ten-second holds. It establishes a ±2 RPM bidirectional detection floor, ±165 RPM no-clip ceiling and deliberate ±180 RPM gyro clipping boundary | Remove roller from field kit; collect labelled pickup/place, putter, free-roll, collision and cup data |
 | Sensor fault recovery | Healthy-path physical pass | A real assembled-ball ADXL367 boot-init fault was diagnosed; confirmed `0.1.17` retains retries, capture-generation invalidation, one guarded reboot and quarantine | Fault injection and ten sealed reset cycles |
 | Motion analysis pipeline | Software pass | Strict dataset/session validation, deterministic features and fail-closed generic candidates | Fit only from controlled in-ball episodes |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
@@ -47,8 +48,8 @@ real tee/cup evidence.
 ## Critical path
 
 ```text
-restrained research ball
-        -> controlled impact/roll/settle captures
+completed roller characterization
+        -> labelled free impact/roll/settle captures
         -> measured generic motion FSM
         -> physical tee + independent cup evidence
         -> real automatic one-hole rounds
@@ -61,9 +62,9 @@ BLE transport, signed images or DAPLink recovery.
 
 ## Immediate order
 
-1. Collect the roller and putter impact/roll/settle/stop episode matrix on
-   confirmed `0.1.17` using timed ARMED captures; stationary and exploratory
-   manual-floor baselines are complete.
+1. Collect operator-labelled pickup/place and genuine putter/free-roll/settle
+   episodes on confirmed `0.1.17`; the roller phase is complete and does not
+   need to travel with the Ball.
 2. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
    connect them to the implemented activation and evidence policies.
 3. In parallel, characterize NFC range/orientation and the provisional 1.0 uH
@@ -77,11 +78,12 @@ BLE transport, signed images or DAPLink recovery.
 ## Current stop line
 
 Powered NFC service identity, bounded handoff, battery voltage and System OFF
-cold wake have passed. The research ball
-is assembled, so the primary work has moved into physical motion and gameplay
-characterization. The next honest advances require one of:
+cold wake have passed. The research ball is assembled and roller
+characterization is closed, so the primary work has moved into free physical
+motion and gameplay characterization. The next honest advances require one of:
 
-- a controlled assembled-ball rolling or impact episode;
+- an independently labelled assembled-ball free roll, putter impact, handling,
+  collision or cup episode;
 - an instrumented NFC range/tuning/current experiment;
 - a chosen physical tee/cup test mechanism;
 - a current-measurement instrument.
