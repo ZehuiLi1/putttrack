@@ -381,7 +381,14 @@ date/operator/second-Ball/surface holdout plus only targeted clipping/failure
 captures. See
 [`research/NEXT_IMU_ENGINEERING_PLAN_20260904.md`](research/NEXT_IMU_ENGINEERING_PLAN_20260904.md).
 
-The next product-value milestone is physical Tee/Cup integration because it
+Before physical Tee/Cup integration, perform the bounded `0.1.18` MCU Pickup
+V0 shadow trial documented in
+[`hardware/NRF54L15_TAG_PICKUP_SHADOW_V0.md`](hardware/NRF54L15_TAG_PICKUP_SHADOW_V0.md).
+The C/Python repository parity and signed build pass; physical runtime and
+regression checks remain. The shadow decision has no Gameplay authority and
+does not change the selected product architecture.
+
+The next product-value milestone after that bounded gate is physical Tee/Cup integration because it
 turns the existing software vertical slice into a real, automatic one-hole
 experience. The selected simple shape is one fixed PN532 at Tee and one
 optical-entry plus PN532 identity pair at Cup. NFC-gated activation is now an

@@ -21,7 +21,17 @@ XIAO USB HCI development bridge:
 - command `2`: latest 64-sample binary ring window encoded as hexadecimal text;
 - command `3`: atomically freeze the latest 1024 samples (20.48 seconds);
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
-  that frozen capture.
+  that frozen capture;
+- command `24` (write): arm the frozen Pickup V0 MCU shadow evaluator and bind
+  a device-side GO timestamp;
+- command `25` (read): return the shadow decision, fail-closed reasons,
+  intermediate features, detector hash and execution time.
+
+The `0.1.18` candidate adds commands 24/25 without giving the Ball Gameplay
+authority. It has a software/native-parity and NCS build pass, but the physical
+Tag remains on confirmed `0.1.17` until the unconfirmed OTA trial in
+[`NRF54L15_TAG_PICKUP_SHADOW_V0.md`](../../docs/hardware/NRF54L15_TAG_PICKUP_SHADOW_V0.md)
+passes.
 
 Confirmed firmware `0.1.17` provides three
 remotely selectable power policies while preserving the signed OTA and

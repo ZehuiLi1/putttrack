@@ -25,6 +25,12 @@ return to idle and a post-confirm boot are validated with zero reported sensor,
 power-management, NFC or advertising errors. VDD/CR2032 voltage observation is
 also live; its percentage is explicitly an OCV estimate, not a battery-life
 claim.
+Signed firmware candidate `0.1.18` now adds an explicitly armed,
+non-authoritative Pickup V0 MCU shadow evaluator. Its native C decisions match
+the Python evaluator on all 62 supported repository precision episodes and the
+NCS NFC/OTA build passes; physical test-boot and runtime/regression checks are
+the next gate, so `0.1.17` remains the confirmed baseline. See
+[`NRF54L15_TAG_PICKUP_SHADOW_V0.md`](docs/hardware/NRF54L15_TAG_PICKUP_SHADOW_V0.md).
 See [`docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md`](docs/hardware/NRF54L15_TAG_MOTION_BASELINE.md)
 and [`docs/hardware/NRF54L15_TAG_LOW_POWER.md`](docs/hardware/NRF54L15_TAG_LOW_POWER.md).
 The confirmed image also adds a per-device advertising name, while the capture

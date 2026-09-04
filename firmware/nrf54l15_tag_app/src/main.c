@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -34,6 +35,8 @@
 #include <zephyr/sys/util.h>
 #include <zcbor_encode.h>
 
+#include "pickup_shadow_v0.h"
+
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #include <hal/nrf_nfct.h>
 #include <nfc_t2t_lib.h>
@@ -50,7 +53,7 @@
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.17"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.18"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -62,6 +65,8 @@
 #define PUTTTRACK_MGMT_ID_POWER_RESEARCH 21U
 #define PUTTTRACK_MGMT_ID_POWER_IDLE 22U
 #define PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF 23U
+#define PUTTTRACK_MGMT_ID_PICKUP_SHADOW_ARM 24U
+#define PUTTTRACK_MGMT_ID_PICKUP_SHADOW_RESULT 25U
 
 #define STATUS_PACKET_SIZE 64U
 #define MOTION_PACKET_SIZE 56U
@@ -70,6 +75,7 @@
 #define MOTION_FROZEN_CHUNKS (MOTION_HISTORY_SAMPLES / MOTION_WINDOW_SAMPLES)
 #define MOTION_WINDOW_BYTES (MOTION_PACKET_SIZE * MOTION_WINDOW_SAMPLES)
 #define MOTION_WINDOW_HEX_BYTES (MOTION_WINDOW_BYTES * 2U)
+#define PICKUP_SHADOW_SNAPSHOT_SAMPLES 272U
 
 #define MOTION_STREAM_RATE_HZ 50U
 #define ADXL367_ODR_HZ 100U
@@ -196,8 +202,15 @@ static uint16_t motion_ring_count;
 static uint8_t motion_window_snapshot[MOTION_WINDOW_BYTES];
 static char motion_window_hex[MOTION_WINDOW_HEX_BYTES];
 static uint8_t frozen_motion_history[MOTION_HISTORY_SAMPLES][MOTION_PACKET_SIZE];
+static struct pt_pickup_sample
+	pickup_shadow_snapshot[PICKUP_SHADOW_SNAPSHOT_SAMPLES];
 static uint16_t frozen_motion_count;
 static uint32_t frozen_capture_id;
+static bool pickup_shadow_armed;
+static uint64_t pickup_shadow_go_us;
+static uint32_t pickup_shadow_generation;
+static uint32_t pickup_shadow_evaluation_count;
+static uint32_t pickup_shadow_max_runtime_us;
 static uint8_t device_id[DEVICE_ID_MAX_SIZE];
 static uint8_t device_id_len;
 static uint8_t boot_id[BOOT_ID_SIZE];
@@ -287,6 +300,7 @@ K_SEM_DEFINE(power_event_sem, 0, 1);
 
 static void build_status_packet(void);
 static void begin_sensor_recovery(uint32_t error_bits);
+static void increment_saturating(uint32_t *value);
 
 static void sample_battery(void)
 {
@@ -376,6 +390,206 @@ static void initialize_advertising_name(void)
 	memcpy(advertising_name, ADVERTISING_NAME_PREFIX, prefix_len);
 	bytes_to_hex(device_id, suffix_len, &advertising_name[prefix_len]);
 	advertising_name[prefix_len + suffix_len * 2U] = '\0';
+}
+
+static void motion_packet_to_pickup_sample(
+	const uint8_t packet[MOTION_PACKET_SIZE], struct pt_pickup_sample *sample)
+{
+	memset(sample, 0, sizeof(*sample));
+	sample->sequence = sys_get_le32(&packet[4]);
+	sample->source_monotonic_us = sys_get_le64(&packet[8]);
+	for (size_t axis = 0U; axis < 3U; axis++) {
+		sample->accel_micro_ms2[axis] =
+			(int32_t)sys_get_le32(&packet[28U + axis * 4U]);
+		sample->gyro_micro_rads[axis] =
+			(int32_t)sys_get_le32(&packet[40U + axis * 4U]);
+	}
+	sample->sensor_error_bits = sys_get_le32(&packet[52]);
+	sample->adxl367_valid =
+		(packet[1] & MOTION_FLAG_ADXL367_VALID) != 0U;
+	sample->bmi270_valid = (packet[1] & MOTION_FLAG_BMI270_VALID) != 0U;
+}
+
+static int32_t pickup_shadow_scaled(double value, double scale)
+{
+	double scaled;
+
+	if (!isfinite(value) || value < 0.0) {
+		return -1;
+	}
+	scaled = value * scale;
+	if (scaled >= INT32_MAX) {
+		return INT32_MAX;
+	}
+	return (int32_t)(scaled + 0.5);
+}
+
+static int putttrack_mgmt_pickup_shadow_arm(struct smp_streamer *ctxt)
+{
+	zcbor_state_t *zse = ctxt->writer->zs;
+	uint64_t go_us = k_ticks_to_us_floor64(k_uptime_ticks());
+	uint32_t generation;
+	bool accepted;
+	int32_t error = 0;
+	bool ok;
+
+	k_mutex_lock(&packet_mutex, K_FOREVER);
+	accepted = atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_ACTIVE &&
+		atomic_get(&sensor_health) == PUTTTRACK_SENSOR_HEALTHY &&
+		adxl367_ready && bmi270_ready &&
+		current_stream_rate_hz == MOTION_STREAM_RATE_HZ &&
+		motion_ring_count >= 50U;
+	if (accepted) {
+		pickup_shadow_generation++;
+		pickup_shadow_go_us = go_us;
+		pickup_shadow_armed = true;
+	} else {
+		error = -EAGAIN;
+	}
+	generation = pickup_shadow_generation;
+	k_mutex_unlock(&packet_mutex);
+
+	ok = zcbor_tstr_put_lit(zse, "proto") &&
+	     zcbor_uint32_put(zse, PUTTTRACK_PROTOCOL_VERSION) &&
+	     zcbor_tstr_put_lit(zse, "accepted") &&
+	     zcbor_bool_put(zse, accepted) &&
+	     zcbor_tstr_put_lit(zse, "generation") &&
+	     zcbor_uint32_put(zse, generation) &&
+	     zcbor_tstr_put_lit(zse, "go_us") &&
+	     zcbor_uint64_put(zse, accepted ? go_us : 0U) &&
+	     zcbor_tstr_put_lit(zse, "error") &&
+	     zcbor_int32_put(zse, error) &&
+	     zcbor_tstr_put_lit(zse, "authority") &&
+	     zcbor_bool_put(zse, false);
+
+	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
+}
+
+static int putttrack_mgmt_pickup_shadow_result(struct smp_streamer *ctxt)
+{
+	zcbor_state_t *zse = ctxt->writer->zs;
+	struct pt_pickup_shadow_result result;
+	uint64_t go_us = 0U;
+	uint64_t earliest_us = 0U;
+	uint32_t generation = 0U;
+	uint32_t start_cycles;
+	uint32_t runtime_us;
+	uint16_t sample_count = 0U;
+	uint16_t start_index;
+	bool armed;
+	const char *decision_text;
+	struct zcbor_string decision_value;
+	struct zcbor_string detector_value = {
+		.value = (const uint8_t *)PT_PICKUP_SHADOW_DETECTOR_ID,
+		.len = sizeof(PT_PICKUP_SHADOW_DETECTOR_ID) - 1U,
+	};
+	struct zcbor_string hash_value = {
+		.value = (const uint8_t *)PT_PICKUP_SHADOW_DETECTOR_SHA256,
+		.len = sizeof(PT_PICKUP_SHADOW_DETECTOR_SHA256) - 1U,
+	};
+	bool ok;
+
+	memset(&result, 0, sizeof(result));
+	result.decision = PT_PICKUP_SHADOW_UNARMED;
+	k_mutex_lock(&packet_mutex, K_FOREVER);
+	armed = pickup_shadow_armed;
+	if (armed) {
+		go_us = pickup_shadow_go_us;
+		generation = pickup_shadow_generation;
+		earliest_us = go_us > 1000000ULL ? go_us - 1000000ULL : 0U;
+		start_index = (motion_ring_write_index + MOTION_HISTORY_SAMPLES -
+			       motion_ring_count) % MOTION_HISTORY_SAMPLES;
+		for (size_t index = 0U;
+		     index < motion_ring_count &&
+		     sample_count < PICKUP_SHADOW_SNAPSHOT_SAMPLES;
+		     index++) {
+			const uint8_t *packet =
+				motion_ring[(start_index + index) % MOTION_HISTORY_SAMPLES];
+			uint64_t timestamp = sys_get_le64(&packet[8]);
+
+			if (timestamp >= earliest_us) {
+				motion_packet_to_pickup_sample(
+					packet, &pickup_shadow_snapshot[sample_count]);
+				sample_count++;
+			}
+		}
+	}
+	k_mutex_unlock(&packet_mutex);
+
+	start_cycles = k_cycle_get_32();
+	if (armed) {
+		pt_pickup_shadow_evaluate(pickup_shadow_snapshot, sample_count,
+					  go_us, true, &result);
+	}
+	runtime_us = k_cyc_to_us_floor32(k_cycle_get_32() - start_cycles);
+	increment_saturating(&pickup_shadow_evaluation_count);
+	if (runtime_us > pickup_shadow_max_runtime_us) {
+		pickup_shadow_max_runtime_us = runtime_us;
+	}
+	decision_text = pt_pickup_shadow_decision_name(result.decision);
+	decision_value = (struct zcbor_string) {
+		.value = (const uint8_t *)decision_text,
+		.len = strlen(decision_text),
+	};
+
+	ok = zcbor_tstr_put_lit(zse, "proto") &&
+	     zcbor_uint32_put(zse, PUTTTRACK_PROTOCOL_VERSION) &&
+	     zcbor_tstr_put_lit(zse, "detector") &&
+	     zcbor_tstr_encode(zse, &detector_value) &&
+	     zcbor_tstr_put_lit(zse, "detector_sha256") &&
+	     zcbor_tstr_encode(zse, &hash_value) &&
+	     zcbor_tstr_put_lit(zse, "generation") &&
+	     zcbor_uint32_put(zse, generation) &&
+	     zcbor_tstr_put_lit(zse, "go_us") &&
+	     zcbor_uint64_put(zse, go_us) &&
+	     zcbor_tstr_put_lit(zse, "decision") &&
+	     zcbor_tstr_encode(zse, &decision_value) &&
+	     zcbor_tstr_put_lit(zse, "reason_mask") &&
+	     zcbor_uint32_put(zse, result.reason_mask) &&
+	     zcbor_tstr_put_lit(zse, "rule_pass_mask") &&
+	     zcbor_uint32_put(zse, result.rule_pass_mask) &&
+	     zcbor_tstr_put_lit(zse, "sample_count") &&
+	     zcbor_uint32_put(zse, sample_count) &&
+	     zcbor_tstr_put_lit(zse, "baseline_count") &&
+	     zcbor_uint32_put(zse, result.baseline_sample_count) &&
+	     zcbor_tstr_put_lit(zse, "baseline_duration_ms") &&
+	     zcbor_int32_put(zse,
+		pickup_shadow_scaled(result.baseline_duration_s, 1000.0)) &&
+	     zcbor_tstr_put_lit(zse, "baseline_accel_sd_micro_ms2") &&
+	     zcbor_int32_put(zse, pickup_shadow_scaled(
+		result.baseline_accel_norm_stdev_mps2, 1000000.0)) &&
+	     zcbor_tstr_put_lit(zse, "baseline_gyro_rms_micro_rads") &&
+	     zcbor_int32_put(zse, pickup_shadow_scaled(
+		result.baseline_gyro_norm_rms_rads, 1000000.0)) &&
+	     zcbor_tstr_put_lit(zse, "onset_us") &&
+	     zcbor_uint64_put(zse, result.onset_source_monotonic_us) &&
+	     zcbor_tstr_put_lit(zse, "onset_offset_ms") &&
+	     zcbor_int32_put(zse,
+		pickup_shadow_scaled(result.onset_offset_from_go_s, 1000.0)) &&
+	     zcbor_tstr_put_lit(zse, "positive_impulse_micro_mps") &&
+	     zcbor_int32_put(zse, pickup_shadow_scaled(
+		result.positive_vertical_impulse_mps, 1000000.0)) &&
+	     zcbor_tstr_put_lit(zse, "mean_gyro_micro_rads") &&
+	     zcbor_int32_put(zse, pickup_shadow_scaled(
+		result.mean_gyro_norm_1s_rads, 1000000.0)) &&
+	     zcbor_tstr_put_lit(zse, "axis_consistency_ppm") &&
+	     zcbor_int32_put(zse, pickup_shadow_scaled(
+		result.gyro_axis_consistency_1s, 1000000.0)) &&
+	     zcbor_tstr_put_lit(zse, "gyro_clip_samples") &&
+	     zcbor_uint32_put(zse, result.gyro_clip_samples) &&
+	     zcbor_tstr_put_lit(zse, "gyro_feature_count") &&
+	     zcbor_uint32_put(zse, result.feature_sample_count_gyro) &&
+	     zcbor_tstr_put_lit(zse, "impulse_feature_count") &&
+	     zcbor_uint32_put(zse, result.feature_sample_count_impulse) &&
+	     zcbor_tstr_put_lit(zse, "source_rate_millihz") &&
+	     zcbor_int32_put(zse,
+		pickup_shadow_scaled(result.source_rate_hz, 1000.0)) &&
+	     zcbor_tstr_put_lit(zse, "runtime_us") &&
+	     zcbor_uint32_put(zse, runtime_us) &&
+	     zcbor_tstr_put_lit(zse, "authority") &&
+	     zcbor_bool_put(zse, false);
+
+	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
 }
 
 static int putttrack_mgmt_status(struct smp_streamer *ctxt)
@@ -539,7 +753,19 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_tstr_put_lit(zse, "battery_soc_percent") &&
 	     zcbor_uint32_put(zse, battery_soc_percent) &&
 	     zcbor_tstr_put_lit(zse, "battery_soc_estimated") &&
-	     zcbor_bool_put(zse, true);
+	     zcbor_bool_put(zse, true) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_supported") &&
+	     zcbor_bool_put(zse, true) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_armed") &&
+	     zcbor_bool_put(zse, pickup_shadow_armed) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_generation") &&
+	     zcbor_uint32_put(zse, pickup_shadow_generation) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_evaluations") &&
+	     zcbor_uint32_put(zse, pickup_shadow_evaluation_count) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_max_runtime_us") &&
+	     zcbor_uint32_put(zse, pickup_shadow_max_runtime_us) &&
+	     zcbor_tstr_put_lit(zse, "pickup_shadow_authority") &&
+	     zcbor_bool_put(zse, false);
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	ok = ok &&
@@ -947,6 +1173,14 @@ static const struct mgmt_handler putttrack_mgmt_handlers[] = {
 	[PUTTTRACK_MGMT_ID_POWER_IDLE] = {
 		.mh_read = NULL,
 		.mh_write = putttrack_mgmt_power_idle,
+	},
+	[PUTTTRACK_MGMT_ID_PICKUP_SHADOW_ARM] = {
+		.mh_read = NULL,
+		.mh_write = putttrack_mgmt_pickup_shadow_arm,
+	},
+	[PUTTTRACK_MGMT_ID_PICKUP_SHADOW_RESULT] = {
+		.mh_read = putttrack_mgmt_pickup_shadow_result,
+		.mh_write = NULL,
 	},
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 	[PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF] = {
@@ -1409,6 +1643,8 @@ static void clear_motion_history(void)
 	motion_ring_count = 0U;
 	frozen_motion_count = 0U;
 	frozen_capture_id++;
+	pickup_shadow_armed = false;
+	pickup_shadow_go_us = 0U;
 	k_mutex_unlock(&packet_mutex);
 }
 

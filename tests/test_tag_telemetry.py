@@ -11,6 +11,8 @@ from putttrack.tag import (
     motion_window_from_smp,
     parse_motion,
     parse_status,
+    pickup_shadow_arm_from_smp,
+    pickup_shadow_result_from_smp,
     status_from_smp,
 )
 
@@ -179,6 +181,12 @@ class TagTelemetryTests(unittest.TestCase):
                 "auto_reboot_guard": True,
                 "auto_reboot_pending": False,
                 "idle_health_check_ms": 600000,
+                "pickup_shadow_supported": True,
+                "pickup_shadow_armed": True,
+                "pickup_shadow_generation": 7,
+                "pickup_shadow_evaluations": 4,
+                "pickup_shadow_max_runtime_us": 830,
+                "pickup_shadow_authority": False,
             }
         )
 
@@ -238,6 +246,69 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertTrue(status.sensor_auto_reboot_guard)
         self.assertFalse(status.sensor_auto_reboot_pending)
         self.assertEqual(status.idle_sensor_health_check_ms, 600000)
+        self.assertTrue(status.pickup_shadow_supported)
+        self.assertTrue(status.pickup_shadow_armed)
+        self.assertEqual(status.pickup_shadow_generation, 7)
+        self.assertEqual(status.pickup_shadow_evaluation_count, 4)
+        self.assertEqual(status.pickup_shadow_max_runtime_us, 830)
+        self.assertFalse(status.pickup_shadow_authority)
+
+    def test_pickup_shadow_arm_and_result_remain_non_authoritative(self) -> None:
+        arm = pickup_shadow_arm_from_smp(
+            {
+                "proto": 1,
+                "accepted": True,
+                "generation": 3,
+                "go_us": 123_456,
+                "error": 0,
+                "authority": False,
+            }
+        )
+        self.assertTrue(arm.accepted)
+        self.assertEqual(arm.go_source_monotonic_us, 123_456)
+
+        payload = {
+            "proto": 1,
+            "detector": "pickup_detector_v0_stationary_start",
+            "detector_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+            "generation": 3,
+            "go_us": 123_456,
+            "decision": "PICKUP_SUSPECTED",
+            "reason_mask": 0,
+            "rule_pass_mask": 7,
+            "sample_count": 210,
+            "baseline_count": 50,
+            "baseline_duration_ms": 980,
+            "baseline_accel_sd_micro_ms2": 21000,
+            "baseline_gyro_rms_micro_rads": 11000,
+            "onset_us": 823_456,
+            "onset_offset_ms": 700,
+            "positive_impulse_micro_mps": 1290721,
+            "mean_gyro_micro_rads": 4006100,
+            "axis_consistency_ppm": 310000,
+            "gyro_clip_samples": 0,
+            "gyro_feature_count": 50,
+            "impulse_feature_count": 30,
+            "source_rate_millihz": 50000,
+            "runtime_us": 830,
+            "authority": False,
+        }
+        result = pickup_shadow_result_from_smp(payload)
+        self.assertEqual(result.decision, "PICKUP_SUSPECTED")
+        self.assertEqual(result.rule_pass_mask, 7)
+        self.assertEqual(
+            result.to_dict()["passed_rules"],
+            ["positive_vertical_impulse", "mean_gyro_norm", "axis_consistency"],
+        )
+        self.assertFalse(result.authority)
+
+        payload["authority"] = True
+        with self.assertRaisesRegex(TelemetryProtocolError, "never claim authority"):
+            pickup_shadow_result_from_smp(payload)
+        payload["authority"] = False
+        payload["reason_mask"] = 1 << 31
+        with self.assertRaisesRegex(TelemetryProtocolError, "unknown reason bits"):
+            pickup_shadow_result_from_smp(payload)
 
     def test_old_smp_status_has_no_nfc_claim(self) -> None:
         status = status_from_smp(

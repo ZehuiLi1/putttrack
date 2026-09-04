@@ -1,6 +1,6 @@
 # PuttTrack Project Status
 
-**As of:** 2026-09-04
+**As of:** 2026-09-05
 **Active direction:** BLE + motion + physical tee/cup; Channel Sounding deferred
 
 This is the short, evidence-ranked project dashboard. Detailed decisions remain
@@ -30,7 +30,7 @@ is real tee/cup evidence.
 
 | Area | Status | What is actually established | Next gate |
 |---|---|---|---|
-| nRF54L15 Tag firmware | Physical pass; recovery fault path pending | Confirmed `0.1.17`; battery voltage, NFC cold wake, healthy sensors, auto idle and SMP passed | Controlled R0 motion data; separately inject/reproduce sensor faults |
+| nRF54L15 Tag firmware | Physical `0.1.17`; `0.1.18` shadow candidate build-only | Confirmed `0.1.17`; battery voltage, NFC cold wake, healthy sensors, auto idle and SMP passed. Signed `0.1.18` adds non-authoritative Pickup V0 arm/result commands | Test-boot `0.1.18`; measure MCU result/runtime, then recheck NFC, idle wake and rollback before confirmation |
 | Signed BLE OTA | Physical pass | Encrypted SMP upload, MCUboot test boot, confirmation and rollback-capable layout | Production controller authentication and release policy |
 | Motion low power | Physical pass, current unmeasured | BMI270/stream/SPI stop at rest; ADXL367 INT1 wakes the Tag without polling; repeated wake/re-sleep passed | Measure whole-board current and battery pulse behavior |
 | Multi-Tag identity | Software + physical pass | Capture locks full `DEVICE_ID`, address and boot/session continuity; `0.1.17` retains per-device scan name | Commission the second Tag only for a concrete two-ball test |
@@ -41,7 +41,7 @@ is real tee/cup evidence.
 | Bare-Tag motion data | Physical pass, limited scope | Stationary, handling and pickup datasets show generic motion separation and semantic overlap | Do not tune putt/roll logic from more hand-held Tag data |
 | Research-ball mechanics/data | Physical pass; current same-session collection gate complete | Printed halves close fully. In addition to 86/86 roller captures, reviewed batches now cover 10 no-lift handling, 10 rolling pickup, 10 pickup/carry, 10 pickup/drop, 11 gentle putt, 10 rail collision and 11 course-step episodes. Labels remain operator-confirmed rather than video truth | Stop repeated same-environment capture; run the source-derived frozen evaluator, then collect only targeted failures and an independent session/operator/Ball holdout |
 | Sensor fault recovery | Healthy-path physical pass | A real assembled-ball ADXL367 boot-init fault was diagnosed; confirmed `0.1.17` retains retries, capture-generation invalidation, one guarded reboot and quarantine | Fault injection and ten sealed reset cycles |
-| Motion analysis pipeline | Software/research pass; non-authoritative | The configuration-hashed frozen V0 evaluator runs directly from raw JSONL. Across 60 metric-eligible precision episodes it makes 41 definitive decisions (TP=20/TN=21/FP=0/FN=0) and returns 19 UNKNOWN; rail collisions expose gyro clipping. PG-DH-HSMM primitives and trainer/export integration are tested but have no validated production coefficients | Freeze and run a new-day/operator/second-Ball/surface holdout; target clipping and then validate trained V1 emissions/HSMM without Gameplay authority |
+| Motion analysis pipeline | Software/research pass; MCU shadow build-only; non-authoritative | Frozen V0 runs from raw JSONL and as a shared C kernel. C/Python decisions match on all 62 supported repository precision episodes; signed `0.1.18` builds with 29.82% Flash and 85.45% RAM. The original report remains 41 definitive metric decisions and 19 UNKNOWN. PG-DH-HSMM still lacks validated production coefficients | Physically test the MCU arm/result path, runtime and regression safety; then freeze an independent date/operator/second-Ball/surface holdout |
 | IMU research export | Software pass | The first 161-capture / 113,867-record archive and complete manifest are versioned; all newer reviewed batches preserve raw JSONL, analysis and provenance separately | Keep the historical archive immutable; review new captures into named experiment directories rather than committing live/duplicate `runs/` |
 | Gameplay Engine / one-hole UI | Software pass | Deterministic, idempotent local gameplay and 1,000-round/20,000-fault soak | Run against physical inputs and real players |
 | Tee/cup ingress | Software pass | Identity/order/health checks; tee presence and two-stage cup completion contracts | Select/build mechanisms and measure false-positive/latency behavior |
@@ -55,6 +55,7 @@ is real tee/cup evidence.
 ```text
 completed roller + reviewed motion-class batches
         -> completed executable frozen pickup evaluator
+        -> MCU shadow-mode physical parity/runtime gate
         -> targeted independent holdout from measured failures
         -> physical tee + independent cup evidence
         -> real automatic one-hole rounds
@@ -67,19 +68,22 @@ BLE transport, signed images or DAPLink recovery.
 
 ## Immediate order
 
-1. Keep frozen V0 unchanged and use its published per-episode UNKNOWN/clipping
+1. Test-boot the signed `0.1.18` Pickup V0 MCU shadow candidate; run stationary
+   and pickup trials, inspect `runtime_us`, then recheck NFC/idle wake before
+   confirmation. This result remains `authority=false`.
+2. Keep frozen V0 unchanged and use its published per-episode UNKNOWN/clipping
    audit to define a future independent date/operator/second-Ball/surface batch;
    do not collect more duplicate same-session motion first. See
    [`pickup_v0_holdout_eval`](research/imu_analysis_20260904/pickup_v0_holdout_eval/README.md).
-2. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
+3. Build one Tee PN532 and one Cup optical-entry + PN532 identity rig, then
    connect them to the implemented activation and evidence policies.
-3. In parallel, characterize NFC range/orientation and the provisional 1.0 uH
+4. In parallel, characterize NFC range/orientation and the provisional 1.0 uH
    plus 220 pF pair; cold wake has passed, but close reads are not final tuning.
-4. Measure Tag current before changing advertising-off/System OFF policy or
+5. Measure Tag current before changing advertising-off/System OFF policy or
    claiming battery life.
-5. After the event packet and FTO gate exist, test two or more BLE receivers for
+6. After the event packet and FTO gate exist, test two or more BLE receivers for
    diversity and loss reduction, not RSSI positioning.
-6. Select the pilot gateway after those physical I/O, buffering and radio results.
+7. Select the pilot gateway after those physical I/O, buffering and radio results.
 
 ## Current stop line
 

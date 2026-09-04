@@ -2,11 +2,15 @@
 
 from .telemetry import (
     MOTION_CHARACTERISTIC_UUID,
+    PICKUP_SHADOW_REASON_BY_BIT,
+    PICKUP_SHADOW_RULE_BY_BIT,
     PROTOCOL_VERSION,
     SERVICE_UUID,
     STATUS_CHARACTERISTIC_UUID,
     FrozenHistoryMetadata,
     MotionRecord,
+    PickupShadowArmResult,
+    PickupShadowResult,
     StatusRecord,
     TelemetryProtocolError,
     frozen_history_from_smp,
@@ -15,6 +19,8 @@ from .telemetry import (
     motion_window_from_smp,
     parse_motion,
     parse_status,
+    pickup_shadow_arm_from_smp,
+    pickup_shadow_result_from_smp,
     status_from_smp,
 )
 from .session import (
@@ -26,11 +32,15 @@ from .session import (
 
 __all__ = [
     "MOTION_CHARACTERISTIC_UUID",
+    "PICKUP_SHADOW_REASON_BY_BIT",
+    "PICKUP_SHADOW_RULE_BY_BIT",
     "PROTOCOL_VERSION",
     "SERVICE_UUID",
     "STATUS_CHARACTERISTIC_UUID",
     "FrozenHistoryMetadata",
     "MotionRecord",
+    "PickupShadowArmResult",
+    "PickupShadowResult",
     "StatusRecord",
     "TagCaptureReport",
     "TagCaptureSession",
@@ -42,6 +52,8 @@ __all__ = [
     "motion_window_from_smp",
     "parse_motion",
     "parse_status",
+    "pickup_shadow_arm_from_smp",
+    "pickup_shadow_result_from_smp",
     "status_from_smp",
     "normalize_device_id",
 ]

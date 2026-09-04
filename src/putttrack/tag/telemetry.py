@@ -14,6 +14,27 @@ SERVICE_UUID = "8f3a1000-6e7d-4b9a-a6e8-3f3f7d2c0001"
 STATUS_CHARACTERISTIC_UUID = "8f3a1001-6e7d-4b9a-a6e8-3f3f7d2c0001"
 MOTION_CHARACTERISTIC_UUID = "8f3a1002-6e7d-4b9a-a6e8-3f3f7d2c0001"
 
+PICKUP_SHADOW_REASON_BY_BIT = {
+    1 << 0: "insufficient_samples",
+    1 << 1: "sequence_gap_or_reordering",
+    1 << 2: "source_time_regression",
+    1 << 3: "sensor_invalid_or_error_bits_nonzero",
+    1 << 4: "unexpected_source_rate",
+    1 << 5: "insufficient_pre_go_baseline_samples",
+    1 << 6: "pre_go_baseline_not_stationary",
+    1 << 7: "insufficient_feature_window",
+    1 << 8: "bmi270_gyro_clipping_inside_feature_window",
+    1 << 9: "positive_vertical_impulse",
+    1 << 10: "mean_gyro_norm",
+    1 << 11: "axis_consistency",
+    1 << 12: "no_motion_onset",
+}
+PICKUP_SHADOW_RULE_BY_BIT = {
+    1 << 0: "positive_vertical_impulse",
+    1 << 1: "mean_gyro_norm",
+    1 << 2: "axis_consistency",
+}
+
 
 class TelemetryProtocolError(ValueError):
     """Raised when a Tag packet is truncated, incompatible or malformed."""
@@ -91,6 +112,12 @@ class StatusRecord:
     sensor_auto_reboot_guard: bool = False
     sensor_auto_reboot_pending: bool = False
     idle_sensor_health_check_ms: int | None = None
+    pickup_shadow_supported: bool | None = None
+    pickup_shadow_armed: bool = False
+    pickup_shadow_generation: int = 0
+    pickup_shadow_evaluation_count: int = 0
+    pickup_shadow_max_runtime_us: int = 0
+    pickup_shadow_authority: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -125,6 +152,58 @@ class FrozenHistoryMetadata:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class PickupShadowArmResult:
+    protocol_version: int
+    accepted: bool
+    generation: int
+    go_source_monotonic_us: int
+    error: int
+    authority: bool
+
+
+@dataclass(frozen=True)
+class PickupShadowResult:
+    protocol_version: int
+    detector: str
+    detector_sha256: str
+    generation: int
+    go_source_monotonic_us: int
+    decision: str
+    reason_mask: int
+    rule_pass_mask: int
+    sample_count: int
+    baseline_sample_count: int
+    baseline_duration_ms: int
+    baseline_accel_sd_micro_ms2: int
+    baseline_gyro_rms_micro_rads: int
+    onset_source_monotonic_us: int
+    onset_offset_ms: int
+    positive_impulse_micro_mps: int
+    mean_gyro_micro_rads: int
+    axis_consistency_ppm: int
+    gyro_clip_samples: int
+    gyro_feature_count: int
+    impulse_feature_count: int
+    source_rate_millihz: int
+    runtime_us: int
+    authority: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["reason_codes"] = [
+            name
+            for bit, name in PICKUP_SHADOW_REASON_BY_BIT.items()
+            if self.reason_mask & bit
+        ]
+        payload["passed_rules"] = [
+            name
+            for bit, name in PICKUP_SHADOW_RULE_BY_BIT.items()
+            if self.rule_pass_mask & bit
+        ]
+        return payload
 
 
 def _validate_header(packet: bytes, expected_size: int, label: str) -> None:
@@ -458,7 +537,119 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
         idle_sensor_health_check_ms=_optional_non_negative_int(
             payload, "idle_health_check_ms"
         ),
+        pickup_shadow_supported=_optional_bool(payload, "pickup_shadow_supported"),
+        pickup_shadow_armed=_optional_bool(payload, "pickup_shadow_armed") or False,
+        pickup_shadow_generation=(
+            _optional_non_negative_int(payload, "pickup_shadow_generation") or 0
+        ),
+        pickup_shadow_evaluation_count=(
+            _optional_non_negative_int(payload, "pickup_shadow_evaluations") or 0
+        ),
+        pickup_shadow_max_runtime_us=(
+            _optional_non_negative_int(payload, "pickup_shadow_max_runtime_us") or 0
+        ),
+        pickup_shadow_authority=_optional_bool(payload, "pickup_shadow_authority"),
     )
+
+
+def pickup_shadow_arm_from_smp(
+    payload: Mapping[str, Any],
+) -> PickupShadowArmResult:
+    version = _required_int(payload, "proto")
+    if version != PROTOCOL_VERSION:
+        raise TelemetryProtocolError(
+            f"unsupported pickup-shadow protocol version {version}; "
+            f"expected {PROTOCOL_VERSION}"
+        )
+    result = PickupShadowArmResult(
+        protocol_version=version,
+        accepted=_required_bool(payload, "accepted"),
+        generation=_required_non_negative_int(payload, "generation"),
+        go_source_monotonic_us=_required_non_negative_int(payload, "go_us"),
+        error=_required_int(payload, "error"),
+        authority=_required_bool(payload, "authority"),
+    )
+    if result.authority:
+        raise TelemetryProtocolError("pickup-shadow arm must never claim authority")
+    if result.accepted and result.go_source_monotonic_us == 0:
+        raise TelemetryProtocolError("accepted pickup-shadow arm requires go_us")
+    return result
+
+
+def pickup_shadow_result_from_smp(
+    payload: Mapping[str, Any],
+) -> PickupShadowResult:
+    version = _required_int(payload, "proto")
+    if version != PROTOCOL_VERSION:
+        raise TelemetryProtocolError(
+            f"unsupported pickup-shadow protocol version {version}; "
+            f"expected {PROTOCOL_VERSION}"
+        )
+    decision = _required_text(payload, "decision")
+    if decision not in {
+        "UNARMED",
+        "PENDING",
+        "PICKUP_SUSPECTED",
+        "NOT_PICKUP",
+        "UNKNOWN",
+    }:
+        raise TelemetryProtocolError(
+            f"unsupported pickup-shadow decision {decision!r}"
+        )
+    detector_sha256 = _required_text(payload, "detector_sha256")
+    try:
+        digest = bytes.fromhex(detector_sha256)
+    except ValueError as exc:
+        raise TelemetryProtocolError(
+            "pickup-shadow detector_sha256 must be hexadecimal"
+        ) from exc
+    if len(digest) != 32:
+        raise TelemetryProtocolError(
+            "pickup-shadow detector_sha256 must contain 32 bytes"
+        )
+    result = PickupShadowResult(
+        protocol_version=version,
+        detector=_required_text(payload, "detector"),
+        detector_sha256=detector_sha256.lower(),
+        generation=_required_non_negative_int(payload, "generation"),
+        go_source_monotonic_us=_required_non_negative_int(payload, "go_us"),
+        decision=decision,
+        reason_mask=_required_non_negative_int(payload, "reason_mask"),
+        rule_pass_mask=_required_non_negative_int(payload, "rule_pass_mask"),
+        sample_count=_required_non_negative_int(payload, "sample_count"),
+        baseline_sample_count=_required_non_negative_int(payload, "baseline_count"),
+        baseline_duration_ms=_required_int(payload, "baseline_duration_ms"),
+        baseline_accel_sd_micro_ms2=_required_int(
+            payload, "baseline_accel_sd_micro_ms2"
+        ),
+        baseline_gyro_rms_micro_rads=_required_int(
+            payload, "baseline_gyro_rms_micro_rads"
+        ),
+        onset_source_monotonic_us=_required_non_negative_int(payload, "onset_us"),
+        onset_offset_ms=_required_int(payload, "onset_offset_ms"),
+        positive_impulse_micro_mps=_required_int(
+            payload, "positive_impulse_micro_mps"
+        ),
+        mean_gyro_micro_rads=_required_int(payload, "mean_gyro_micro_rads"),
+        axis_consistency_ppm=_required_int(payload, "axis_consistency_ppm"),
+        gyro_clip_samples=_required_non_negative_int(payload, "gyro_clip_samples"),
+        gyro_feature_count=_required_non_negative_int(payload, "gyro_feature_count"),
+        impulse_feature_count=_required_non_negative_int(
+            payload, "impulse_feature_count"
+        ),
+        source_rate_millihz=_required_int(payload, "source_rate_millihz"),
+        runtime_us=_required_non_negative_int(payload, "runtime_us"),
+        authority=_required_bool(payload, "authority"),
+    )
+    if result.authority:
+        raise TelemetryProtocolError("pickup-shadow result must never claim authority")
+    known_reason_mask = sum(PICKUP_SHADOW_REASON_BY_BIT)
+    known_rule_mask = sum(PICKUP_SHADOW_RULE_BY_BIT)
+    if result.reason_mask & ~known_reason_mask:
+        raise TelemetryProtocolError("pickup-shadow result contains unknown reason bits")
+    if result.rule_pass_mask & ~known_rule_mask:
+        raise TelemetryProtocolError("pickup-shadow result contains unknown rule bits")
+    return result
 
 
 def motion_from_smp(payload: Mapping[str, Any]) -> MotionRecord:
