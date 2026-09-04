@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "profile_id": "pickup_detector_v0_stationary_start_eval_profile_20260904",
+  "authority": false,
+  "detector_config_sha256_expected": "not_embedded_use_repo_file_hash",
+  "note": "This profile does not change the frozen V0 decision thresholds. It makes the already-used ProvisionalStationaryThresholds and numerical clipping boundary explicit so raw-source evaluation is deterministic.",
+  "pre_go_stationary": {
+    "minimum_duration_s": 0.9,
+    "minimum_sample_fraction_of_expected": 0.8,
+    "maximum_accel_norm_stdev_mps2": 0.15,
+    "maximum_gyro_norm_rms_rads": 0.08
+  },
+  "source_rate_tolerance_fraction": 0.10,
+  "bmi270_gyro_clip_micro_rads": 34208453,
+  "decision_operators": {
+    "positive_vertical_impulse": ">",
+    "mean_gyro_norm": "<",
+    "axis_consistency": "<"
+  },
+  "unsupported_manifest_labels": [
+    "rolling_pickup"
+  ]
+}
