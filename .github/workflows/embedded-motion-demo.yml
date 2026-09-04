@@ -1,0 +1,62 @@
+name: Embedded Motion Demo
+
+on:
+  pull_request:
+    paths:
+      - "firmware/nrf54l15_tag_motion_demo/**"
+      - "firmware/nrf54l15_tag_app/**"
+      - "firmware/nrf54l15_tag_ota/**"
+      - "src/putttrack/tag/motion_evidence.py"
+      - "tools/generate_embedded_pickup_config.py"
+      - "tools/monitor_embedded_motion.py"
+      - "tools/test_embedded_motion_c.sh"
+      - "scripts/nrf54l15_tag/build_tag_app.sh"
+      - "scripts/nrf54l15_tag/build_motion_demo.sh"
+      - "scripts/ncs/build_embedded_motion_demo.sh"
+      - "tests/test_motion_evidence_packet.py"
+      - "tests/test_embedded_pickup_config_sync.py"
+      - "tests_research/embedded_motion_c_harness.c"
+      - ".github/workflows/embedded-motion-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-parity:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run repository verifier
+        run: python tools/verify.py
+      - name: Check generated frozen config
+        run: python tools/generate_embedded_pickup_config.py --check
+      - name: Compile and run MCU algorithm as host C
+        run: bash tools/test_embedded_motion_c.sh
+
+  ncs-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull Nordic v3.4.0 toolchain
+        run: docker pull ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
+      - name: Build raw and Tee-NFC demo variants
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work/putttrack" \
+            -w /work/putttrack \
+            -e NCS_MANIFEST_REF=v3.4.0 \
+            -e NCS_DIR=/tmp/ncs-v3.4.0 \
+            -e OUT_DIR=/work/putttrack/build/embedded-motion-demo \
+            -e PUTTTRACK_ROOT=/work/putttrack \
+            ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0 \
+            bash scripts/ncs/build_embedded_motion_demo.sh
+      - name: Boundary
+        if: always()
+        run: |
+          echo "Compile PASS is not a physical motion-accuracy or battery-life claim."
+          echo "The Ball evidence remains authority=false; Tee/Cup/Game stay on Edge."
