@@ -1,0 +1,6 @@
+model,evaluation_scope,reproducible_from_repo,accuracy,balanced_accuracy,pickup_precision,pickup_recall,pickup_f1,mcc,tn,fp,fn,tp
+logistic_3f,reproduced_leave_one_episode_out,yes,0.9545454545,0.9545454545,0.9166666667,1.0000000000,0.9565217391,0.9128709292,10,1,0,11
+linear_svm_3f,reproduced_leave_one_episode_out,yes,0.9545454545,0.9545454545,0.9166666667,1.0000000000,0.9565217391,0.9128709292,10,1,0,11
+rbf_svm_3f,reproduced_leave_one_episode_out,yes,0.9545454545,0.9545454545,0.9166666667,1.0000000000,0.9565217391,0.9128709292,10,1,0,11
+tree_depth2_3f,reproduced_leave_one_episode_out,yes,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.9090909091,0.8181818182,10,1,1,10
+rf_3f,reproduced_leave_one_episode_out,yes,0.9545454545,0.9545454545,0.9166666667,1.0000000000,0.9565217391,0.9128709292,10,1,0,11
