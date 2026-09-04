@@ -34,10 +34,13 @@ jobs:
             | base64 --decode \
             | gzip --decompress \
             > tools/imu_state_discovery.py
+          # NumPy 2.0 removed the deprecated trapz alias.
+          sed -i 's/np\.trapz/np.trapezoid/g' tools/imu_state_discovery.py
           python -m py_compile tools/imu_state_discovery.py
 
       - name: Run complete episode-level discovery pass
         run: |
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
           python tools/imu_state_discovery.py \
             --root "$GITHUB_WORKSPACE" \
             --out "$GITHUB_WORKSPACE/artifacts/imu_state_discovery_20260904" \
