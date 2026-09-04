@@ -41,12 +41,12 @@ class Profile:
 PROFILES = {
     "pickup_carry": Profile(
         label="pickup_carry",
-        episode_seconds=10.0,
+        episode_seconds=12.0,
         instruction="GO 后等约 1 秒，拿起球、行走 2–3 秒、放下，然后不要再碰球。",
     ),
     "pickup_drop": Profile(
         label="pickup_drop",
-        episode_seconds=10.0,
+        episode_seconds=12.0,
         instruction=(
             "GO 后等约 1 秒，拿起球、行走 2–3 秒，再从正常手持低高度随手丢下；"
             "不要用力砸球，落地后不要再碰。"
@@ -76,6 +76,30 @@ PROFILES = {
         label="hand_roll",
         episode_seconds=10.0,
         instruction="GO 后等约 1 秒，用手推动一次，不使用球杆，让球自然停止。",
+    ),
+    "putt_rail_collision": Profile(
+        label="putt_rail_collision",
+        episode_seconds=12.0,
+        instruction=(
+            "GO 后等约 1 秒，正常推击一次，让球碰撞一次固定边轨后自然停止；"
+            "结束提示前不要捡球。"
+        ),
+    ),
+    "track_step_drop": Profile(
+        label="track_step_drop",
+        episode_seconds=12.0,
+        instruction=(
+            "GO 后等约 1 秒，让球滚过一次赛道小台阶并自然停止；"
+            "不要用手抛球，结束提示前不要捡球。"
+        ),
+    ),
+    "rolling_pickup": Profile(
+        label="rolling_pickup",
+        episode_seconds=12.0,
+        instruction=(
+            "GO 后等约 1 秒，先用手推动球；球仍在滚动时将它拿起，"
+            "手持约 2 秒再放下，然后不要再碰球。"
+        ),
     ),
 }
 

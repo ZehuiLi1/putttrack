@@ -96,6 +96,9 @@ PROFILE_COPY = {
     "putt_normal": ("正常推杆", "正常力度推击一次"),
     "putt_firm": ("较重推杆", "较大力度推击一次"),
     "hand_roll": ("手推滚动", "不用球杆，手推一次"),
+    "putt_rail_collision": ("推杆撞边轨", "推击后只碰撞一次固定边轨"),
+    "track_step_drop": ("滚过小台阶", "滚动通过赛道台阶并自然停止"),
+    "rolling_pickup": ("滚动中拿起", "先滚动，再在球未停时拿起"),
 }
 
 

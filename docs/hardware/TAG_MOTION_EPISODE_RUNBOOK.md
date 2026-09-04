@@ -67,13 +67,15 @@ python3 tools/capture_field_session.py pickup_carry \
 ```
 
 Available profiles are `pickup_carry`, `pickup_drop`, `handling`,
-`putt_gentle`, `putt_normal`, `putt_firm` and `hand_roll`. Keep ordinary
-placement and a realistic low-height drop in separate batches. Output names
-and repetition numbers are generated automatically under `runs/`, and existing files are never
-overwritten. Before each Enter press, arrange the camera and Ball and keep the
-Ball still. After GO perform exactly one instructed action, then leave the Ball
-untouched until the completion cue. Use `--start-index` to continue a partially
-completed batch without reusing filenames.
+`putt_gentle`, `putt_normal`, `putt_firm`, `hand_roll`,
+`putt_rail_collision`, `track_step_drop` and `rolling_pickup`. Keep ordinary
+placement, a realistic low-height drop, rail contact and a track-step drop in
+separate batches. Output names and repetition numbers are generated
+automatically under `runs/`, and existing files are never overwritten. Before
+each Enter press, arrange the camera and Ball and keep the Ball still. After GO
+perform exactly one instructed action, then leave the Ball untouched until the
+completion cue. Use `--start-index` to continue a partially completed batch
+without reusing filenames.
 
 ## Preferred armed capture
 
@@ -177,7 +179,10 @@ file during the first pass.
 | `stationary` | untouched on a rigid desk | multiple orientations |
 | `pickup_carry` | desk → hand → carry → place down | no rolling |
 | `pickup_drop` | ground → hand → carry → low-height casual drop | assembled protective Ball only; do not throw hard |
+| `rolling_pickup` | roll → pickup while still moving → carry → place | positive pickup case without a stationary boundary |
 | `handling` | cable/board adjustment and ordinary touch | common false-stroke source |
+| `putt_rail_collision` | one putt → one fixed-rail collision → natural stop | negative pickup control; do not add a second impact |
+| `track_step_drop` | one roll over a representative course step → natural stop | negative pickup control; record approximate step height |
 | `impact_tap` | short controlled tap while restrained | do not damage the bare PCB |
 | `rolling` | mechanically secured test core rolls on level surface | not meaningful with loose bare PCB |
 | `settling` | rolling core naturally slows and stops | keep in same episode family as roll |
