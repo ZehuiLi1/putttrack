@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1b-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1b-20260904",
+    "surface": "unspecified",
+    "orientation": "uncontrolled",
+    "operator": "A",
+    "notes": "Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported completing a roll followed by pickup while the Ball was still moving, a short hold and placement after each visible GO cue. Surface material and independent video ground truth were not recorded. These episodes test the rolling-start pickup path and are not gameplay authority."
+  },
+  "episodes": [
+    {
+      "episode_id": "rolling-pickup-stress-r01",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r01.jsonl",
+      "label": "rolling_pickup",
+      "trial": "001",
+      "strength": "operator-natural-stress",
+      "notes": "Collected before the low-clipping guidance; retain as an upper-motion stress case."
+    },
+    {
+      "episode_id": "rolling-pickup-stress-r02",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r02.jsonl",
+      "label": "rolling_pickup",
+      "trial": "002",
+      "strength": "operator-natural-stress",
+      "notes": "Collected before the low-clipping guidance; retain as an upper-motion stress case."
+    },
+    {
+      "episode_id": "rolling-pickup-slow-r03",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r03.jsonl",
+      "label": "rolling_pickup",
+      "trial": "003",
+      "strength": "slow-planned",
+      "notes": "Planned action: light push and smooth pickup while still rolling."
+    },
+    {
+      "episode_id": "rolling-pickup-slow-r04",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r04.jsonl",
+      "label": "rolling_pickup",
+      "trial": "004",
+      "strength": "slow-planned",
+      "notes": "Planned action: light push and smooth pickup while still rolling."
+    },
+    {
+      "episode_id": "rolling-pickup-slow-r05",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r05.jsonl",
+      "label": "rolling_pickup",
+      "trial": "005",
+      "strength": "slow-planned",
+      "notes": "Planned action: light push and smooth pickup while still rolling."
+    },
+    {
+      "episode_id": "rolling-pickup-normal-r06",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r06.jsonl",
+      "label": "rolling_pickup",
+      "trial": "006",
+      "strength": "normal-planned",
+      "notes": "Planned action: normal roll and pickup during mid-roll."
+    },
+    {
+      "episode_id": "rolling-pickup-normal-r07",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r07.jsonl",
+      "label": "rolling_pickup",
+      "trial": "007",
+      "strength": "normal-planned",
+      "notes": "Planned action: normal roll and pickup during mid-roll."
+    },
+    {
+      "episode_id": "rolling-pickup-normal-r08",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r08.jsonl",
+      "label": "rolling_pickup",
+      "trial": "008",
+      "strength": "normal-planned",
+      "notes": "Planned action: normal roll and pickup during mid-roll."
+    },
+    {
+      "episode_id": "rolling-pickup-near-stop-r09",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r09.jsonl",
+      "label": "rolling_pickup",
+      "trial": "009",
+      "strength": "near-stop-planned",
+      "notes": "Planned action: pickup after substantial deceleration but before a full stop."
+    },
+    {
+      "episode_id": "rolling-pickup-near-stop-r10",
+      "capture": "raw/field-pickup-precision-1b-20260904-rolling_pickup-r10.jsonl",
+      "label": "rolling_pickup",
+      "trial": "010",
+      "strength": "near-stop-planned",
+      "notes": "Planned action: pickup after substantial deceleration but before a full stop."
+    }
+  ]
+}
