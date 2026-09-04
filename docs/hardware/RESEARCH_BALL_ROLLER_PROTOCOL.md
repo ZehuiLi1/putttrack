@@ -114,7 +114,7 @@ seconds:
 
 ```bash
 python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 run \
-  --rpm 30 --seconds 3 --confirm-clear
+  --rpm 30 --seconds 3 --acceleration 20 --confirm-clear
 ```
 
 Verify direction, automatic stop, explicit `stop`, and `disable` before placing
@@ -144,6 +144,7 @@ python tools/capture_roller_run.py \
   --expected-device-id f383571202836e6f \
   --rpm 120 \
   --seconds 3 \
+  --acceleration 20 \
   --notes "roller R1; CW; slow; carrier r1; repetition 01" \
   --output runs/roller-r1-120rpm-r01.jsonl \
   --confirm-clear
@@ -156,6 +157,13 @@ device-side GO marker and crops out setup motion as well as BLE freeze/readback
 delay. Pre-roll plus motor duration plus stationary tail may not exceed 17
 seconds. If a motor profile cannot fit, shorten it rather than weakening the
 retained-history bound.
+
+`--acceleration` is the Emm_V5 `F6` protocol field in the range `0..255`, not
+an SI acceleration measurement. The default is the previously proven value
+`20`; `0` requests direct acceleration and is the harshest transition. Always
+characterize a new setting at low speed before increasing RPM, and derive the
+actual rise time from the captured IMU/encoder trace rather than assigning a
+physical unit to this controller value.
 
 The combined path physically passed twice at +120 RPM for three seconds on
 2026-09-04. The second retained run contained 450 contiguous 50 Hz samples,
@@ -205,3 +213,7 @@ remaining physical metadata cannot be inferred in software:
 
 Do not label motor RPM as ball angular velocity until roller diameter, contact
 geometry and slip have been measured.
+
+The first complete 48-capture results and the boundary between automated
+roller evidence and operator-labelled physical events are recorded in
+[`../research/ROLLER_DATASET_20260904.md`](../research/ROLLER_DATASET_20260904.md).

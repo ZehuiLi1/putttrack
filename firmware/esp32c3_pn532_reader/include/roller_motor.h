@@ -13,7 +13,7 @@ class RollerMotor {
 
  private:
   static constexpr uint8_t kChecksum = 0x6B;
-  static constexpr uint8_t kAcceleration = 20;
+  static constexpr uint8_t kDefaultAcceleration = 20;
   static constexpr size_t kConsoleLineBytes = 96;
 
   HardwareSerial &uart_;
@@ -35,7 +35,7 @@ class RollerMotor {
   void scan();
   void status();
   void arm();
-  void run(int rpm, uint32_t seconds);
+  void run(int rpm, uint32_t seconds, uint8_t acceleration);
   void stop(const char *reason);
   void disable();
 

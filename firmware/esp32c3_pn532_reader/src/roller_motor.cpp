@@ -222,14 +222,19 @@ void RollerMotor::handleLine(String line) {
 
   long rpm = 0;
   unsigned long seconds = 0;
+  long acceleration = kDefaultAcceleration;
   char trailing = '\0';
-  if (sscanf(line.c_str(), "motor run %ld %lu %c", &rpm, &seconds, &trailing) == 2) {
-    if (rpm < -PT_MOTOR_MAX_RPM || rpm > PT_MOTOR_MAX_RPM) {
+  const int run_fields = sscanf(line.c_str(), "motor run %ld %lu %ld %c", &rpm,
+                                &seconds, &acceleration, &trailing);
+  if (run_fields == 2 || run_fields == 3) {
+    if (rpm < -PT_MOTOR_MAX_RPM || rpm > PT_MOTOR_MAX_RPM ||
+        acceleration < 0 || acceleration > 255) {
       Serial.println(F("{\"event\":\"motor_command_rejected\","
                        "\"reason\":\"unsafe_run_limits\"}"));
       return;
     }
-    run(static_cast<int>(rpm), static_cast<uint32_t>(seconds));
+    run(static_cast<int>(rpm), static_cast<uint32_t>(seconds),
+        static_cast<uint8_t>(acceleration));
     return;
   }
 
@@ -242,10 +247,11 @@ void RollerMotor::printHelp() const {
   Serial.printf(
       "{\"event\":\"motor_help\",\"commands\":[\"motor probe\","
       "\"motor scan\",\"motor status\",\"motor arm\","
-      "\"motor run <signed_rpm> <seconds>\",\"motor stop\","
+      "\"motor run <signed_rpm> <seconds> [acceleration_0_255]\",\"motor stop\","
       "\"motor disable\"],\"max_abs_rpm\":%d,"
-      "\"max_seconds\":%d}\n",
-      PT_MOTOR_MAX_RPM, PT_MOTOR_MAX_RUN_SECONDS);
+      "\"max_seconds\":%d,\"default_acceleration\":%u}\n",
+      PT_MOTOR_MAX_RPM, PT_MOTOR_MAX_RUN_SECONDS,
+      static_cast<unsigned>(kDefaultAcceleration));
 }
 
 void RollerMotor::drainRx() {
@@ -612,7 +618,7 @@ void RollerMotor::arm() {
                 PT_MOTOR_ARM_WINDOW_MS);
 }
 
-void RollerMotor::run(int rpm, uint32_t seconds) {
+void RollerMotor::run(int rpm, uint32_t seconds, uint8_t acceleration) {
   if (!probe_ok_ || !armed_) {
     Serial.println(F("{\"event\":\"motor_command_rejected\","
                      "\"reason\":\"probe_and_arm_required\"}"));
@@ -643,7 +649,7 @@ void RollerMotor::run(int rpm, uint32_t seconds) {
   const uint8_t speed_payload[] = {
       static_cast<uint8_t>(rpm > 0 ? 0x01 : 0x00),
       static_cast<uint8_t>(magnitude >> 8U),
-      static_cast<uint8_t>(magnitude & 0xFFU), kAcceleration, 0x00};
+      static_cast<uint8_t>(magnitude & 0xFFU), acceleration, 0x00};
   if (!action(0xF6, speed_payload, sizeof(speed_payload), "run")) {
     stop("run_not_acknowledged");
     disable();
@@ -652,8 +658,11 @@ void RollerMotor::run(int rpm, uint32_t seconds) {
 
   running_ = true;
   stop_deadline_ms_ = millis() + seconds * 1000U;
-  Serial.printf("{\"event\":\"motor_running\",\"rpm\":%d,\"seconds\":%lu}\n",
-                rpm, static_cast<unsigned long>(seconds));
+  Serial.printf(
+      "{\"event\":\"motor_running\",\"rpm\":%d,\"seconds\":%lu,"
+      "\"acceleration\":%u}\n",
+      rpm, static_cast<unsigned long>(seconds),
+      static_cast<unsigned>(acceleration));
 }
 
 void RollerMotor::stop(const char *reason) {

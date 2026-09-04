@@ -43,6 +43,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--rpm", type=int, required=True)
     run.add_argument("--seconds", type=int, required=True)
     run.add_argument(
+        "--acceleration",
+        type=int,
+        default=20,
+        help="Emm_V5 acceleration level 0-255; 0 requests direct acceleration",
+    )
+    run.add_argument(
         "--confirm-clear",
         action="store_true",
         help="confirm the guarded roller is clear and the ball is secured",
@@ -61,6 +67,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError(f"--rpm must be non-zero and within +/-{MAX_ABS_RPM}")
     if not 1 <= args.seconds <= MAX_RUN_SECONDS:
         raise ValueError(f"--seconds must be between 1 and {MAX_RUN_SECONDS}")
+    if not 0 <= args.acceleration <= 255:
+        raise ValueError("--acceleration must be between 0 and 255")
 
 
 def discover_port(requested: str | None) -> str:
@@ -182,7 +190,10 @@ def execute(serial_port: SerialLike, args: argparse.Namespace) -> None:
 
     send_line(serial_port, "motor arm")
     wait_event(serial_port, "motor_armed", args.timeout)
-    send_line(serial_port, f"motor run {args.rpm} {args.seconds}")
+    send_line(
+        serial_port,
+        f"motor run {args.rpm} {args.seconds} {args.acceleration}",
+    )
     wait_event(serial_port, "motor_running", args.timeout)
     try:
         stopped = wait_event(

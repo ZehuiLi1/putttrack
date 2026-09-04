@@ -19,6 +19,7 @@ def args(**overrides: object) -> argparse.Namespace:
         "expected_device_id": "0123456789abcdef",
         "rpm": 120,
         "seconds": 3,
+        "acceleration": 20,
         "pre_roll_seconds": 3.0,
         "tail_seconds": 3.0,
         "output": Path("run.jsonl"),
@@ -40,6 +41,7 @@ class CaptureRollerRunTests(unittest.TestCase):
         self.assertEqual(capture[capture.index("--label") + 1], "roller_120rpm")
         self.assertIn("--confirm-clear", motor)
         self.assertEqual(motor[motor.index("--rpm") + 1], "120")
+        self.assertEqual(motor[motor.index("--acceleration") + 1], "20")
 
     def test_rejects_unconfirmed_or_unbounded_motion(self) -> None:
         invalid = (
@@ -47,6 +49,8 @@ class CaptureRollerRunTests(unittest.TestCase):
             (args(rpm=0), "rpm"),
             (args(rpm=301), "rpm"),
             (args(seconds=0), "seconds"),
+            (args(acceleration=-1), "acceleration"),
+            (args(acceleration=256), "acceleration"),
             (args(seconds=12), "history"),
             (args(pre_roll_seconds=0), "positive"),
         )

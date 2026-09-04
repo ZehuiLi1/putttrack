@@ -24,6 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-device-id", required=True)
     parser.add_argument("--rpm", type=int, required=True)
     parser.add_argument("--seconds", type=int, required=True)
+    parser.add_argument(
+        "--acceleration",
+        type=int,
+        default=20,
+        help="Emm_V5 acceleration level 0-255; 0 requests direct acceleration",
+    )
     parser.add_argument("--pre-roll-seconds", type=float, default=3.0)
     parser.add_argument("--tail-seconds", type=float, default=3.0)
     parser.add_argument("--output", type=Path, required=True)
@@ -44,6 +50,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError(f"--rpm must be non-zero and within +/-{MAX_ABS_RPM}")
     if args.seconds <= 0:
         raise ValueError("--seconds must be positive")
+    if not 0 <= args.acceleration <= 255:
+        raise ValueError("--acceleration must be between 0 and 255")
     if args.pre_roll_seconds <= 0 or args.tail_seconds <= 0:
         raise ValueError("pre-roll and tail durations must be positive")
     if args.pre_roll_seconds + args.seconds + args.tail_seconds > HISTORY_BUDGET_SECONDS:
@@ -93,6 +101,8 @@ def build_motor_command(args: argparse.Namespace, command: str = "run") -> list[
             str(args.rpm),
             "--seconds",
             str(args.seconds),
+            "--acceleration",
+            str(args.acceleration),
             "--confirm-clear",
         ]
     return base + [command]

@@ -54,6 +54,7 @@ motor scan
 motor status
 motor arm
 motor run 30 3
+motor run 60 3 20
 motor stop
 motor disable
 ```
@@ -66,7 +67,11 @@ RX 空闲电平和静默字节数，便于区分软件、浮空/噪声与驱动�
 应答只用于指出菜单配置，不会解锁运动。只有最近 60 秒内 fixed-0x6B 探测成功才能
 `arm`；一次
 `arm` 只允许随后 10 秒内执行一次 `run`。当前 bring-up 硬限制为
-`|rpm| <= 300`、最长 30 秒，
+`|rpm| <= 300`、最长 30 秒。`run` 的可选第三个参数是 Emm_V5 的
+`acceleration` 档位（`0..255`，默认 `20`）；它是驱动协议参数而不是物理加速度，
+必须通过 IMU/编码器实测标定。`0` 表示直接加速，机械冲击最大，只能在低速、固定良好
+且防护到位时用于受控实验。
+
 每次运行到时发送三次冗余 STOP，在仍保持驱动使能的短窗口内轮询实时速度，
 确认 `0 RPM` 后才失能；750 ms 内不能归零会明确报告失败。`motor status` 同时
 返回编码器累计 `position_raw`，因此 ACK、速度和实际位置变化可以交叉验证。
@@ -81,7 +86,7 @@ python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 probe
 python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 scan
 python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 status
 python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 run \
-  --rpm 30 --seconds 3 --confirm-clear
+  --rpm 30 --seconds 3 --acceleration 20 --confirm-clear
 python3 tools/control_roller_motor.py --port /dev/cu.usbmodem1101 stop
 ```
 

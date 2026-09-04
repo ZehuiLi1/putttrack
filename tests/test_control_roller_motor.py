@@ -38,6 +38,7 @@ def run_args(**overrides: object) -> argparse.Namespace:
         "command": "run",
         "rpm": 30,
         "seconds": 3,
+        "acceleration": 20,
         "confirm_clear": True,
         "timeout": 0.01,
     }
@@ -52,6 +53,8 @@ class RollerMotorControlTests(unittest.TestCase):
             (run_args(rpm=0), "rpm"),
             (run_args(rpm=301), "rpm"),
             (run_args(seconds=0), "seconds"),
+            (run_args(acceleration=-1), "acceleration"),
+            (run_args(acceleration=256), "acceleration"),
             (run_args(seconds=31), "seconds"),
             (run_args(timeout=0), "timeout"),
         )
@@ -94,7 +97,7 @@ class RollerMotorControlTests(unittest.TestCase):
                 b"motor probe\n",
                 b"motor status\n",
                 b"motor arm\n",
-                b"motor run -30 2\n",
+                b"motor run -30 2 20\n",
                 b"motor status\n",
             ],
         )
