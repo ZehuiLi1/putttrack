@@ -1,0 +1,32 @@
+{
+  "dataset_id": "research-ball-r1-pickup-precision-1d-gentle-20260904",
+  "episodes": 11,
+  "episodes_by_label": {
+    "putt_gentle": 11
+  },
+  "episodes_with_clipping": {
+    "adxl367": 11,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 10
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 0,
+    "WARN": 11
+  },
+  "warning_episode_ids": [
+    "putt-gentle-very-light-r01",
+    "putt-gentle-very-light-r02",
+    "putt-gentle-very-light-r03",
+    "putt-gentle-light-r04",
+    "putt-gentle-plus-obstacle-r05",
+    "putt-gentle-light-r06",
+    "putt-gentle-light-r07",
+    "putt-gentle-varied-r08",
+    "putt-gentle-varied-r09",
+    "putt-gentle-varied-r10",
+    "putt-gentle-r05-replacement"
+  ]
+}

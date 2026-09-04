@@ -67,7 +67,7 @@ python3 tools/capture_field_session.py pickup_carry \
 ```
 
 Available profiles are `pickup_carry`, `pickup_drop`, `handling`,
-`putt_gentle`, `putt_normal`, `putt_firm`, `hand_roll`,
+`putt_gentle`, `putt_normal`, `hand_roll`,
 `putt_rail_collision`, `track_step_drop` and `rolling_pickup`. Keep ordinary
 placement, a realistic low-height drop, rail contact and a track-step drop in
 separate batches. Output names and repetition numbers are generated
@@ -117,6 +117,19 @@ the command. The timed frozen workflow then:
 This keeps setup motion and operator/chat delay outside the labelled window.
 The combined countdown and episode duration is limited to 17 seconds so the
 complete interval remains inside the Tag's 20.48-second retained history.
+
+### Long-range capture limitation
+
+The current armed workflow sends the freeze command from the host after the
+post-GO timer expires. The ring buffer makes chunk download latency harmless,
+but the Ball must still be reachable over BLE when that freeze command is sent.
+Long-distance/high-energy unobstructed strokes are outside the current capture
+plan and are not an active web profile. Colliding with a nearby obstacle is not
+a substitute for a clean long putt.
+
+This does not block the current pickup study. If a later venue study needs that
+motion class, either place a receiver to cover the path or first implement a
+Ball-side timed freeze that can be downloaded after reconnect.
 
 ```bash
 python tools/set_tag_power_mode.py research

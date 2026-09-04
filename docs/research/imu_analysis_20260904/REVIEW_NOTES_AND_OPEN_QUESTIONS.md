@@ -49,7 +49,7 @@ These are not documentation bugs and should not be hidden by additional software
 
 - The canonical local bundle name is `putttrack_imu_dataset_20260904.zip`.
 - `imu_data_20250306_161150.csv` is not in the PuttTrack package or repository, has no accepted PuttTrack provenance and remains excluded. Do not reintroduce it unless its origin is independently established.
-- The executable capture profile IDs are `handling`, `rolling_pickup`, `pickup_carry`, `putt_gentle`, `putt_normal`, `putt_firm`, `putt_rail_collision` and `track_step_drop`. Planning tables should use these executable IDs.
+- The executable capture profile IDs are `handling`, `rolling_pickup`, `pickup_carry`, `putt_gentle`, `putt_normal`, `putt_rail_collision` and `track_step_drop`. Planning tables should use these executable IDs.
 - `handling` is the strict no-lift control: the Ball remains in continuous surface contact.
 - `cup_sequence` remains a planned future profile because cup geometry and independent physical truth are not yet present.
 

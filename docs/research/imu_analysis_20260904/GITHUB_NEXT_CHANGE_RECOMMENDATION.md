@@ -32,7 +32,7 @@ Suggested scope:
 4. Capture profiles and manifests
    - existing `handling` profile, whose current instruction strictly requires continuous surface contact;
    - `rolling_pickup`;
-   - existing `putt_gentle` / `putt_normal` / `putt_firm` profiles;
+   - existing `putt_gentle` / `putt_normal` profiles;
    - existing `putt_rail_collision` and `track_step_drop` profiles;
    - future `cup_sequence` only after physical cup truth exists;
    - separate-day/operator holdout identifiers.

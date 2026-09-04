@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1d-gentle-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1d-gentle-20260904",
+    "surface": "unspecified",
+    "orientation": "varied-unmeasured",
+    "operator": "A",
+    "notes": "Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported one gentle putt and natural settling without pickup after each visible GO cue. Surface, travel distance/speed and independent video truth were not measured. Episode r05 additionally hit an obstacle and is excluded from clean unobstructed-putt comparisons."
+  },
+  "episodes": [
+    {
+      "episode_id": "putt-gentle-very-light-r01",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r01.jsonl",
+      "label": "putt_gentle",
+      "trial": "001",
+      "strength": "very-light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-very-light-r02",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r02.jsonl",
+      "label": "putt_gentle",
+      "trial": "002",
+      "strength": "very-light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-very-light-r03",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r03.jsonl",
+      "label": "putt_gentle",
+      "trial": "003",
+      "strength": "very-light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-light-r04",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r04.jsonl",
+      "label": "putt_gentle",
+      "trial": "004",
+      "strength": "light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-plus-obstacle-r05",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r05.jsonl",
+      "label": "putt_gentle",
+      "trial": "005",
+      "strength": "light-planned-mixed",
+      "notes": "Operator reported that the Ball hit an obstacle after the gentle putt. Preserve as a mixed putt-plus-collision negative; exclude from clean unobstructed-putt analysis."
+    },
+    {
+      "episode_id": "putt-gentle-light-r06",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r06.jsonl",
+      "label": "putt_gentle",
+      "trial": "006",
+      "strength": "light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-light-r07",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r07.jsonl",
+      "label": "putt_gentle",
+      "trial": "007",
+      "strength": "light-planned"
+    },
+    {
+      "episode_id": "putt-gentle-varied-r08",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r08.jsonl",
+      "label": "putt_gentle",
+      "trial": "008",
+      "strength": "light-varied-direction-planned"
+    },
+    {
+      "episode_id": "putt-gentle-varied-r09",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r09.jsonl",
+      "label": "putt_gentle",
+      "trial": "009",
+      "strength": "light-varied-direction-planned"
+    },
+    {
+      "episode_id": "putt-gentle-varied-r10",
+      "capture": "raw/field-pickup-precision-1d-gentle-20260904-putt_gentle-r10.jsonl",
+      "label": "putt_gentle",
+      "trial": "010",
+      "strength": "light-varied-direction-planned"
+    },
+    {
+      "episode_id": "putt-gentle-r05-replacement",
+      "capture": "raw/field-pickup-precision-1d-gentle-replacement-20260904-putt_gentle-r01.jsonl",
+      "label": "putt_gentle",
+      "session": "pickup-precision-1d-gentle-replacement-20260904",
+      "trial": "005R",
+      "strength": "light-planned",
+      "notes": "Clean unobstructed replacement for mixed original r05; obstacle path was cleared and the original capture was retained."
+    }
+  ]
+}

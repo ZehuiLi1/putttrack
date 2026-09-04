@@ -33,7 +33,6 @@ class AnalyzeTagCaptureTests(unittest.TestCase):
         for label in (
             "putt_gentle",
             "putt_normal",
-            "putt_firm",
             "hand_roll",
             "putt_rail_collision",
             "track_step_drop",

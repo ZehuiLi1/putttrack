@@ -70,11 +70,6 @@ PROFILES = {
         episode_seconds=12.0,
         instruction="GO 后等约 1 秒，正常推击一次，让球自然停止；结束提示前不要捡球。",
     ),
-    "putt_firm": Profile(
-        label="putt_firm",
-        episode_seconds=12.0,
-        instruction="GO 后等约 1 秒，较重推击一次，让球自然停止；结束提示前不要捡球。",
-    ),
     "hand_roll": Profile(
         label="hand_roll",
         episode_seconds=10.0,
