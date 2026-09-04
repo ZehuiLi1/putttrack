@@ -12,6 +12,24 @@ powered, the XIAO connected and DAPLink disconnected unless recovery is needed.
 
 ## Simplest field workflow
 
+The primary operator interface is a loopback-only web page. Connect the Ball
+and XIAO nRF52840, then run:
+
+```bash
+python3 tools/run_field_capture_ui.py
+```
+
+The browser opens `http://127.0.0.1:8765/`. Select the physical action and
+repetition count, press **Prepare batch**, then use the single large button to
+start each episode. The page shows countdown, GO, save/analysis progress and
+the last sample result. It never listens on the LAN, rejects concurrent
+captures and existing filenames, and automatically restores `auto` mode after
+the final run, manual finish, failure, server shutdown or ten minutes waiting
+between runs.
+
+The command-line wrapper below remains the fallback when a browser is
+inconvenient.
+
 The XIAO remains an unmodified USB HCI bridge; do not add a start/stop button to
 its controller firmware. Use the field-session wrapper instead. It switches the
 Ball to `research` once, asks for one Enter press before each episode, performs

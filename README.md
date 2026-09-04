@@ -54,7 +54,10 @@ stationary, two free rolls, pickup/carry and restrained repeated taps. It shows
 preliminary roll/pickup separation and confirms that ADXL367 clips before the
 BMI270, but unmeasured speed and action timing prohibit final thresholds. Timed
 ARMED capture now records a device-side GO marker and excludes setup/readback
-delay from future labelled windows. See
+delay from future labelled windows. A loopback-only field UI now selects the
+action/profile, controls one-button captures, prevents overwrite/concurrency
+and restores low power automatically; start it with
+`python3 tools/run_field_capture_ui.py`. See
 [`experiments/research_ball_r1_manual_floor`](experiments/research_ball_r1_manual_floor/README.md)
 and [`TAG_MOTION_EPISODE_RUNBOOK.md`](docs/hardware/TAG_MOTION_EPISODE_RUNBOOK.md).
 The resulting canonical motion record can enter
