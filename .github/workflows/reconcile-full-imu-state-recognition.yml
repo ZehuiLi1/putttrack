@@ -1,4 +1,4 @@
-# retry-trigger-20260904-2
+# retry-trigger-20260904-3
 name: Reconcile full IMU state-recognition evidence
 
 on:
@@ -41,8 +41,8 @@ jobs:
       - name: Regenerate full discovery evidence
         run: |
           python tools/imu_state_discovery.py \
-            --repo-root . \
-            --output-dir docs/research/imu_state_discovery_20260904
+            --root . \
+            --out docs/research/imu_state_discovery_20260904
           python tools/render_imu_state_discovery_figures.py \
             docs/research/imu_state_discovery_20260904
 
