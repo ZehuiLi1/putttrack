@@ -1,4 +1,4 @@
-"""Deterministic generic-motion feature and diagnostic baseline."""
+"""Deterministic generic-motion and research state-recognition primitives."""
 
 from .features import (
     MotionWindowFeatures,
@@ -10,14 +10,66 @@ from .features import (
     provisional_stationary_check,
 )
 from .observation import build_provisional_motion_observation
+from .pickup_v0 import (
+    CaptureEnvelope,
+    MotionSample,
+    PickupDecision,
+    PickupFeatures,
+    PickupResult,
+    evaluate_capture_path,
+    evaluate_pickup_v0,
+    read_capture_jsonl,
+)
+from .recognizer_v1 import (
+    DurationSpec,
+    EmissionFrame,
+    EventCandidate,
+    FeatureFrame,
+    HSMMConfig,
+    HSMMResult,
+    LinearModelSpec,
+    PersistentState,
+    RecognitionResult,
+    SelectiveLinearSoftmax,
+    TransientEvent,
+    build_hsmm_config,
+    decode_hsmm,
+    derive_transition_events,
+    extract_causal_multiscale_frame,
+    recognize_sequence,
+)
 
 __all__ = [
+    "CaptureEnvelope",
+    "DurationSpec",
+    "EmissionFrame",
+    "EventCandidate",
+    "FeatureFrame",
+    "HSMMConfig",
+    "HSMMResult",
+    "LinearModelSpec",
+    "MotionSample",
     "MotionWindowFeatures",
+    "PersistentState",
+    "PickupDecision",
+    "PickupFeatures",
+    "PickupResult",
     "ProvisionalGenericMotionThresholds",
     "ProvisionalMotionResult",
     "ProvisionalStationaryThresholds",
+    "RecognitionResult",
+    "SelectiveLinearSoftmax",
+    "TransientEvent",
+    "build_hsmm_config",
+    "build_provisional_motion_observation",
+    "decode_hsmm",
+    "derive_transition_events",
+    "evaluate_capture_path",
+    "evaluate_pickup_v0",
+    "extract_causal_multiscale_frame",
     "extract_window_features",
     "provisional_generic_motion_check",
     "provisional_stationary_check",
-    "build_provisional_motion_observation",
+    "read_capture_jsonl",
+    "recognize_sequence",
 ]
