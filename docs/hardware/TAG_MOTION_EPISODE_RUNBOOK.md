@@ -10,6 +10,32 @@ cup event or scoring event.
 Use firmware `0.1.7` or later and the XIAO nRF52840 USB HCI adapter. Keep the Tag
 powered, the XIAO connected and DAPLink disconnected unless recovery is needed.
 
+## Simplest field workflow
+
+The XIAO remains an unmodified USB HCI bridge; do not add a start/stop button to
+its controller firmware. Use the field-session wrapper instead. It switches the
+Ball to `research` once, asks for one Enter press before each episode, performs
+the three-second countdown and audible GO cue, freezes and analyzes the fixed
+window automatically, and restores `auto` low power on normal exit, `q`, Ctrl-C
+or a capture failure. A second/end press is intentionally not required.
+
+For example, collect ten natural pickup/carry/place episodes with:
+
+```bash
+python3 tools/capture_field_session.py pickup_carry \
+  --count 10 \
+  --session-id s1 \
+  --expected-device-id f383571202836e6f
+```
+
+Available profiles are `pickup_carry`, `handling`, `putt_gentle`,
+`putt_normal`, `putt_firm` and `hand_roll`. Output names and repetition numbers
+are generated automatically under `runs/`, and existing files are never
+overwritten. Before each Enter press, arrange the camera and Ball and keep the
+Ball still. After GO perform exactly one instructed action, then leave the Ball
+untouched until the completion cue. Use `--start-index` to continue a partially
+completed batch without reusing filenames.
+
 ## Preferred armed capture
 
 Arrange the Ball, restraints, camera and safe travel path **before** starting

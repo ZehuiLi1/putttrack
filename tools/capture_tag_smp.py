@@ -91,6 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
             "include the action and final stationary tail"
         ),
     )
+    parser.add_argument(
+        "--audible-cue",
+        action="store_true",
+        help="emit a terminal bell with the GO message for operator-led captures",
+    )
     return parser
 
 
@@ -383,7 +388,8 @@ def main() -> int:
                     }
                 )
                 print(
-                    f"GO: action window is {args.episode_seconds:.2f} seconds",
+                    f"{'\\a' if args.audible_cue else ''}GO: action window is "
+                    f"{args.episode_seconds:.2f} seconds",
                     file=sys.stderr,
                     flush=True,
                 )
