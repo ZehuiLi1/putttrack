@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+<rect width="100%" height="100%" fill="white"/>
+<text x="450" y="30" text-anchor="middle" font-family="sans-serif" font-size="20">Representative motion traces: rotation</text>
+<text x="450" y="548" text-anchor="middle" font-family="sans-serif" font-size="14">Time from detected onset (s)</text>
+<text x="18" y="280" text-anchor="middle" transform="rotate(-90 18 280)" font-family="sans-serif" font-size="14">Gyro norm (rad/s)</text>
+<rect x="70" y="50" width="790" height="450" fill="none" stroke="black"/>
+<line x1="70.0" y1="50" x2="70.0" y2="500" stroke="#ddd"/><text x="70.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">-1</text>
+<line x1="267.5" y1="50" x2="267.5" y2="500" stroke="#ddd"/><text x="267.5" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="465.0" y1="50" x2="465.0" y2="500" stroke="#ddd"/><text x="465.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">1</text>
+<line x1="662.5" y1="50" x2="662.5" y2="500" stroke="#ddd"/><text x="662.5" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">2</text>
+<line x1="860.0" y1="50" x2="860.0" y2="500" stroke="#ddd"/><text x="860.0" y="520" text-anchor="middle" font-family="sans-serif" font-size="11">3</text>
+<line x1="70" y1="500.0" x2="860" y2="500.0" stroke="#ddd"/><text x="62" y="504.0" text-anchor="end" font-family="sans-serif" font-size="11">0</text>
+<line x1="70" y1="410.0" x2="860" y2="410.0" stroke="#ddd"/><text x="62" y="414.0" text-anchor="end" font-family="sans-serif" font-size="11">13</text>
+<line x1="70" y1="320.0" x2="860" y2="320.0" stroke="#ddd"/><text x="62" y="324.0" text-anchor="end" font-family="sans-serif" font-size="11">26</text>
+<line x1="70" y1="230.0" x2="860" y2="230.0" stroke="#ddd"/><text x="62" y="234.0" text-anchor="end" font-family="sans-serif" font-size="11">39</text>
+<line x1="70" y1="140.0" x2="860" y2="140.0" stroke="#ddd"/><text x="62" y="144.0" text-anchor="end" font-family="sans-serif" font-size="11">52</text>
+<line x1="70" y1="50.0" x2="860" y2="50.0" stroke="#ddd"/><text x="62" y="54.0" text-anchor="end" font-family="sans-serif" font-size="11">65</text>
+<polyline points="70.0,500.0 89.8,500.0 113.5,500.0 137.2,500.0 160.9,499.9 184.6,499.9 208.3,500.0 232.0,499.9 255.7,500.0 275.4,491.0 299.1,460.2 322.8,436.1 346.5,477.2 370.2,425.5 393.9,448.0 417.6,451.7 441.3,478.8 465.0,485.5 484.8,465.7 508.5,426.2 532.2,444.9 555.8,494.1 579.6,470.6 603.2,450.2 627.0,459.6 650.7,450.7 670.4,479.7 694.1,467.0 717.8,478.9 741.5,470.5 765.2,467.8 788.9,484.6 812.6,477.2 836.3,477.8 860.0,446.0" fill="none" stroke="#1f77b4" stroke-width="2"/>
+<polyline points="73.9,500.0 93.7,500.0 117.4,499.9 141.1,500.0 164.8,500.0 188.5,500.0 212.2,499.9 231.9,500.0 255.6,499.9 279.4,349.0 303.1,233.2 326.7,237.3 350.4,240.0 374.2,245.1 393.9,274.0 417.6,270.3 441.3,296.3 465.0,303.4 488.7,310.0 512.4,320.9 536.1,337.7 555.9,352.2 579.5,377.7 603.3,379.7 626.9,388.3 650.6,409.9 674.3,427.0 698.0,419.3 717.8,422.7 741.5,435.2 765.2,457.1 788.9,483.3 812.6,485.3 836.3,473.4 860.0,476.8" fill="none" stroke="#d62728" stroke-width="2"/>
+<polyline points="70.0,500.0 89.7,500.0 113.4,500.0 137.1,500.0 160.8,500.0 184.6,500.0 208.3,500.0 231.9,500.0 255.6,500.0 275.4,495.3 299.1,362.6 322.8,368.2 346.5,371.2 370.2,368.6 393.9,398.7 417.6,399.8 441.3,401.2 465.0,411.0 484.8,431.8 508.4,436.8 532.1,428.0 555.8,427.2 579.6,435.0 603.3,448.3 626.9,466.7 650.7,474.2 670.4,470.3 694.1,458.5 717.8,451.9 741.5,451.5 765.2,456.0 788.9,465.0 812.6,481.9 836.3,485.0 860.0,469.6" fill="none" stroke="#2ca02c" stroke-width="2"/>
+<polyline points="70.0,426.2 89.7,492.2 113.4,499.8 137.2,496.9 160.8,486.1 184.5,490.9 208.2,491.2 232.0,492.8 255.6,496.1 275.4,481.1 299.1,479.7 322.8,485.3 346.5,487.9 370.2,489.5 393.9,493.9 417.6,494.2 441.3,489.9 465.0,498.3 484.7,496.6 508.4,495.9 532.1,416.3 555.8,466.9 579.5,463.6 603.2,484.3 626.9,473.0 650.7,470.7 670.4,472.2 694.1,484.4 717.8,478.7 741.5,486.5 765.2,482.7 788.9,487.7 812.6,493.0 836.3,487.5 860.0,498.0" fill="none" stroke="#9467bd" stroke-width="2"/>
+<line x1="267.5" y1="50" x2="267.5" y2="500" stroke="#555" stroke-dasharray="6 5"/>
+<line x1="680" y1="72" x2="700" y2="72" stroke="#1f77b4" stroke-width="2"/><text x="708" y="76" font-family="sans-serif" font-size="12">pickup</text>
+<line x1="680" y1="92" x2="700" y2="92" stroke="#d62728" stroke-width="2"/><text x="708" y="96" font-family="sans-serif" font-size="12">clean_putt</text>
+<line x1="680" y1="112" x2="700" y2="112" stroke="#2ca02c" stroke-width="2"/><text x="708" y="116" font-family="sans-serif" font-size="12">manual_roll</text>
+<line x1="680" y1="132" x2="700" y2="132" stroke="#9467bd" stroke-width="2"/><text x="708" y="136" font-family="sans-serif" font-size="12">repeated_taps</text>
+</svg>
