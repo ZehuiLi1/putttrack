@@ -2,11 +2,14 @@
   "schema_version": 1,
   "profile_id": "pickup_detector_v0_stationary_start_eval_profile_20260904",
   "authority": false,
-  "detector_config_sha256_expected": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
-  "note": "Execution-only requirements for frozen V0. Decision and stationary thresholds are sourced exclusively from pickup_detector_v0.json; this profile defines data coverage, rate tolerance and numerical clipping boundary.",
+  "detector_config_sha256_expected": "7add18c4c4a23df0f26674a020f2d0ab78cae7de041467e7db71655aa27b000d",
+  "note": "Execution-only requirements for the already frozen V0. Decision thresholds remain sourced exclusively from pickup_detector_v0.json. The stationary limits below preserve the pre-existing ProvisionalStationaryThresholds defaults and do not alter the detector hypothesis.",
   "pre_go_stationary": {
     "minimum_duration_s": 0.9,
-    "minimum_sample_fraction_of_expected": 0.8
+    "minimum_sample_fraction_of_expected": 0.8,
+    "maximum_accel_norm_stdev_mps2": 0.15,
+    "maximum_gyro_norm_rms_rads": 0.08,
+    "provenance": "pre-existing repository ProvisionalStationaryThresholds defaults"
   },
   "source_rate_tolerance_fraction": 0.10,
   "bmi270_gyro_clip_micro_rads": 34208453,
@@ -17,5 +20,6 @@
   },
   "unsupported_manifest_labels": [
     "rolling_pickup"
-  ]
+  ],
+  "warning": "This profile is execution metadata, not permission to edit pickup_detector_v0.json after holdout inspection."
 }
