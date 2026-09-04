@@ -27,6 +27,7 @@ class SetTagPowerModeTests(unittest.TestCase):
     def test_default_selector_matches_per_device_advertising_name(self) -> None:
         parsed = parser().parse_args(["research"])
         self.assertEqual(parsed.device_name, "PuttTrack-")
+        self.assertEqual(parsed.request_retries, 5)
 
     @patch("tools.set_tag_power_mode.time.sleep")
     @patch("tools.set_tag_power_mode.subprocess.run")
@@ -40,7 +41,7 @@ class SetTagPowerModeTests(unittest.TestCase):
 
         self.assertEqual(payload, {"accepted": True})
         self.assertEqual(run.call_count, 2)
-        sleep.assert_called_once_with(0.25)
+        sleep.assert_called_once_with(0.75)
 
     @patch("tools.set_tag_power_mode.subprocess.run")
     def test_address_selector_does_not_mix_name_selector(self, run) -> None:

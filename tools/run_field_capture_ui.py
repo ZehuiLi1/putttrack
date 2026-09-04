@@ -156,7 +156,16 @@ def power_status_from_result(
     expected_mode: str,
 ) -> dict[str, Any]:
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"exit {result.returncode}")
+        lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        detail = next(
+            (
+                line.removeprefix("RuntimeError: ")
+                for line in reversed(lines)
+                if line.startswith("RuntimeError:")
+            ),
+            lines[-1] if lines else f"exit {result.returncode}",
+        )
+        raise RuntimeError(detail)
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError as exc:

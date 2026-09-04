@@ -16,6 +16,7 @@ import time
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+RETRY_BASE_SECONDS = 0.75
 SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -64,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--interval", type=float, default=0.1)
     parser.add_argument("--scan-timeout", type=int, default=15)
     parser.add_argument("--timeout", type=int, default=30)
-    parser.add_argument("--request-retries", type=int, default=3)
+    parser.add_argument("--request-retries", type=int, default=5)
     parser.add_argument("--max-consecutive-request-failures", type=int, default=5)
     parser.add_argument("--nrfutil", type=Path)
     parser.add_argument("--output", type=Path)
@@ -225,7 +226,7 @@ def request(
                 file=sys.stderr,
                 flush=True,
             )
-            time.sleep(0.25)
+            time.sleep(min(RETRY_BASE_SECONDS * attempt, 2.0))
     raise RuntimeError(
         f"nrfutil request {command_id} failed after {args.request_retries} attempts: "
         f"{last_detail}"

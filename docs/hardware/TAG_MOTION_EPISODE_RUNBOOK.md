@@ -41,6 +41,8 @@ connection recovery runs automatically, and the same repetition becomes
 available again. Earlier successful episodes in the batch remain intact. If
 automatic recovery cannot reconnect, the same button offers an explicit
 reconnect-and-continue path after `auto` has been restored.
+Encrypted BLE requests use five bounded retries with progressively longer
+0.75–2 second gaps so a controller disconnect can settle before pairing again.
 
 The command-line wrapper below remains the fallback when a browser is
 inconvenient.

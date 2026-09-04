@@ -20,6 +20,7 @@ from putttrack.tag import status_from_smp  # noqa: E402
 
 
 COMMAND_BY_MODE = {"auto": 20, "research": 21, "idle": 22}
+RETRY_BASE_SECONDS = 0.75
 
 
 def parser() -> argparse.ArgumentParser:
@@ -38,7 +39,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--scan-timeout", type=int, default=15)
     result.add_argument("--timeout", type=int, default=30)
     result.add_argument("--apply-timeout", type=float, default=8.0)
-    result.add_argument("--request-retries", type=int, default=3)
+    result.add_argument("--request-retries", type=int, default=5)
     result.add_argument("--nrfutil", type=Path)
     return result
 
@@ -120,7 +121,7 @@ def request(
                 file=sys.stderr,
                 flush=True,
             )
-            time.sleep(0.25)
+            time.sleep(min(RETRY_BASE_SECONDS * attempt, 2.0))
     raise RuntimeError(
         f"SMP command {command_id} failed after {args.request_retries} attempts: "
         f"{last_detail}"
