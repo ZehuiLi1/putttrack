@@ -22,6 +22,39 @@ XIAO USB HCI development bridge:
 - command `3`: atomically freeze the latest 1024 samples (20.48 seconds);
 - commands `4` through `19`: retrieve the 16 immutable 64-sample chunks from
   that frozen capture.
+- command `24` in firmware `0.1.18`: read the research-only on-Ball motion
+  Demo V0 snapshot (`STATIONARY`, `ACTIVE_PENDING`, `ROLLING_CANDIDATE`,
+  `CARRIED_CANDIDATE`, `ACTIVE_UNKNOWN`, or `UNKNOWN_QUALITY`) plus a latched
+  `PICKUP_FROM_REST` event counter. The response explicitly carries
+  `authority=false`; it has no Gameplay or scoring path.
+
+Firmware `0.1.18` adds the optional-on-source, enabled-in-`prj.conf`
+`CONFIG_PUTTTRACK_MOTION_DEMO_V0` module. It consumes the existing 50 Hz BMI270
+stream on the Ball, uses a bounded 128-sample / 6.2 kB context, and exposes only
+candidate state through encrypted mcumgr. Frozen stationary-start pickup V0 is
+ported without retuning its decision thresholds. Rolling is a post-hoc display
+candidate, and rolling pickup, impact source, collision source, cup and scoring
+remain unsupported.
+
+Watch it through the existing XIAO USB HCI bridge:
+
+```bash
+python tools/watch_ball_motion_demo.py \
+  --hci-port /dev/cu.usbmodem101 \
+  --ble-address DA:88:62:A1:D3:40 --address-type random \
+  --expected-device-id f383571202836e6f
+```
+
+The watcher selects `research`, prints only state/event/quality changes, and
+restores `auto` on exit. The source-level replay and physical test protocol are
+in
+[`MCU_MOTION_DEMO_V0_CN.md`](../../docs/research/MCU_MOTION_DEMO_V0_CN.md).
+Rebuild the checked-in replay result with:
+
+```bash
+python tools/replay_mcu_motion_demo_v0.py \
+  --output-dir docs/research/mcu_motion_demo_v0_replay_20260905
+```
 
 Confirmed firmware `0.1.17` provides three
 remotely selectable power policies while preserving the signed OTA and

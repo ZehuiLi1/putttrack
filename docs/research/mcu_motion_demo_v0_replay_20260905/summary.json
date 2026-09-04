@@ -1,0 +1,25 @@
+{
+  "authority": false,
+  "candidate_only": true,
+  "context_bytes": 6232,
+  "demo_id": "mcu_motion_demo_v0",
+  "episodes": 72,
+  "episodes_seen_unknown_quality": 8,
+  "evaluation_scope": "C streaming replay on reviewed same-day raw JSONL; not product accuracy",
+  "false_pickup_events": 0,
+  "limitations": [
+    "same date, operator, Ball/core and mostly unspecified surface",
+    "rolling candidate is post-hoc and not rolling-pickup confirmation",
+    "no frame-level independent contact, lift, impact or stop timestamps",
+    "no hardware timing, power or signed-image physical validation in this replay",
+    "no Gameplay or scoring authority"
+  ],
+  "nonpositive_episodes": 52,
+  "pickup_config_canonical_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+  "pickup_event_boundary_passed": true,
+  "pickup_positive_episodes": 20,
+  "pickup_positive_events_detected": 20,
+  "rolling_display_scope_episodes": 21,
+  "rolling_display_scope_seen": 21,
+  "schema_version": 1
+}

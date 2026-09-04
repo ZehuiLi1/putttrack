@@ -34,6 +34,10 @@
 #include <zephyr/sys/util.h>
 #include <zcbor_encode.h>
 
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+#include "motion_demo_v0.h"
+#endif
+
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #include <hal/nrf_nfct.h>
 #include <nfc_t2t_lib.h>
@@ -50,7 +54,7 @@
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.17"
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.18"
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -62,6 +66,7 @@
 #define PUTTTRACK_MGMT_ID_POWER_RESEARCH 21U
 #define PUTTTRACK_MGMT_ID_POWER_IDLE 22U
 #define PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF 23U
+#define PUTTTRACK_MGMT_ID_MOTION_DEMO 24U
 
 #define STATUS_PACKET_SIZE 64U
 #define MOTION_PACKET_SIZE 56U
@@ -256,6 +261,9 @@ static bool idle_adxl_baseline_valid;
 static uint8_t idle_wake_samples;
 static struct k_work_delayable advertise_work;
 static struct sensor_reboot_retention sensor_reboot_retention __noinit;
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+static struct motion_demo_v0 motion_demo;
+#endif
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #define NFC_NDEF_BUFFER_SIZE 160U
@@ -283,6 +291,9 @@ static struct k_work_delayable system_off_work;
 #endif
 
 K_MUTEX_DEFINE(packet_mutex);
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+K_MUTEX_DEFINE(motion_demo_mutex);
+#endif
 K_SEM_DEFINE(power_event_sem, 0, 1);
 
 static void build_status_packet(void);
@@ -849,6 +860,93 @@ static int putttrack_mgmt_power_idle(struct smp_streamer *ctxt)
 	return putttrack_mgmt_set_power_policy(ctxt, PUTTTRACK_POWER_IDLE);
 }
 
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+static int putttrack_mgmt_motion_demo(struct smp_streamer *ctxt)
+{
+	zcbor_state_t *zse = ctxt->writer->zs;
+	struct motion_demo_v0_snapshot snapshot;
+	uint64_t now_us = k_ticks_to_us_floor64(k_uptime_ticks());
+	uint64_t event_age_ms = 0U;
+	const char *state_text;
+	const char *event_text;
+	struct zcbor_string state_value;
+	struct zcbor_string event_value;
+	struct zcbor_string detector_value = {
+		.value = (const uint8_t *)MOTION_DEMO_V0_DETECTOR_ID,
+		.len = sizeof(MOTION_DEMO_V0_DETECTOR_ID) - 1U,
+	};
+	struct zcbor_string config_hash_value = {
+		.value = (const uint8_t *)MOTION_DEMO_V0_PICKUP_CONFIG_SHA256,
+		.len = sizeof(MOTION_DEMO_V0_PICKUP_CONFIG_SHA256) - 1U,
+	};
+	bool ok;
+
+	k_mutex_lock(&motion_demo_mutex, K_FOREVER);
+	motion_demo_v0_get_snapshot(&motion_demo, &snapshot);
+	k_mutex_unlock(&motion_demo_mutex);
+	state_text = motion_demo_v0_state_name(snapshot.state);
+	event_text = motion_demo_v0_event_name(snapshot.last_event);
+	state_value = (struct zcbor_string) {
+		.value = (const uint8_t *)state_text,
+		.len = strlen(state_text),
+	};
+	event_value = (struct zcbor_string) {
+		.value = (const uint8_t *)event_text,
+		.len = strlen(event_text),
+	};
+	if (snapshot.last_event_us != 0U && now_us >= snapshot.last_event_us) {
+		event_age_ms = (now_us - snapshot.last_event_us) / 1000U;
+	}
+
+	ok = zcbor_tstr_put_lit(zse, "demo_id") &&
+	     zcbor_tstr_encode(zse, &detector_value) &&
+	     zcbor_tstr_put_lit(zse, "authority") &&
+	     zcbor_bool_put(zse, false) &&
+	     zcbor_tstr_put_lit(zse, "candidate_only") &&
+	     zcbor_bool_put(zse, true) &&
+	     zcbor_tstr_put_lit(zse, "state") &&
+	     zcbor_tstr_encode(zse, &state_value) &&
+	     zcbor_tstr_put_lit(zse, "state_code") &&
+	     zcbor_uint32_put(zse, (uint32_t)snapshot.state) &&
+	     zcbor_tstr_put_lit(zse, "last_event") &&
+	     zcbor_tstr_encode(zse, &event_value) &&
+	     zcbor_tstr_put_lit(zse, "event_code") &&
+	     zcbor_uint32_put(zse, (uint32_t)snapshot.last_event) &&
+	     zcbor_tstr_put_lit(zse, "quality_flags") &&
+	     zcbor_uint32_put(zse, snapshot.quality_flags) &&
+	     zcbor_tstr_put_lit(zse, "transition_count") &&
+	     zcbor_uint32_put(zse, snapshot.state_transition_count) &&
+	     zcbor_tstr_put_lit(zse, "event_count") &&
+	     zcbor_uint32_put(zse, snapshot.event_count) &&
+	     zcbor_tstr_put_lit(zse, "event_age_ms") &&
+	     zcbor_uint64_put(zse, event_age_ms) &&
+	     zcbor_tstr_put_lit(zse, "onset_seq") &&
+	     zcbor_uint32_put(zse, snapshot.onset_sequence) &&
+	     zcbor_tstr_put_lit(zse, "last_transition_ms") &&
+	     zcbor_uint64_put(zse, snapshot.last_transition_us / 1000U) &&
+	     zcbor_tstr_put_lit(zse, "impulse_milli_mps") &&
+	     zcbor_int32_put(zse, snapshot.vertical_impulse_milli_mps) &&
+	     zcbor_tstr_put_lit(zse, "gyro_mean_milli_rads") &&
+	     zcbor_int32_put(zse, snapshot.gyro_mean_milli_rads) &&
+	     zcbor_tstr_put_lit(zse, "axis_milli") &&
+	     zcbor_int32_put(zse, snapshot.axis_consistency_milli) &&
+	     zcbor_tstr_put_lit(zse, "buffered_samples") &&
+	     zcbor_uint32_put(zse, snapshot.buffered_samples) &&
+	     zcbor_tstr_put_lit(zse, "baseline_stationary") &&
+	     zcbor_bool_put(zse, snapshot.baseline_stationary) &&
+	     zcbor_tstr_put_lit(zse, "pickup_rule") &&
+	     zcbor_bool_put(zse, snapshot.pickup_rule_passed) &&
+	     zcbor_tstr_put_lit(zse, "rolling_rule") &&
+	     zcbor_bool_put(zse, snapshot.rolling_rule_passed) &&
+	     zcbor_tstr_put_lit(zse, "pickup_config_sha256") &&
+	     zcbor_tstr_encode(zse, &config_hash_value) &&
+	     zcbor_tstr_put_lit(zse, "stream_hz") &&
+	     zcbor_uint32_put(zse, current_stream_rate_hz);
+
+	return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
+}
+#endif
+
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 static void enter_system_off(struct k_work *work)
 {
@@ -948,6 +1046,12 @@ static const struct mgmt_handler putttrack_mgmt_handlers[] = {
 		.mh_read = NULL,
 		.mh_write = putttrack_mgmt_power_idle,
 	},
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+	[PUTTTRACK_MGMT_ID_MOTION_DEMO] = {
+		.mh_read = putttrack_mgmt_motion_demo,
+		.mh_write = NULL,
+	},
+#endif
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 	[PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF] = {
 		.mh_read = NULL,
@@ -1410,6 +1514,11 @@ static void clear_motion_history(void)
 	frozen_motion_count = 0U;
 	frozen_capture_id++;
 	k_mutex_unlock(&packet_mutex);
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+	k_mutex_lock(&motion_demo_mutex, K_FOREVER);
+	motion_demo_v0_init(&motion_demo);
+	k_mutex_unlock(&motion_demo_mutex);
+#endif
 }
 
 static void begin_sensor_recovery(uint32_t error_bits)
@@ -1799,6 +1908,7 @@ static bool sample_motion(void)
 	uint8_t flags = 0U;
 	uint32_t errors = 0U;
 	uint8_t snapshot[MOTION_PACKET_SIZE];
+	uint64_t source_monotonic_us;
 	int rc;
 	bool motion_detected = false;
 
@@ -1853,7 +1963,8 @@ static bool sample_motion(void)
 	snapshot[1] = flags;
 	sys_put_le16(MOTION_PACKET_SIZE, &snapshot[2]);
 	sys_put_le32(sequence, &snapshot[4]);
-	sys_put_le64(k_ticks_to_us_floor64(k_uptime_ticks()), &snapshot[8]);
+	source_monotonic_us = k_ticks_to_us_floor64(k_uptime_ticks());
+	sys_put_le64(source_monotonic_us, &snapshot[8]);
 
 	for (size_t index = 0; index < 3; index++) {
 		sys_put_le32(sensor_value_to_i32_micro(&adxl_accel[index]),
@@ -1876,6 +1987,24 @@ static bool sample_motion(void)
 		bmi270_gyro_clip_count++;
 	}
 	sys_put_le32(errors, &snapshot[52]);
+
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+	struct motion_demo_v0_sample demo_sample = {
+		.sequence = sequence,
+		.source_monotonic_us = source_monotonic_us,
+		.bmi270_valid = (flags & MOTION_FLAG_BMI270_VALID) != 0U,
+		.sensor_error_bits = errors,
+	};
+	for (size_t index = 0; index < 3; index++) {
+		demo_sample.accel_micro_ms2[index] =
+			(int32_t)sys_get_le32(&snapshot[28 + index * 4U]);
+		demo_sample.gyro_micro_rads[index] =
+			(int32_t)sys_get_le32(&snapshot[40 + index * 4U]);
+	}
+	k_mutex_lock(&motion_demo_mutex, K_FOREVER);
+	(void)motion_demo_v0_push(&motion_demo, &demo_sample);
+	k_mutex_unlock(&motion_demo_mutex);
+#endif
 
 	k_mutex_lock(&packet_mutex, K_FOREVER);
 	memcpy(motion_packet, snapshot, sizeof(motion_packet));
@@ -2121,6 +2250,9 @@ int main(void)
 	uint32_t previous_period_ms = 0U;
 
 	initialize_sensor_reboot_retention();
+#if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
+	motion_demo_v0_init(&motion_demo);
+#endif
 	initialize_identity();
 	initialize_advertising_name();
 	scan_response_data[0].data_len = (uint8_t)strlen(advertising_name);
