@@ -1,0 +1,31 @@
+{
+  "dataset_id": "research-ball-r1-pickup-precision-1e-rail-20260904",
+  "episodes": 10,
+  "episodes_by_label": {
+    "putt_rail_collision": 10
+  },
+  "episodes_with_clipping": {
+    "adxl367": 10,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 10
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 0,
+    "WARN": 10
+  },
+  "warning_episode_ids": [
+    "putt-rail-light-r01",
+    "putt-rail-light-r02",
+    "putt-rail-light-r03",
+    "putt-rail-normal-r04",
+    "putt-rail-normal-r05",
+    "putt-rail-normal-r06",
+    "putt-rail-normal-r07",
+    "putt-rail-firm-r08",
+    "putt-rail-firm-r09",
+    "putt-rail-firm-r10"
+  ]
+}
