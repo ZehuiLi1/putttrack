@@ -131,27 +131,45 @@ Before the first run:
 python tools/set_tag_power_mode.py research
 ```
 
-After the Ball and roller are fully arranged, start one bounded capture. Act
-only after the terminal prints `GO`; the 10-second post-GO interval must contain
-the complete motor profile and final stationary period:
+After the Ball and roller are fully arranged, use the combined runner. Do not
+start the capture and motor from separate interactive commands: the device-side
+window advances immediately after `GO`, so UI or tool-call latency can place a
+valid motor action outside the labelled window. The combined process starts the
+motor as soon as it reads the capture process's flushed `GO` marker:
 
 ```bash
-python tools/capture_tag_smp.py \
-  --mode frozen \
-  --armed-countdown 3 \
-  --episode-seconds 10 \
+python tools/capture_roller_run.py \
+  --hci-port /dev/cu.usbmodem101 \
+  --motor-port /dev/cu.usbmodem1101 \
   --expected-device-id f383571202836e6f \
-  --label rolling \
+  --rpm 120 \
+  --seconds 3 \
   --notes "roller R1; CW; slow; carrier r1; repetition 01" \
-  --output runs/roller-r1-cw-slow-r01.jsonl
-
-python tools/analyze_tag_capture.py runs/roller-r1-cw-slow-r01.jsonl
+  --output runs/roller-r1-120rpm-r01.jsonl \
+  --confirm-clear
 ```
 
-The script writes a device-side GO marker and crops out setup motion as well as
-BLE freeze/readback delay. Countdown plus post-GO duration may not exceed 17
-seconds. If a motor profile cannot fit, shorten it or implement synchronized
-controller markers rather than weakening the retained-history bound.
+The runner preserves the motor probe, arm, bounded deadline, redundant stop,
+zero-speed confirmation and disable gates. It then retrieves the gap-free
+frozen history and runs label-consistency analysis. The script writes a
+device-side GO marker and crops out setup motion as well as BLE freeze/readback
+delay. Pre-roll plus motor duration plus stationary tail may not exceed 17
+seconds. If a motor profile cannot fit, shorten it rather than weakening the
+retained-history bound.
+
+The combined path physically passed twice at +120 RPM for three seconds on
+2026-09-04. The second retained run contained 450 contiguous 50 Hz samples,
+zero sensor errors, BMI270 gyro RMS `10.99 rad/s`, peak `27.65 rad/s`, and an
+`ACTIVE_MOTION_CANDIDATE` label-consistency pass. An earlier live-window run
+also located the commanded motion but contained sequence gaps; it remains
+diagnostic evidence and is not training input. Separate interactive capture
+and motor commands had previously missed the action window and produced false
+stationary results, which is why the combined runner is now mandatory.
+
+At +120 RPM, the disabled motor may briefly report a small passive speed as the
+ball and roller coast. The host accepts this only while output is confirmed
+disabled and only if repeated status reads reach 0 RPM within two seconds. Any
+enabled output, stall flag, or failure to reach zero still fails closed.
 
 Do not reuse filenames or overwrite failed runs. A failed run remains useful
 evidence when its validity reason is explicit.

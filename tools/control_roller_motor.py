@@ -13,6 +13,8 @@ ESPRESSIF_USB_VID = 0x303A
 DEFAULT_BAUD = 115200
 MAX_ABS_RPM = 300
 MAX_RUN_SECONDS = 30
+DISABLED_COAST_TIMEOUT_SECONDS = 2.0
+DISABLED_COAST_POLL_SECONDS = 0.05
 
 
 class SerialLike(Protocol):
@@ -114,6 +116,32 @@ def require_ok(payload: dict[str, Any], event: str) -> None:
         raise RuntimeError(f"{event} did not pass: {payload}")
 
 
+def wait_for_safe_disabled_zero(
+    serial_port: SerialLike,
+    status: dict[str, Any],
+    request_timeout: float,
+) -> dict[str, Any]:
+    """Allow bounded passive coast only after output is confirmed disabled."""
+    deadline = time.monotonic() + DISABLED_COAST_TIMEOUT_SECONDS
+    current = status
+    while True:
+        require_ok(current, "post-run motor status")
+        if (
+            current.get("enabled") is not False
+            or current.get("stalled") is True
+            or current.get("stall_protect") is True
+        ):
+            raise RuntimeError(f"unsafe post-run motor state: {current}")
+        if current.get("rpm") == 0:
+            return current
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError(f"disabled motor did not coast to zero: {current}")
+        time.sleep(min(DISABLED_COAST_POLL_SECONDS, remaining))
+        send_line(serial_port, "motor status")
+        current = wait_event(serial_port, "motor_status", min(request_timeout, remaining))
+
+
 def execute(serial_port: SerialLike, args: argparse.Namespace) -> None:
     if args.command == "probe":
         send_line(serial_port, "motor probe")
@@ -169,14 +197,7 @@ def execute(serial_port: SerialLike, args: argparse.Namespace) -> None:
             raise RuntimeError(f"post-run disable was not acknowledged: {disabled}")
         send_line(serial_port, "motor status")
         final_status = wait_event(serial_port, "motor_status", args.timeout)
-        require_ok(final_status, "post-run motor status")
-        if (
-            final_status.get("rpm") != 0
-            or final_status.get("enabled") is not False
-            or final_status.get("stalled") is True
-            or final_status.get("stall_protect") is True
-        ):
-            raise RuntimeError(f"unsafe post-run motor state: {final_status}")
+        wait_for_safe_disabled_zero(serial_port, final_status, args.timeout)
     except BaseException:
         send_line(serial_port, "motor stop")
         raise

@@ -4,7 +4,12 @@ import argparse
 import json
 import unittest
 
-from tools.control_roller_motor import execute, send_line, validate_args, wait_event
+from tools.control_roller_motor import (
+    execute,
+    send_line,
+    validate_args,
+    wait_event,
+)
 
 
 class FakeSerial:
@@ -111,6 +116,27 @@ class RollerMotorControlTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unsafe post-run motor state"):
             execute(port, run_args(seconds=1))
         self.assertEqual(port.writes[-1], b"motor stop\n")
+
+    def test_run_allows_bounded_passive_coast_after_disable(self) -> None:
+        port = FakeSerial(
+            [
+                {"event": "motor_probe", "ok": True},
+                {"event": "motor_status", "ok": True, "stalled": False},
+                {"event": "motor_armed"},
+                {"event": "motor_running", "rpm": 120, "seconds": 1},
+                {"event": "motor_stopped", "reason": "run_timeout",
+                 "settled": True, "final_rpm": 0},
+                {"event": "motor_action_ack", "action": "disable", "accepted": True},
+                {"event": "motor_status", "ok": True, "rpm": 7,
+                 "enabled": False, "stalled": False, "stall_protect": False},
+                {"event": "motor_status", "ok": True, "rpm": 0,
+                 "enabled": False, "stalled": False, "stall_protect": False},
+            ]
+        )
+
+        execute(port, run_args(rpm=120, seconds=1))
+
+        self.assertEqual(port.writes[-2:], [b"motor status\n", b"motor status\n"])
 
     def test_run_fails_closed_if_timeout_stop_did_not_settle(self) -> None:
         port = FakeSerial(
