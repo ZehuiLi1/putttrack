@@ -153,12 +153,16 @@ prerequisites unless ADR-013 is revisited.
 
 ## Active next Issues / PRs
 
-1. **Free-motion research-ball data:** the closed shell, restrained carrier and
-   86-capture roller characterization pass with zero sequence gaps. Timed ARMED
-   capture excludes setup delay. Collect independently labelled handling,
-   putter, free-roll, collision and cup episodes next; no roller is required.
-2. **Generic motion V0:** extend the replay-first deterministic state/candidate
-   baseline only from controlled physical evidence.
+1. **Pickup evaluator:** the same-session collection gate now covers no-lift,
+   rolling pickup, pickup/carry, pickup/drop, gentle putt, rail collision and
+   course-step controls. Implement the exact frozen V0 feature path from raw
+   JSONL, report `PICKUP / NOT_PICKUP / UNKNOWN` by full episode/session and
+   keep `authority=false`; see
+   [`../research/NEXT_IMU_ENGINEERING_PLAN_20260904.md`](../research/NEXT_IMU_ENGINEERING_PLAN_20260904.md).
+2. **Targeted motion evidence:** stop repeating the current setup. Use evaluator
+   failures to select any next class, then run a separately frozen
+   date/operator/Ball/surface holdout. Add cup sequences only with independent
+   optical/video truth.
 3. **Physical one-hole inputs:** the hardware-neutral tee/cup adapters,
    fail-closed policy, HTTP ingress and replay tests are complete. Build the
    selected Tee PN532 plus Cup optical-entry/PN532 identity nodes and measure

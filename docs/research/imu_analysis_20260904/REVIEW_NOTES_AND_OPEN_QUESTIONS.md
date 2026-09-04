@@ -58,17 +58,20 @@ These are not documentation bugs and should not be hidden by additional software
 - `handling` is the strict no-lift control: the Ball remains in continuous surface contact.
 - `cup_sequence` remains a planned future profile because cup geometry and independent physical truth are not yet present.
 
-## Next data gate
+## Next engineering and data gate
 
-The current hypothesis is now frozen before the next untouched batch. Collect in this order:
+The same-session collection plan is now complete for `handling`,
+`rolling_pickup`, `pickup_carry`, `pickup_drop`, `putt_gentle`,
+`putt_rail_collision` and `track_step_drop`. Stop collecting repetitions in the
+same setup and implement the raw-source-derived frozen V0 evaluator described
+in [`../NEXT_IMU_ENGINEERING_PLAN_20260904.md`](../NEXT_IMU_ENGINEERING_PLAN_20260904.md).
 
-1. `handling`: strict no-lift touch/press, in-place rotate and short slide controls;
-2. `rolling_pickup`: slow/medium/fast rolling pickups and near-stop pickups;
-3. a separately named `pickup_carry` holdout with varied lift speed, grip and initial orientation;
-4. clean putts plus `putt_rail_collision` / `track_step_drop` controls;
-5. at least one separate day/session/operator holdout before any product-facing accuracy claim.
-
-Do not change `pickup_detector_v0_stationary_start` after viewing these holdout results. If the hypothesis must change, create a new detector ID/version and evaluate it on a later untouched set.
+Only after its failures are known should the project collect targeted boundary
+examples. A separate date/session, another operator, the second Ball and
+representative surfaces remain mandatory before a product-facing accuracy
+claim. Do not change `pickup_detector_v0_stationary_start` after viewing any of
+these results. If the hypothesis must change, create a new detector ID/version
+and evaluate it on a later untouched set.
 
 ## Merge gate for a detector claim
 

@@ -65,15 +65,17 @@ and [`TAG_MOTION_EPISODE_RUNBOOK.md`](docs/hardware/TAG_MOTION_EPISODE_RUNBOOK.m
 The resulting canonical motion record can enter
 the one-hole runtime as an observed/pending/rejected candidate, but cannot
 infer pickup/impact semantics or directly mutate score.
-Ten newer pickup/carry captures and ten nominal putt captures now support a
-specific research hypothesis: short vertical impulse plus low/moderate,
-multi-axis gyro activity separates current pickup examples from sustained
-single-axis putt/roll examples in-sample. Gravity reversal and acceleration
-peak alone do not. Several putt labels are mixed or invalid and most dynamic
-putts reach the gyro range boundary, so no product accuracy is claimed. The
-measured values, label audit, provisional detector and required no-lift/
-rolling-pickup holdout gates are recorded in
-[`PICKUP_DETECTION_STATUS_20260904.md`](docs/research/PICKUP_DETECTION_STATUS_20260904.md).
+Reviewed field batches now cover no-lift handling, rolling pickup,
+pickup/carry, pickup/drop, gentle putt, rail collision and course-step controls.
+They support a specific research hypothesis: short vertical impulse plus
+low/moderate, multi-axis gyro activity separates current stationary-start
+pickup examples from sustained single-axis putt/roll examples in-sample.
+Gravity reversal and acceleration peak alone do not. Labels are still
+operator-confirmed rather than independent video truth, so no product accuracy
+is claimed. The measured status is recorded in
+[`PICKUP_DETECTION_STATUS_20260904.md`](docs/research/PICKUP_DETECTION_STATUS_20260904.md),
+and the dependency-ordered next work is locked in
+[`NEXT_IMU_ENGINEERING_PLAN_20260904.md`](docs/research/NEXT_IMU_ENGINEERING_PLAN_20260904.md).
 A repeatable export tool, `python3 tools/package_imu_dataset.py`, packages all
 unique raw IMU captures with a data dictionary, quality manifest, SHA-256
 checksums and model-analysis brief. The canonical first-campaign archive is now

@@ -41,9 +41,15 @@ Suggested scope:
    - only update product-facing status after an untouched holdout is frozen;
    - report whole-episode/session metrics, not random-window accuracy.
 
-Merge criterion:
+Research-tool merge criterion:
 
-- untouched holdout exists;
-- pickup precision and false-positive confidence bounds are acceptable;
-- no-leakage review passes;
-- detector remains evidence-only.
+- raw JSONL to decision/report is deterministic and configuration-hashed;
+- all structural and unsupported paths fail closed to `UNKNOWN`;
+- clean, mixed, diagnostic and unsupported episodes are reported separately;
+- tests cover the documented numerical and failure paths;
+- frozen V0 thresholds are unchanged;
+- detector remains evidence-only with `authority=false`.
+
+An untouched separate-date/operator/Ball holdout and acceptable pickup
+precision/false-positive confidence bounds remain mandatory for a later
+product claim, but are not prerequisites for merging the evaluator itself.
