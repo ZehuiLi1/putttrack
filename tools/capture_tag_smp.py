@@ -373,6 +373,11 @@ def main() -> int:
                     flush=True,
                 )
                 run_countdown(args.armed_countdown)
+                print(
+                    "ARMED: confirming device marker; keep waiting for GO",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 action_marker = motion_from_smp(request(nrfutil, args, 1))
                 action_marker_host_ns = time.time_ns()
                 emit(

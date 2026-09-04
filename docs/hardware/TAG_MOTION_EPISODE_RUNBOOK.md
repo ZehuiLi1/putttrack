@@ -33,6 +33,15 @@ concurrent captures and existing filenames, and automatically restores `auto`
 mode after the final run, manual finish, failure, server shutdown or ten
 minutes waiting between runs.
 
+After the visible countdown, the tool confirms a device-side marker before it
+shows the green `GO`. If BLE needs to retry at that boundary, the page says to
+keep waiting instead of leaving `GO in 1` on screen. A failed episode is not
+counted: its partial JSONL is renamed with a `.failed-<timestamp>` suffix,
+connection recovery runs automatically, and the same repetition becomes
+available again. Earlier successful episodes in the batch remain intact. If
+automatic recovery cannot reconnect, the same button offers an explicit
+reconnect-and-continue path after `auto` has been restored.
+
 The command-line wrapper below remains the fallback when a browser is
 inconvenient.
 
@@ -52,9 +61,10 @@ python3 tools/capture_field_session.py pickup_carry \
   --expected-device-id f383571202836e6f
 ```
 
-Available profiles are `pickup_carry`, `handling`, `putt_gentle`,
-`putt_normal`, `putt_firm` and `hand_roll`. Output names and repetition numbers
-are generated automatically under `runs/`, and existing files are never
+Available profiles are `pickup_carry`, `pickup_drop`, `handling`,
+`putt_gentle`, `putt_normal`, `putt_firm` and `hand_roll`. Keep ordinary
+placement and a realistic low-height drop in separate batches. Output names
+and repetition numbers are generated automatically under `runs/`, and existing files are never
 overwritten. Before each Enter press, arrange the camera and Ball and keep the
 Ball still. After GO perform exactly one instructed action, then leave the Ball
 untouched until the completion cue. Use `--start-index` to continue a partially
@@ -138,7 +148,8 @@ rail; any clipped episode must be marked unsuitable for amplitude calibration.
 
 Capture `PASS` means transport integrity, not that the operator action was
 observed. The analyzer independently checks validated labels: `stationary` must
-look stationary and `pickup_carry` must contain unmistakable generic activity.
+look stationary and both `pickup_carry` and `pickup_drop` must contain
+unmistakable generic activity.
 Desk-bound `handling` may remain `UNCLASSIFIED` or become generic active motion,
 but neither state identifies pickup or a stroke. The analyzer exits non-zero
 and refuses canonical observation export when a validated label does not match
@@ -160,6 +171,7 @@ file during the first pass.
 |---|---|---|
 | `stationary` | untouched on a rigid desk | multiple orientations |
 | `pickup_carry` | desk → hand → carry → place down | no rolling |
+| `pickup_drop` | ground → hand → carry → low-height casual drop | assembled protective Ball only; do not throw hard |
 | `handling` | cable/board adjustment and ordinary touch | common false-stroke source |
 | `impact_tap` | short controlled tap while restrained | do not damage the bare PCB |
 | `rolling` | mechanically secured test core rolls on level surface | not meaningful with loose bare PCB |

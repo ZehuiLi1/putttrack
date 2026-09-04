@@ -73,11 +73,11 @@ const $=s=>document.querySelector(s);
 async function api(path,options={}){options.headers={...(options.headers||{}),'X-PuttTrack-Token':TOKEN};if(options.body)options.headers['Content-Type']='application/json';const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||'请求失败');return j}
 function profileTitle(id){return config?.profiles[id]?.title||id||'—'}
 function renderProfiles(){const root=$('#profiles');root.textContent='';Object.entries(config.profiles).forEach(([id,p],i)=>{const d=document.createElement('div');d.className='profile';const input=document.createElement('input');input.type='radio';input.name='profile';input.id='p-'+id;input.value=id;input.checked=i===0;const label=document.createElement('label');label.htmlFor=input.id;const strong=document.createElement('strong');strong.textContent=p.title;const span=document.createElement('span');span.textContent=p.short;label.append(strong,span);d.append(input,label);root.append(d)})}
-function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'auto / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / auto':phase==='error'?'出现错误':phase==='capturing'?'正在采集':'处理中'}
+function setPill(phase){const p=$('#status-pill');p.className='status-pill';if(['ready','complete','idle'].includes(phase))p.classList.add('good');else if(phase==='error')p.classList.add('bad');else p.classList.add('busy');p.textContent=phase==='idle'?'auto / 未开始':phase==='ready'?'已准备好':phase==='complete'?'批次完成 / auto':phase==='error'?'需要重新连接':phase==='capturing'?'正在采集':phase==='arming'?'确认 GO 标记':phase==='recovering'?'恢复连接中':'处理中'}
 function beep(){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=880;g.gain.setValueAtTime(.15,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.22);o.connect(g).connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.22)}catch(e){}}
 function drawChart(canvas,series,labels,emptyText){const rect=canvas.getBoundingClientRect(),width=Math.max(280,Math.round(rect.width)),height=Math.max(180,Math.round(rect.height)),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=width*dpr;canvas.height=height*dpr;const c=canvas.getContext('2d');c.scale(dpr,dpr);c.clearRect(0,0,width,height);c.font='11px system-ui';c.fillStyle='#617067';if(!series.length||!series.some(x=>x.values.length)){c.textAlign='center';c.fillText(emptyText,width/2,height/2);return}const all=series.flatMap(x=>x.values).filter(Number.isFinite);if(!all.length)return;let lo=Math.min(...all),hi=Math.max(...all),pad=Math.max((hi-lo)*.18,series[0].minimumPad||.05);lo=Math.max(series[0].floor??-Infinity,lo-pad);hi+=pad;const left=46,right=12,top=14,bottom=28,w=width-left-right,h=height-top-bottom;c.strokeStyle='#e3eae5';c.fillStyle='#617067';c.textAlign='right';for(let i=0;i<4;i++){const y=top+h*i/3,value=hi-(hi-lo)*i/3;c.beginPath();c.moveTo(left,y);c.lineTo(width-right,y);c.stroke();c.fillText(value.toFixed(series[0].digits??2),left-7,y+4)}const n=Math.max(...series.map(x=>x.values.length));const xAt=i=>left+(n<=1?w/2:w*i/(n-1));c.textAlign='center';labels.forEach((label,i)=>{if(labels.length<=8||i===0||i===labels.length-1)c.fillText(label,xAt(i),height-8)});series.forEach(item=>{c.strokeStyle=item.color;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();item.values.forEach((value,i)=>{const x=xAt(i),y=top+(hi-value)/(hi-lo)*h;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();item.values.forEach((value,i)=>{c.fillStyle=item.color;c.beginPath();c.arc(xAt(i),top+(hi-value)/(hi-lo)*h,3,0,Math.PI*2);c.fill()})})}
 function renderTelemetry(s){const d=s.device_status,b=s.battery_history||[],runs=s.result_history||[];$('#device-link').textContent=d?`已读取 · ${d.device_id.slice(-6)}`:'未读取';$('#battery-voltage').textContent=d?.battery_voltage_mv!=null?`${(d.battery_voltage_mv/1000).toFixed(3)} V`:'—';$('#battery-soc').textContent=d?.battery_soc_percent!=null?`${d.battery_soc_percent}%${d.battery_soc_estimated?'（估算）':''}`:'—';$('#power-state').textContent=d?`${d.mode} / ${d.runtime_state}`:'—';$('#stream-state').textContent=d?(d.stream_rate_hz?`${d.stream_rate_hz} Hz`:(d.bmi270_spi_suspended?'0 Hz · BMI270 休眠':'0 Hz')):'—';const health=d?.sensor_health==='healthy'?'正常':(d?.sensor_health||'—');$('#sensor-state').textContent=d?`${health} · FW ${d.firmware_version}`:'—';$('#battery-points').textContent=`${b.length} 个读数`;$('#run-count').textContent=`${runs.length} 组`;drawChart($('#battery-chart'),b.length?[{values:b.map(x=>x.voltage_mv/1000),color:'#126a45',digits:3,minimumPad:.01,floor:0}]:[],b.map(x=>x.source),'等待设备电压读数');drawChart($('#imu-chart'),runs.length?[{values:runs.map(x=>x.gyro_peak),color:'#126a45',digits:2,minimumPad:.1,floor:0},{values:runs.map(x=>x.gyro_rms),color:'#d68b1d'}]:[],runs.map(x=>String(x.index)),'完成采集后显示角速度趋势');const q=$('#quality');q.className='quality';if(!runs.length){q.textContent='完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。';return}const last=runs[runs.length-1],problems=[];if(last.continuity!=='PASS')problems.push(`连续性 ${last.continuity}`);if(last.sequence_gaps)problems.push(`${last.sequence_gaps} 个序列缺口`);if(last.clip_samples)problems.push(`${last.clip_samples} 个饱和样本`);if(problems.length){q.classList.add(last.continuity==='FAIL'||last.sequence_gaps?'bad':'warn');q.textContent=`第 ${last.index} 组需检查：${problems.join(' · ')}`;}else{q.textContent=`第 ${last.index} 组数据完整：连续性 PASS，无序列缺口，无量程饱和。`}}
-function render(s){if(s.phase==='capturing'&&lastPhase!=='capturing')beep();lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';$('#start').disabled=s.phase!=='ready';$('#start').textContent=s.phase==='ready'?`开始第 ${s.completed+1} / ${s.count} 组`:'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s)}
+function render(s){if(s.phase==='capturing'&&lastPhase!=='capturing')beep();lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';const reconnect=s.phase==='error'&&s.low_power&&s.last_failure;$('#start').disabled=s.phase!=='ready'&&!reconnect;$('#start').textContent=reconnect?'重新连接并继续本批次':s.phase==='ready'?(s.last_failure?`重试第 ${s.completed+1} / ${s.count} 组`:`开始第 ${s.completed+1} / ${s.count} 组`):'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_failure){$('#last-state').textContent='本组未计入';const f=s.last_failure.file?` · 诊断 ${s.last_failure.file}`:'';$('#result').textContent=`第 ${s.last_failure.repetition} 组可以重试${f} · ${s.last_failure.detail}`}else if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s)}
 async function refresh(){try{render(await api('/api/state'))}catch(e){$('#status-pill').className='status-pill bad';$('#status-pill').textContent='服务连接失败'}}
 $('#prepare').addEventListener('click',async()=>{const profile=document.querySelector('input[name=profile]:checked')?.value;try{await api('/api/session',{method:'POST',body:JSON.stringify({profile,count:Number($('#count').value),session_id:$('#session-id').value.trim(),notes:$('#notes').value.trim()})});refresh()}catch(e){alert(e.message)}});
 $('#start').addEventListener('click',async()=>{try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();await api('/api/capture/start',{method:'POST',body:'{}'});refresh()}catch(e){alert(e.message)}});
@@ -89,6 +89,7 @@ $('#finish').addEventListener('click',async()=>{try{await api('/api/session/fini
 
 PROFILE_COPY = {
     "pickup_carry": ("拿起、携带、放下", "拿起球，走几步，再放下"),
+    "pickup_drop": ("拿起、携带、低高度丢下", "模拟玩家随手丢球，不要用力砸球"),
     "handling": ("触摸与重新摆球", "轻触、旋转或调整位置"),
     "putt_gentle": ("轻推杆", "轻推一次并自然停止"),
     "putt_normal": ("正常推杆", "正常力度推击一次"),
@@ -220,6 +221,8 @@ class FieldCaptureApp:
             "device_status": None,
             "battery_history": [],
             "result_history": [],
+            "failure_count": 0,
+            "last_failure": None,
             "low_power": True,
         }
 
@@ -319,6 +322,8 @@ class FieldCaptureApp:
                 device_status=None,
                 battery_history=[],
                 result_history=[],
+                failure_count=0,
+                last_failure=None,
                 low_power=False,
             )
         threading.Thread(target=self._prepare_worker, daemon=True).start()
@@ -366,6 +371,20 @@ class FieldCaptureApp:
 
     def start_capture(self) -> None:
         with self.lock:
+            if (
+                self.state["phase"] == "error"
+                and self.state["low_power"]
+                and self.state["last_failure"] is not None
+                and self.session_args is not None
+            ):
+                self.state.update(
+                    phase="preparing",
+                    message="正在重新连接 Ball…",
+                    instruction="保持 Ball 静止；连接恢复后再按一次开始本组。",
+                    low_power=False,
+                )
+                threading.Thread(target=self._prepare_retry_worker, daemon=True).start()
+                return
             if self.state["phase"] != "ready" or self.session_args is None:
                 raise RuntimeError("Ball 尚未准备好，或当前正在采集")
             self._cancel_ready_timeout()
@@ -379,9 +398,25 @@ class FieldCaptureApp:
             target=self._capture_worker, args=(repetition,), daemon=True
         ).start()
 
+    def _prepare_retry_worker(self) -> None:
+        assert self.session_args is not None
+        try:
+            self._set_power_mode(self.session_args, "research", "重新连接")
+        except (RuntimeError, ValueError) as exc:
+            self._fail_and_restore("仍然无法连接 Ball", str(exc))
+            return
+        self._set(
+            phase="ready",
+            message=f"连接已恢复，请重试第 {int(self.state['completed']) + 1} 组",
+            instruction=PROFILES[self.session_args.profile].instruction,
+            low_power=False,
+        )
+        self._arm_ready_timeout()
+
     def _capture_worker(self, repetition: int) -> None:
         assert self.session_args is not None
         command = build_capture_command(self.session_args, repetition)
+        stderr_lines: list[str] = []
         try:
             process = self.popen_factory(
                 command,
@@ -396,8 +431,16 @@ class FieldCaptureApp:
             assert process.stderr is not None
             for raw_line in process.stderr:
                 line = raw_line.lstrip("\a").strip()
+                if line:
+                    stderr_lines.append(line)
                 if line.startswith("ARMED: GO in"):
                     self._set(phase="countdown", message=line.replace("ARMED: ", ""))
+                elif line.startswith("ARMED: confirming device marker"):
+                    self._set(
+                        phase="arming",
+                        message="正在确认设备标记…",
+                        instruction="继续保持静止；看到绿色 GO 后再动作。",
+                    )
                 elif line.startswith("GO:"):
                     self._set(
                         phase="capturing",
@@ -419,7 +462,19 @@ class FieldCaptureApp:
                 self.current_process = None
 
         if returncode != 0:
-            self._fail_and_restore("本组采集失败，已停止批次", f"exit {returncode}")
+            detail = next(
+                (
+                    line
+                    for line in reversed(stderr_lines)
+                    if not line.startswith(("File ", "Traceback", "^"))
+                ),
+                f"exit {returncode}",
+            )
+            self._retry_after_capture_failure(
+                capture=output_path(self.session_args, repetition),
+                repetition=repetition,
+                detail=detail,
+            )
             return
 
         capture = output_path(self.session_args, repetition)
@@ -428,7 +483,11 @@ class FieldCaptureApp:
             [PYTHON, str(ANALYZE_TOOL), str(capture)]
         )
         if analysis.returncode != 0:
-            self._fail_and_restore("数据检查未通过，已停止批次", analysis.stderr)
+            self._retry_after_capture_failure(
+                capture=capture,
+                repetition=repetition,
+                detail=analysis.stderr.strip() or "数据检查未通过",
+            )
             return
         try:
             payload = json.loads(analysis.stdout)
@@ -467,6 +526,7 @@ class FieldCaptureApp:
         with self.lock:
             self.state["completed"] = completed
             self.state["last_result"] = last_result
+            self.state["last_failure"] = None
             self.state["result_history"].append(
                 {
                     "index": completed,
@@ -489,6 +549,42 @@ class FieldCaptureApp:
                 instruction=PROFILES[self.session_args.profile].instruction,
             )
             self._arm_ready_timeout()
+
+    def _retry_after_capture_failure(
+        self, *, capture: Path, repetition: int, detail: str
+    ) -> None:
+        failed_path = None
+        if capture.exists():
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            failed_path = capture.with_name(
+                f"{capture.stem}.failed-{stamp}{capture.suffix}"
+            )
+            capture.replace(failed_path)
+        with self.lock:
+            self.state["failure_count"] = int(self.state["failure_count"]) + 1
+            self.state["last_failure"] = {
+                "repetition": repetition,
+                "file": failed_path.name if failed_path else None,
+                "detail": detail[-240:],
+            }
+            self.state.update(
+                phase="recovering",
+                message=f"第 {repetition} 组未计入，正在恢复连接…",
+                instruction="失败诊断已保留；恢复成功后可以直接重试本组。",
+            )
+        assert self.session_args is not None
+        try:
+            self._set_power_mode(self.session_args, "research", "失败后恢复")
+        except (RuntimeError, ValueError) as exc:
+            self._fail_and_restore("连接恢复失败，可再次尝试", f"{detail}; {exc}")
+            return
+        self._set(
+            phase="ready",
+            message=f"第 {repetition} 组没有计入，请重试",
+            instruction=PROFILES[self.session_args.profile].instruction,
+            low_power=False,
+        )
+        self._arm_ready_timeout()
 
     def finish(self) -> None:
         with self.lock:

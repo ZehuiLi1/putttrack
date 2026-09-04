@@ -44,6 +44,14 @@ PROFILES = {
         episode_seconds=10.0,
         instruction="GO 后等约 1 秒，拿起球、行走 2–3 秒、放下，然后不要再碰球。",
     ),
+    "pickup_drop": Profile(
+        label="pickup_drop",
+        episode_seconds=10.0,
+        instruction=(
+            "GO 后等约 1 秒，拿起球、行走 2–3 秒，再从正常手持低高度随手丢下；"
+            "不要用力砸球，落地后不要再碰。"
+        ),
+    ),
     "handling": Profile(
         label="handling",
         episode_seconds=8.0,

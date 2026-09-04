@@ -6,6 +6,14 @@ from tools.analyze_tag_capture import expected_states_for_label
 
 
 class AnalyzeTagCaptureTests(unittest.TestCase):
+    def test_manual_pickup_profiles_require_measured_motion(self) -> None:
+        for label in ("pickup_carry", "pickup_drop"):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    expected_states_for_label(label),
+                    ("ACTIVE_MOTION_CANDIDATE",),
+                )
+
     def test_nonzero_roller_command_requires_measured_motion(self) -> None:
         self.assertEqual(
             expected_states_for_label("roller_30rpm"),

@@ -37,15 +37,17 @@ def args(**overrides: object) -> argparse.Namespace:
 
 
 class FakeProcess:
-    def __init__(self) -> None:
+    def __init__(self, *, returncode: int = 0, stderr: str | None = None) -> None:
         self.stderr = io.StringIO(
-            "ARMED: GO in 3\nGO: action window is 10.00 seconds\n"
+            stderr
+            or "ARMED: GO in 3\nGO: action window is 10.00 seconds\n"
             "FREEZING: keep the Ball untouched\n"
         )
+        self.returncode = returncode
         self.terminated = False
 
     def wait(self, timeout: float | None = None) -> int:
-        return 0
+        return self.returncode
 
     def poll(self) -> int | None:
         return 0
@@ -100,6 +102,8 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertIn("battery-chart", page)
         self.assertIn("imu-chart", page)
         self.assertIn("剩余电量", page)
+        self.assertIn("确认 GO 标记", page)
+        self.assertIn("重新连接并继续本批次", page)
 
     def test_device_status_requires_expected_ball_and_marks_estimated_soc(self) -> None:
         payload = json.loads(power_result(["research"]).stdout)
@@ -201,6 +205,48 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertIn("research", commands[0])
         self.assertTrue(any(str(ANALYZE_TOOL) in command for command in commands))
         self.assertIn("auto", commands[-1])
+
+    def test_failed_capture_is_preserved_and_same_repetition_can_retry(self) -> None:
+        def failed_process(command: list[str], **unused_kwargs: object) -> FakeProcess:
+            output = Path(command[command.index("--output") + 1])
+            output.write_text('{"record_type":"tag_status"}\n', encoding="utf-8")
+            return FakeProcess(
+                returncode=1,
+                stderr=(
+                    "ARMED: GO in 1\n"
+                    "ARMED: confirming device marker; keep waiting for GO\n"
+                    "RuntimeError: pairing failed\n"
+                ),
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            app = FieldCaptureApp(
+                args(output_dir=root),
+                command_runner=power_result,
+                popen_factory=failed_process,
+            )
+            app.prepare(
+                {
+                    "profile": "pickup_drop",
+                    "count": 2,
+                    "session_id": "retry-test",
+                }
+            )
+            wait_for_phase(app, "ready")
+            app.start_capture()
+            state = wait_for_phase(app, "ready")
+            app.close()
+
+            canonical = root / "field-retry-test-pickup_drop-r01.jsonl"
+            failed = list(root.glob("field-retry-test-pickup_drop-r01.failed-*.jsonl"))
+
+        self.assertEqual(state["completed"], 0)
+        self.assertEqual(state["failure_count"], 1)
+        self.assertEqual(state["last_failure"]["repetition"], 1)
+        self.assertIn("pairing failed", state["last_failure"]["detail"])
+        self.assertFalse(canonical.exists())
+        self.assertEqual(len(failed), 1)
 
     def test_existing_capture_is_rejected_before_power_change(self) -> None:
         calls = 0

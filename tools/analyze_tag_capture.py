@@ -33,6 +33,7 @@ def expected_states_for_label(label: str) -> tuple[str, ...] | None:
     expected_states = {
         "stationary": ("STATIONARY_CANDIDATE",),
         "pickup_carry": ("ACTIVE_MOTION_CANDIDATE",),
+        "pickup_drop": ("ACTIVE_MOTION_CANDIDATE",),
         "handling": ("UNCLASSIFIED", "ACTIVE_MOTION_CANDIDATE"),
     }
     normalized = label.strip().lower()
