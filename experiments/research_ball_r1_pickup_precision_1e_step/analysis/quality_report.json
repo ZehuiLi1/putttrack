@@ -1,0 +1,31 @@
+{
+  "dataset_id": "research-ball-r1-pickup-precision-1e-step-20260904",
+  "episodes": 10,
+  "episodes_by_label": {
+    "track_step_drop": 10
+  },
+  "episodes_with_clipping": {
+    "adxl367": 10,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 1
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 0,
+    "WARN": 10
+  },
+  "warning_episode_ids": [
+    "track-step-slow-r01",
+    "track-step-slow-r02",
+    "track-step-slow-r03",
+    "track-step-normal-r04",
+    "track-step-normal-r05",
+    "track-step-normal-r06",
+    "track-step-normal-r07",
+    "track-step-plus-obstacle-r08",
+    "track-step-fast-r09",
+    "track-step-fast-r10"
+  ]
+}

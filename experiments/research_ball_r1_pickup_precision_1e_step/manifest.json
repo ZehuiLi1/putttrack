@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1e-step-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1e-step-20260904",
+    "surface": "unspecified",
+    "orientation": "uncontrolled",
+    "operator": "A",
+    "notes": "Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported a manual roll over one fixed small course-like step followed by natural settling after each visible GO cue. Step height, surface and independent video truth were not recorded. Episode r08 additionally collided with an obstacle after the step and is excluded from clean step-only comparisons."
+  },
+  "episodes": [
+    {
+      "episode_id": "track-step-slow-r01",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r01.jsonl",
+      "label": "track_step_drop",
+      "trial": "001",
+      "strength": "slow-planned"
+    },
+    {
+      "episode_id": "track-step-slow-r02",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r02.jsonl",
+      "label": "track_step_drop",
+      "trial": "002",
+      "strength": "slow-planned"
+    },
+    {
+      "episode_id": "track-step-slow-r03",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r03.jsonl",
+      "label": "track_step_drop",
+      "trial": "003",
+      "strength": "slow-planned"
+    },
+    {
+      "episode_id": "track-step-normal-r04",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r04.jsonl",
+      "label": "track_step_drop",
+      "trial": "004",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "track-step-normal-r05",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r05.jsonl",
+      "label": "track_step_drop",
+      "trial": "005",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "track-step-normal-r06",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r06.jsonl",
+      "label": "track_step_drop",
+      "trial": "006",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "track-step-normal-r07",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r07.jsonl",
+      "label": "track_step_drop",
+      "trial": "007",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "track-step-plus-obstacle-r08",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r08.jsonl",
+      "label": "track_step_drop",
+      "trial": "008",
+      "strength": "fast-planned-mixed",
+      "notes": "Operator reported that the Ball rolled after the step and then collided with an obstacle. Preserve as a mixed step-plus-collision negative; exclude from clean step-only analysis."
+    },
+    {
+      "episode_id": "track-step-fast-r09",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r09.jsonl",
+      "label": "track_step_drop",
+      "trial": "009",
+      "strength": "fast-planned",
+      "notes": "Successful retry after one automatically rejected attempt; rejected diagnostic capture is preserved separately."
+    },
+    {
+      "episode_id": "track-step-fast-r10",
+      "capture": "raw/field-pickup-precision-1e-step-20260904-track_step_drop-r10.jsonl",
+      "label": "track_step_drop",
+      "trial": "010",
+      "strength": "fast-planned"
+    }
+  ]
+}
