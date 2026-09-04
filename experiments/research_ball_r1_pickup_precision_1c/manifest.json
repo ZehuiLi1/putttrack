@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "dataset_id": "research-ball-r1-pickup-precision-1c-20260904",
+  "defaults": {
+    "core_revision": "PCA20072-carrier-R0",
+    "shell_revision": "printed-two-half-R1",
+    "session": "pickup-precision-1c-20260904",
+    "surface": "unspecified",
+    "orientation": "varied-unmeasured",
+    "operator": "A",
+    "notes": "Frozen-V0 stationary-start pickup holdout. Assembled Ball, firmware 0.1.17, device f383571202836e6f. Operator reported pickup from rest, 2-3 seconds of walking and gentle placement after each visible GO cue. Surface material and independent video truth were not recorded. Do not tune V0 thresholds from this set."
+  },
+  "episodes": [
+    {
+      "episode_id": "pickup-carry-normal-r01",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r01.jsonl",
+      "label": "pickup_carry",
+      "trial": "001",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "pickup-carry-normal-r02",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r02.jsonl",
+      "label": "pickup_carry",
+      "trial": "002",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "pickup-carry-normal-r03",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r03.jsonl",
+      "label": "pickup_carry",
+      "trial": "003",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "pickup-carry-normal-r04",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r04.jsonl",
+      "label": "pickup_carry",
+      "trial": "004",
+      "strength": "normal-planned"
+    },
+    {
+      "episode_id": "pickup-carry-slow-r05",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r05.jsonl",
+      "label": "pickup_carry",
+      "trial": "005",
+      "strength": "slow-smooth-planned"
+    },
+    {
+      "episode_id": "pickup-carry-slow-r06",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r06.jsonl",
+      "label": "pickup_carry",
+      "trial": "006",
+      "strength": "slow-smooth-planned"
+    },
+    {
+      "episode_id": "pickup-carry-slow-r07",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r07.jsonl",
+      "label": "pickup_carry",
+      "trial": "007",
+      "strength": "slow-smooth-planned"
+    },
+    {
+      "episode_id": "pickup-carry-fast-r08",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r08.jsonl",
+      "label": "pickup_carry",
+      "trial": "008",
+      "strength": "faster-natural-planned"
+    },
+    {
+      "episode_id": "pickup-carry-fast-r09",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r09.jsonl",
+      "label": "pickup_carry",
+      "trial": "009",
+      "strength": "faster-natural-planned"
+    },
+    {
+      "episode_id": "pickup-carry-fast-r10",
+      "capture": "raw/field-pickup-precision-1c-20260904-pickup_carry-r10.jsonl",
+      "label": "pickup_carry",
+      "trial": "010",
+      "strength": "faster-natural-planned"
+    }
+  ]
+}

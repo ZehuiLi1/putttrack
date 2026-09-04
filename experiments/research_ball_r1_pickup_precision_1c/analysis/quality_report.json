@@ -1,0 +1,27 @@
+{
+  "dataset_id": "research-ball-r1-pickup-precision-1c-20260904",
+  "episodes": 10,
+  "episodes_by_label": {
+    "pickup_carry": 10
+  },
+  "episodes_with_clipping": {
+    "adxl367": 6,
+    "bmi270_accel": 0,
+    "bmi270_gyro": 0
+  },
+  "failed_episode_ids": [],
+  "note": "Quality PASS validates capture integrity and metadata consistency only; it does not validate impact/rolling/pickup semantics.",
+  "quality_status_counts": {
+    "FAIL": 0,
+    "PASS": 4,
+    "WARN": 6
+  },
+  "warning_episode_ids": [
+    "pickup-carry-normal-r03",
+    "pickup-carry-normal-r04",
+    "pickup-carry-slow-r05",
+    "pickup-carry-slow-r07",
+    "pickup-carry-fast-r09",
+    "pickup-carry-fast-r10"
+  ]
+}
