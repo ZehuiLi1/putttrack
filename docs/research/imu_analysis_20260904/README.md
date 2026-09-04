@@ -14,7 +14,7 @@ The current finding is that short positive vertical impulse combined with one-se
 - `PICKUP_DETECTOR_V0_RESEARCH_ONLY.md` — explicit research-only detector definition and authority boundary.
 - `model_benchmark_leave_one_episode_out.csv` — whole-episode small-data baseline comparison.
 - `next_capture_plan.csv` — minimum next capture matrix for no-lift, rolling pickup, clean putt, collision/step and cup sequences.
-- `dataset_manifest_audit.csv` — reviewed inventory copied from the local analysis export; raw `runs/` remain out of Git.
+- `dataset_manifest_audit_summary.csv` — category-level audit derived from the full local manifest; the complete row-level audit remains in the local delivery bundle.
 - `GITHUB_NEXT_CHANGE_RECOMMENDATION.md` — proposed holdout-evaluator implementation scope.
 - `figures/01_pickup_feature_space.svg` — current pickup/putt/roll feature-space view.
 - `figures/02_representative_gyro_traces.svg` — representative rotation traces aligned to detected onset.
@@ -28,4 +28,4 @@ Do not copy these thresholds into Gameplay or scoring code. The next implementat
 
 ## Data policy
 
-The generated ZIP bundle, raw field `runs/` and duplicate local captures remain local. Git contains only the reviewed analysis artifacts and existing curated research evidence.
+The generated ZIP bundle, raw field `runs/`, duplicate local captures and the complete row-level manifest audit remain local. Git contains only the reviewed analysis artifacts, the compact audit summary and existing curated research evidence.
