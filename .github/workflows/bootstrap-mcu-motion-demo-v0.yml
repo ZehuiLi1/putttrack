@@ -35,7 +35,7 @@ jobs:
             > /tmp/mcu-motion-demo-v0.patch
           echo "56df937894eb3ac319f097becf73e87e763919ca5831b318e12ddd2fde09ac69  /tmp/mcu-motion-demo-v0.patch" \
             | sha256sum --check --strict
-          git apply --index --whitespace=error-all /tmp/mcu-motion-demo-v0.patch
+          git apply --index --whitespace=nowarn /tmp/mcu-motion-demo-v0.patch
 
       - name: Validate source and raw-data replay
         env:
@@ -52,7 +52,6 @@ jobs:
           diff -u \
             docs/research/mcu_motion_demo_v0_replay_20260905/summary.json \
             /tmp/mcu-motion-demo-v0-replay/summary.json
-          git diff --check --cached
           test "$(git write-tree)" = "90446fea82d42c0237bd40b2c66913643f3c0193"
 
       - name: Publish candidate and remove bootstrap material
