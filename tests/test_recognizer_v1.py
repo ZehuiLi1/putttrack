@@ -86,6 +86,38 @@ class RecognizerV1Tests(unittest.TestCase):
             (("STATIONARY", 0, 3), ("ROLLING", 3, 6)),
         )
 
+    def test_hsmm_runner_up_includes_same_terminal_state_paths(self) -> None:
+        states = ("A", "B", "UNKNOWN")
+        config = HSMMConfig(
+            states=states,
+            start_log_probabilities={"A": 0.0, "B": -0.01, "UNKNOWN": -20.0},
+            transition_log_probabilities={
+                "A": {"B": -100.0, "UNKNOWN": -100.0},
+                "B": {"A": 0.0, "UNKNOWN": -100.0},
+                "UNKNOWN": {"A": -100.0, "B": -100.0},
+            },
+            durations={state: DurationSpec(1, 2, 2, 0.0) for state in states},
+        )
+        emissions = tuple(
+            EmissionFrame(
+                source_monotonic_us=index * 20_000,
+                log_probabilities={
+                    "A": math.log(0.9),
+                    "B": math.log(0.1),
+                    "UNKNOWN": math.log(1e-9),
+                },
+                raw_probabilities={"A": 0.9, "B": 0.1, "UNKNOWN": 1e-9},
+                abstained=False,
+                abstain_reasons=(),
+            )
+            for index in range(2)
+        )
+        result = decode_hsmm(emissions, config)
+        expected_runner_up = -0.01 + math.log(0.1) + math.log(0.9)
+        self.assertEqual(result.states, ("A", "A"))
+        self.assertAlmostEqual(result.runner_up_score, expected_runner_up)
+        self.assertLess(result.sequence_margin, 3.0)
+
     def test_selective_model_abstains_on_low_margin(self) -> None:
         labels = tuple(state.value for state in PersistentState)
         feature_order = ("x",)
@@ -138,6 +170,40 @@ class RecognizerV1Tests(unittest.TestCase):
         self.assertGreater(frame.values["gyro_clip_fraction_200ms"], 0.0)
         self.assertGreater(
             frame.values["gyro_dominant_axis_ratio_1000ms"], 0.9
+        )
+
+    def test_multiscale_features_ignore_future_discontinuity(self) -> None:
+        samples = [
+            MotionSample(
+                sequence=index,
+                source_monotonic_us=index * 20_000,
+                accel_mps2=(0.0, 0.0, 9.80665),
+                gyro_rads=(1.0, -1.0, 0.0),
+                adxl367_valid=True,
+                bmi270_valid=True,
+                sensor_error_bits=0,
+            )
+            for index in range(121)
+        ]
+        end_us = samples[-1].source_monotonic_us
+        samples.append(
+            MotionSample(
+                sequence=999,
+                source_monotonic_us=end_us + 20_000,
+                accel_mps2=(0.0, 0.0, 9.80665),
+                gyro_rads=(0.0, 0.0, 0.0),
+                adxl367_valid=False,
+                bmi270_valid=False,
+                sensor_error_bits=1,
+            )
+        )
+        frame = extract_causal_multiscale_frame(
+            samples,
+            end_source_monotonic_us=end_us,
+        )
+        self.assertTrue(frame.quality_ok)
+        self.assertGreater(
+            frame.values["gyro_dominant_axis_ratio_1000ms"], 0.999999
         )
 
     def test_event_head_is_conditioned_on_state_transition(self) -> None:

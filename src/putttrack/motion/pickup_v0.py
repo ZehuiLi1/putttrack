@@ -30,6 +30,10 @@ class PickupDecision(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+def _canonical_label(value: str | None) -> str:
+    return (value or "").strip().lower().replace("-", "_")
+
+
 @dataclass(frozen=True)
 class MotionSample:
     sequence: int
@@ -137,7 +141,7 @@ def read_capture_jsonl(path: Path) -> CaptureEnvelope:
 
         label = payload.get("episode_label")
         if isinstance(label, str) and label.strip():
-            labels.add(label.strip().lower())
+            labels.add(_canonical_label(label))
 
         record_type = payload.get("record_type")
         if record_type == "tag_status" and status is None:
@@ -188,6 +192,8 @@ def read_capture_jsonl(path: Path) -> CaptureEnvelope:
         warnings.append("missing_capture_result")
     if len(labels) > 1:
         warnings.append("multiple_episode_labels")
+    if not labels:
+        warnings.append("missing_episode_label")
     if len(go_markers) > 1:
         warnings.append("multiple_action_start_markers")
     if go_markers and window_go_markers and go_markers[0] != window_go_markers[0]:
@@ -310,6 +316,10 @@ def _structural_reasons(
         reasons.append("multiple_action_start_markers")
     if "action_start_marker_mismatch" in capture.parse_warnings:
         reasons.append("action_start_marker_mismatch")
+    if "multiple_episode_labels" in capture.parse_warnings:
+        reasons.append("multiple_episode_labels")
+    if "missing_episode_label" in capture.parse_warnings:
+        reasons.append("missing_episode_label")
     return reasons
 
 
@@ -390,23 +400,36 @@ def evaluate_pickup_v0(
     detector_hash = _canonical_sha256(detector)
     profile_hash = _canonical_sha256(profile)
     detector_id = str(detector.get("detector_id", "unknown-detector"))
-
-    unsupported = set(
-        str(item).lower() for item in profile.get("unsupported_manifest_labels", [])
-    )
-    effective_label = (manifest_label or capture.label or "").lower()
-    if effective_label in unsupported:
+    expected_detector_hash = str(
+        profile.get("detector_config_sha256_expected", "")
+    ).strip()
+    if expected_detector_hash and detector_hash != expected_detector_hash:
         return PickupResult(
             detector_id=detector_id,
             detector_config_sha256=detector_hash,
             evaluation_profile_sha256=profile_hash,
             decision=PickupDecision.UNKNOWN,
-            reason_codes=("unsupported_rolling_start_path",),
+            reason_codes=("detector_config_hash_mismatch",),
             rule_passes={},
             features=None,
         )
 
+    unsupported = {
+        _canonical_label(str(item))
+        for item in profile.get("unsupported_manifest_labels", [])
+    }
+    provided_manifest_label = _canonical_label(manifest_label)
+    capture_label = _canonical_label(capture.label)
     reasons = _structural_reasons(capture, detector, profile)
+    if (
+        provided_manifest_label
+        and capture_label
+        and provided_manifest_label != capture_label
+    ):
+        reasons.append("manifest_capture_label_mismatch")
+    effective_label = provided_manifest_label or capture_label
+    if effective_label in unsupported:
+        reasons.append("unsupported_rolling_start_path")
     if reasons:
         return PickupResult(
             detector_id=detector_id,
@@ -425,6 +448,7 @@ def evaluate_pickup_v0(
     baseline_start = go_us - int(baseline_seconds * MICRO)
     baseline = _slice_time(capture.samples, baseline_start, go_us)
     baseline_policy = profile["pre_go_stationary"]
+    baseline_thresholds = detector["stationary_baseline"]
     expected_baseline_samples = expected_rate * baseline_seconds
     minimum_baseline_samples = math.ceil(
         expected_baseline_samples
@@ -453,9 +477,9 @@ def evaluate_pickup_v0(
     baseline_stationary = (
         baseline_duration >= float(baseline_policy["minimum_duration_s"])
         and baseline_accel_sd
-        <= float(baseline_policy["maximum_accel_norm_stdev_mps2"])
+        <= float(baseline_thresholds["maximum_accel_norm_stdev_mps2"])
         and baseline_gyro_rms
-        <= float(baseline_policy["maximum_gyro_norm_rms_rads"])
+        <= float(baseline_thresholds["maximum_gyro_norm_rms_rads"])
     )
     if not baseline_stationary:
         return PickupResult(

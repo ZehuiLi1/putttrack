@@ -1,0 +1,61 @@
+name: IMU recognizer research
+
+on:
+  push:
+    branches:
+      - research/imu-pg-dh-hsmm-v1-20260904
+      - research/imu-pg-dh-hsmm-v1-hardening-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install project and research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install '.[research-imu]'
+
+      - name: Run core and research tests
+        run: |
+          python tools/verify.py
+          python -m unittest discover -s tests_research -p 'test_*.py' -v
+
+      - name: Replay frozen pickup V0 from raw captures
+        run: |
+          python tools/evaluate_pickup_detector.py \
+            experiments/research_ball_r1_pickup_precision_1a/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1b/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1c/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1c_drop/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1d_gentle/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1e_rail/manifest.json \
+            experiments/research_ball_r1_pickup_precision_1e_step/manifest.json \
+            --output-dir artifacts/pickup_v0_holdout_eval
+          diff -u \
+            docs/research/imu_analysis_20260904/pickup_v0_holdout_eval/episode_decisions.csv \
+            artifacts/pickup_v0_holdout_eval/episode_decisions.csv
+          diff -u \
+            docs/research/imu_analysis_20260904/pickup_v0_holdout_eval/evaluation_report.json \
+            artifacts/pickup_v0_holdout_eval/evaluation_report.json
+
+      - name: Upload evaluation outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pickup-v0-holdout-eval
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 30

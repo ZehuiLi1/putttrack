@@ -130,7 +130,7 @@ def flatten_row(
     eligible = target is not None and label not in UNSUPPORTED_LABELS and not mixed
     row: dict[str, Any] = {
         "dataset_id": dataset_id,
-        "manifest": str(manifest),
+        "manifest": _portable_path(manifest),
         "episode_id": episode.get("episode_id"),
         "capture": episode.get("capture"),
         "label": label,
@@ -158,6 +158,13 @@ def flatten_row(
         for key, value in result.features.__dict__.items():
             row[key] = value
     return row
+
+
+def _portable_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT.resolve()))
+    except ValueError:
+        return str(path.resolve())
 
 
 def confusion(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:

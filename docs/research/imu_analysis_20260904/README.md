@@ -62,11 +62,11 @@ configs/research/pickup_detector_v0_eval_profile.json
 tools/evaluate_pickup_detector.py
 ```
 
-It intentionally leaves `configs/research/pickup_detector_v0.json` unchanged.
-The next evidence step is to run the frozen evaluator over every reviewed
-manifest, preserve per-episode decisions and grouped confidence bounds, and
-audit every false positive, false negative and UNKNOWN. Rolling-start pickup
-remains an explicitly unsupported V0 path.
+The frozen evaluator has now been run over every reviewed precision manifest;
+the versioned per-episode decisions and grouped confidence bounds are in
+[`pickup_v0_holdout_eval/`](pickup_v0_holdout_eval/). Rolling-start pickup
+remains an explicitly unsupported V0 path, and UNKNOWN is never counted as a
+negative.
 
 ## Decision boundary
 

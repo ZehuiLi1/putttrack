@@ -293,7 +293,7 @@ class SelectiveLinearSoftmax:
 
 
 def decode_hsmm(emissions: Sequence[EmissionFrame], config: HSMMConfig) -> HSMMResult:
-    """Exact offline explicit-duration Viterbi decoding."""
+    """Exact offline explicit-duration Viterbi decoding with a true runner-up."""
 
     frame_count = len(emissions)
     if frame_count == 0:
@@ -313,17 +313,19 @@ def decode_hsmm(emissions: Sequence[EmissionFrame], config: HSMMConfig) -> HSMMR
             return NEG_INF
         return sum(values)
 
-    dp: list[dict[str, float]] = [
-        {state: NEG_INF for state in states} for _ in range(frame_count + 1)
-    ]
-    back: list[dict[str, tuple[int, str | None, int] | None]] = [
-        {state: None for state in states} for _ in range(frame_count + 1)
-    ]
+    # Each cell retains the two best complete paths ending in that state.  A
+    # terminal-state-only runner-up can miss the real second-best sequence when
+    # both best paths end in the same state, which overstates confidence.
+    # Entry: (score, start, previous_state, previous_rank, duration).
+    entries: list[
+        dict[str, list[tuple[float, int, str | None, int | None, int]]]
+    ] = [{state: [] for state in states} for _ in range(frame_count + 1)]
 
     for end in range(1, frame_count + 1):
         for state in states:
             duration_spec = config.durations[state]
             maximum_duration = min(duration_spec.maximum_frames, end)
+            candidates: list[tuple[float, int, str | None, int | None, int]] = []
             for duration in range(
                 duration_spec.minimum_frames, maximum_duration + 1
             ):
@@ -333,34 +335,62 @@ def decode_hsmm(emissions: Sequence[EmissionFrame], config: HSMMConfig) -> HSMMR
                     continue
                 duration_score = duration_spec.score(duration)
                 if start == 0:
-                    candidate = config.start_log_probabilities.get(state, NEG_INF)
-                    previous_state: str | None = None
+                    start_score = config.start_log_probabilities.get(state, NEG_INF)
+                    if start_score != NEG_INF:
+                        candidates.append(
+                            (
+                                start_score + duration_score + emission_score,
+                                start,
+                                None,
+                                None,
+                                duration,
+                            )
+                        )
                 else:
-                    candidate = NEG_INF
-                    previous_state = None
                     for candidate_previous in states:
-                        previous_score = dp[start][candidate_previous]
+                        # Explicit duration represents the whole dwell. Adjacent
+                        # same-state segments duplicate one state path.
+                        if candidate_previous == state:
+                            continue
                         transition = config.transition_log_probabilities.get(
                             candidate_previous, {}
                         ).get(state, NEG_INF)
-                        if previous_score == NEG_INF or transition == NEG_INF:
+                        if transition == NEG_INF:
                             continue
-                        value = previous_score + transition
-                        if value > candidate:
-                            candidate = value
-                            previous_state = candidate_previous
-                if candidate == NEG_INF:
-                    continue
-                candidate += duration_score + emission_score
-                if candidate > dp[end][state]:
-                    dp[end][state] = candidate
-                    back[end][state] = (start, previous_state, duration)
+                        for previous_rank, previous_entry in enumerate(
+                            entries[start][candidate_previous]
+                        ):
+                            candidates.append(
+                                (
+                                    previous_entry[0]
+                                    + transition
+                                    + duration_score
+                                    + emission_score,
+                                    start,
+                                    candidate_previous,
+                                    previous_rank,
+                                    duration,
+                                )
+                            )
+            candidates.sort(key=lambda item: item[0], reverse=True)
+            entries[end][state] = candidates[:2]
 
-    final_scores = sorted(
-        ((score, state) for state, score in dp[frame_count].items()), reverse=True
+    final_paths = sorted(
+        (
+            (entry[0], state, rank)
+            for state in states
+            for rank, entry in enumerate(entries[frame_count][state])
+        ),
+        key=lambda item: item[0],
+        reverse=True,
     )
-    best_score, best_state = final_scores[0]
-    runner_up = final_scores[1][0] if len(final_scores) > 1 else NEG_INF
+    if not final_paths:
+        best_score = NEG_INF
+        best_state = PersistentState.UNKNOWN.value
+        best_rank = 0
+    else:
+        best_score, best_state, best_rank = final_paths[0]
+    runner_up = final_paths[1][0] if len(final_paths) > 1 else NEG_INF
     if best_score == NEG_INF:
         unknown = PersistentState.UNKNOWN.value
         return HSMMResult(
@@ -374,9 +404,9 @@ def decode_hsmm(emissions: Sequence[EmissionFrame], config: HSMMConfig) -> HSMMR
     segments_reversed: list[tuple[str, int, int]] = []
     end = frame_count
     state: str | None = best_state
+    rank: int | None = best_rank
     while end > 0 and state is not None:
-        pointer = back[end][state]
-        if pointer is None:
+        if rank is None or rank >= len(entries[end][state]):
             unknown = PersistentState.UNKNOWN.value
             return HSMMResult(
                 states=tuple(unknown for _ in emissions),
@@ -385,10 +415,11 @@ def decode_hsmm(emissions: Sequence[EmissionFrame], config: HSMMConfig) -> HSMMR
                 sequence_margin=0.0,
                 segments=((unknown, 0, frame_count),),
             )
-        start, previous_state, _ = pointer
+        _, start, previous_state, previous_rank, _ = entries[end][state][rank]
         segments_reversed.append((state, start, end))
         end = start
         state = previous_state
+        rank = previous_rank
 
     segments = tuple(reversed(segments_reversed))
     path = [PersistentState.UNKNOWN.value] * frame_count
@@ -503,23 +534,53 @@ def _dominant_axis_ratio(vectors: Sequence[Sequence[float]]) -> float:
     if trace <= 1e-12:
         return 0.0
 
-    direction = [1.0 / math.sqrt(3.0)] * 3
-    for _ in range(16):
-        candidate = [
-            sum(
-                matrix[row][column] * direction[column] for column in range(3)
-            )
+    # Closed-form eigenvalue for a real symmetric 3x3 matrix.  A single-seed
+    # power iteration can be exactly orthogonal to the dominant physical axis
+    # (for example axis (1, -1, 0)) and incorrectly return zero.
+    mean_diagonal = trace / 3.0
+    centered_diagonal = [
+        matrix[index][index] - mean_diagonal for index in range(3)
+    ]
+    squared_scale = (
+        sum(value * value for value in centered_diagonal)
+        + 2.0
+        * (
+            matrix[0][1] ** 2
+            + matrix[0][2] ** 2
+            + matrix[1][2] ** 2
+        )
+    ) / 6.0
+    if squared_scale <= 1e-24:
+        largest = mean_diagonal
+    else:
+        scale = math.sqrt(squared_scale)
+        normalized = [
+            [
+                (matrix[row][column] - (mean_diagonal if row == column else 0.0))
+                / scale
+                for column in range(3)
+            ]
             for row in range(3)
         ]
-        magnitude = _norm(candidate)
-        if magnitude <= 1e-12:
-            return 0.0
-        direction = [value / magnitude for value in candidate]
-    largest = sum(
-        direction[row] * matrix[row][column] * direction[column]
-        for row in range(3)
-        for column in range(3)
-    )
+        determinant = (
+            normalized[0][0]
+            * (
+                normalized[1][1] * normalized[2][2]
+                - normalized[1][2] * normalized[2][1]
+            )
+            - normalized[0][1]
+            * (
+                normalized[1][0] * normalized[2][2]
+                - normalized[1][2] * normalized[2][0]
+            )
+            + normalized[0][2]
+            * (
+                normalized[1][0] * normalized[2][1]
+                - normalized[1][1] * normalized[2][0]
+            )
+        )
+        angle = math.acos(min(1.0, max(-1.0, determinant / 2.0))) / 3.0
+        largest = mean_diagonal + 2.0 * scale * math.cos(angle)
     return min(max(largest / trace, 0.0), 1.0)
 
 
@@ -535,14 +596,21 @@ def extract_causal_multiscale_frame(
 
     values: dict[str, float] = {}
     reasons: list[str] = []
-    if len(samples) < 2:
+    maximum_window_s = max((float(value) for value in windows_s), default=0.0)
+    earliest_us = end_source_monotonic_us - int(maximum_window_s * 1_000_000)
+    causal_samples = [
+        sample
+        for sample in samples
+        if earliest_us <= sample.source_monotonic_us <= end_source_monotonic_us
+    ]
+    if len(causal_samples) < 2:
         return FeatureFrame(
             source_monotonic_us=end_source_monotonic_us,
             values={},
             quality_ok=False,
             quality_reasons=("insufficient_samples",),
         )
-    for previous, current in zip(samples, samples[1:]):
+    for previous, current in zip(causal_samples, causal_samples[1:]):
         if current.sequence != previous.sequence + 1:
             reasons.append("sequence_gap_or_reordering")
             break
@@ -554,7 +622,7 @@ def extract_causal_multiscale_frame(
         start_us = end_source_monotonic_us - int(window_s * 1_000_000)
         window = [
             sample
-            for sample in samples
+            for sample in causal_samples
             if start_us <= sample.source_monotonic_us <= end_source_monotonic_us
         ]
         suffix = f"_{int(round(window_s * 1000))}ms"
@@ -562,7 +630,9 @@ def extract_causal_multiscale_frame(
             reasons.append(f"insufficient_window{suffix}")
             continue
         if any(
-            not sample.bmi270_valid or sample.sensor_error_bits != 0
+            not sample.adxl367_valid
+            or not sample.bmi270_valid
+            or sample.sensor_error_bits != 0
             for sample in window
         ):
             reasons.append(f"invalid_sensor{suffix}")

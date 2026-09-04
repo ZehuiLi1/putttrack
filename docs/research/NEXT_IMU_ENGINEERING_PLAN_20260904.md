@@ -10,8 +10,9 @@
 边轨碰撞全部因 gyro clipping fail closed。明确判定的 41 个 episode 为
 TP=20、TN=21、FP=0、FN=0，但不能据此宣称产品准确率。
 
-下方 Phase A 的产品化结构拆分、原始记录 fixture、置信区间和独立盲测仍是后续
-工作，不因这次探索性报告而自动视为完成。
+Phase A 的 evaluator 结构拆分、真实记录回归、置信区间和逐 episode 报告已在
+PG-DH-HSMM hardening 分支完成；独立盲测属于后续 Phase C，不能因软件完成而
+视为通过。
 
 ## 决策
 
@@ -32,7 +33,7 @@ TP=20、TN=21、FP=0、FN=0，但不能据此宣称产品准确率。
 
 这些数据足以实现和挑战一个研究检测器，但仍不足以声称产品准确率。
 
-## Phase A — 下一项必须完成的软件工作
+## Phase A — 已完成的软件工作
 
 实现从原始 JSONL 直接运行的、可重复的
 `pickup_detector_v0_stationary_start` 评估链：
@@ -50,7 +51,7 @@ raw JSONL
 
 实现范围：
 
-1. `src/putttrack/motion/pickup.py`
+1. `src/putttrack/motion/pickup_v0.py`
    - 严格实现 `configs/research/pickup_detector_v0.json`；
    - 从配置读取全部阈值，不在代码里复制隐藏阈值；
    - 对缺少静止基线、GO marker、样本、连续性、健康信息或发生 BMI270
@@ -62,7 +63,7 @@ raw JSONL
    - 按 label、session、操作者、Ball 和表面汇总；
    - 输出混淆矩阵、pickup precision/recall、负例误报率和 95% 置信区间；
    - 不允许随机拆分同一次连续动作的窗口。
-3. `tests/test_pickup_detector.py`
+3. `tests/test_pickup_v0.py`
    - 覆盖静止起步拿起、不离地处理、单轴滚动、滚动中拿起、重复轻敲、
      缺失基线、时间回退、丢样、传感器错误和削顶；
    - 固定小型原始记录 fixture，确保数值结果可复现；

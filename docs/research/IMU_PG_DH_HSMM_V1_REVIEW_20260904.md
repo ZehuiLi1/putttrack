@@ -2,6 +2,25 @@
 
 审查对象：`research/imu-pg-dh-hsmm-v1-20260904`，远端 HEAD `7252876`。
 
+## 加固状态
+
+后续加固分支 `research/imu-pg-dh-hsmm-v1-hardening-20260904` 已处理本审查列出的
+软件门槛：
+
+- manifest/capture 标签错配和缺失/多标签 fail closed；
+- GO、时间、连续性、传感器、capture result、采样率、基线和窗口错误矩阵；
+- 三条仓库真实 JSONL 的数值回归；
+- 冻结阈值单一配置来源；
+- trainer 导出模型到 `SelectiveLinearSoftmax`、再到 HSMM 的 artifact 闭环测试；
+- 修复 HSMM 第二优路径 margin、未来样本污染因果特征，以及特殊旋转轴的特征退化；
+- 真实 72-episode V0 逐条报告和云端可重复性 workflow。
+
+加固后的针对性矩阵共有 21 个测试；全仓库验证和云端结果以对应 commit/Action
+记录为准。测试验证实现与拒绝路径，不构成商业准确率证据。
+
+以下“合并前必须补齐”保留为原始审查记录；上述项目通过全仓库和云端验证后可视为
+软件层关闭。多日、多操作者、第二颗 Ball、不同表面和独立真值仍然是产品验证门槛。
+
 ## 当前判断
 
 这个分支方向正确，值得作为下一阶段基础，但**暂不直接合并或接入 Gameplay**。

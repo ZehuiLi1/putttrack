@@ -349,9 +349,10 @@ Re-open the CS track only when at least one is true:
    direction, clipping and powered acceleration/deceleration boundaries. The
    current same-session field gate also covers no-lift handling, rolling
    pickup, pickup/carry, pickup/drop, gentle putt, rail collision and
-   course-step controls. Next implement the exact frozen pickup evaluator from
-   raw JSONL and use its measured failures to select any further data; do not
-   add repetitions merely to increase sample count.
+   course-step controls. The exact frozen pickup evaluator and deterministic
+   raw-JSONL report are now implemented. Use its measured UNKNOWN/clipping
+   failures to select any further data; do not add repetitions merely to
+   increase sample count.
 8. Connect physical tee and cup evidence to the existing one-hole vertical
    slice using a Tee PN532 plus Cup optical-entry/PN532 identity pair, and
    complete an automatic real one-hole path.
@@ -372,11 +373,12 @@ with the Ball and XIAO nRF52840 according to
 
 ## 8. Current priority decision
 
-The highest-value next IMU work is the reproducible, raw-source-derived frozen
-V0 pickup evaluator and full failure audit. The present same-day/operator/Ball
-collection is sufficient for that engineering step. Additional physical data
-should be targeted from measured failures, followed by a separately frozen
-date/operator/second-Ball/surface holdout. See
+The reproducible, raw-source-derived frozen V0 pickup evaluator and full failure
+audit are complete. Of 60 metric-eligible episodes, 41 are definitive and 19
+fail closed to UNKNOWN; rail collision is currently dominated by gyro clipping.
+The highest-value next IMU evidence is therefore a separately frozen
+date/operator/second-Ball/surface holdout plus only targeted clipping/failure
+captures. See
 [`research/NEXT_IMU_ENGINEERING_PLAN_20260904.md`](research/NEXT_IMU_ENGINEERING_PLAN_20260904.md).
 
 The next product-value milestone is physical Tee/Cup integration because it

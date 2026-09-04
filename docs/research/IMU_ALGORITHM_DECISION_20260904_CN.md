@@ -368,7 +368,7 @@ docs/research/imu_analysis_20260904/model_benchmark_reproduced_3f.csv
 docs/research/imu_analysis_20260904/model_benchmark_fold_predictions_3f.csv
 ```
 
-本地 unit/compile 验证：
+初始分支本地 unit/compile 验证：
 
 ```text
 10 tests run
@@ -378,9 +378,12 @@ Python compilation passed
 
 这些测试验证代码路径和 fail-closed 行为，不是商业性能验证。
 
-## 13. 合并后第一项必须完成的实证工作
+后续 hardening 已扩展到 21 个 pickup/recognizer/trainer 集成针对性测试，并加入
+全仓库及 GitHub Actions 门槛。测试数量增加仍不等于产品性能验证。
 
-在真实 repository checkout 中直接对 reviewed manifests 运行冻结 evaluator：
+## 13. 已完成的冻结 V0 实证回放
+
+已经在真实 repository checkout 中对 reviewed manifests 运行冻结 evaluator：
 
 ```bash
 PYTHONPATH=src python tools/evaluate_pickup_detector.py \
@@ -393,16 +396,21 @@ PYTHONPATH=src python tools/evaluate_pickup_detector.py \
   --output-dir docs/research/imu_analysis_20260904/pickup_v0_holdout_eval
 ```
 
-同时单独报告 `rolling_pickup` 为 unsupported path，不把它错误计入 stationary-start
-classifier accuracy。
+结果已保存在
+`docs/research/imu_analysis_20260904/pickup_v0_holdout_eval/`，并单独报告
+`rolling_pickup` 为 unsupported path，没有错误计入 stationary-start classifier
+accuracy。
 
-运行后需要：
+本次结果：60 个 metric-eligible episode 中 41 个明确判定、19 个 UNKNOWN；
+TP=20、TN=21、FP=0、FN=0。这个结果仍受同日、同操作者、同一 Ball 和缺少独立
+真值限制，不是产品准确率声明。
 
-1. 保存 `episode_decisions.csv` 和 `evaluation_report.json`；
-2. 检查每个 false positive、false negative 和 UNKNOWN；
-3. V0 失败也不回改 frozen threshold；
-4. 只有真实失败模式需要时才建立 V1 detector/model ID；
-5. 然后再收集新的 day/operator/second-Ball/surface prospective holdout。
+后续需要：
+
+1. 检查每个 UNKNOWN，特别是 gyro clipping 的 rail/gentle-putt；
+2. V0 失败也不回改 frozen threshold；
+3. 只有真实失败模式需要时才建立 V1 detector/model ID；
+4. 然后再收集新的 day/operator/second-Ball/surface prospective holdout。
 
 ## 14. 最终边界
 
