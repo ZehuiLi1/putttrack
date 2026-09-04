@@ -1,0 +1,53 @@
+name: IMU state discovery research
+
+on:
+  push:
+    branches:
+      - research/imu-state-discovery-20260904
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas scipy scikit-learn==1.8.0
+
+      - name: Reconstruct versioned analysis program
+        shell: bash
+        run: |
+          cat analysis_payload/imu_state_discovery.py.gz.b64.part* \
+            | base64 --decode \
+            | gzip --decompress \
+            > tools/imu_state_discovery.py
+          python -m py_compile tools/imu_state_discovery.py
+
+      - name: Run complete episode-level discovery pass
+        run: |
+          python tools/imu_state_discovery.py \
+            --root "$GITHUB_WORKSPACE" \
+            --out "$GITHUB_WORKSPACE/artifacts/imu_state_discovery_20260904" \
+            | tee "$GITHUB_WORKSPACE/artifacts/imu_state_discovery_console.json"
+
+      - name: Upload analysis outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imu-state-discovery-20260904
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 30
