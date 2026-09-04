@@ -1,6 +1,11 @@
 # Review notes and open questions
 
-This note records the repository review performed after PR #21 was merged and the reproducibility follow-up performed against the preserved local delivery bundle. It does not promote the snapshot to product evidence; it separates resolved documentation/reproduction questions from evidence that still requires new physical data.
+This note records the repository review performed after PR #21 was merged and
+the reproducibility follow-up performed against the preserved first-campaign
+delivery bundle, which is now versioned under `datasets/`. It does not promote
+the snapshot to product evidence; it separates resolved
+documentation/reproduction questions from evidence that still requires new
+physical data.
 
 ## Accepted direction
 
@@ -39,7 +44,7 @@ The exact frozen V0 onset/feature definition is now versioned in `configs/resear
 
 These are not documentation bugs and should not be hidden by additional software-only work:
 
-1. The reproduced ML baseline starts from the preserved episode-level feature ledger. The latest raw field JSONL remains local by policy, so Git alone still cannot re-derive those three features from the original field captures.
+1. The reproduced ML baseline starts from the preserved episode-level feature ledger. The original first-campaign field JSONL and complete manifest are now in Git, so source-derived feature extraction can be independently implemented and checked. The current reproduction script still consumes the frozen feature ledger rather than recomputing those features from JSONL.
 2. The original `logistic_full` and `rf_full` rows remain historical reported values because the complete full-feature definition was not preserved. Do not cite them as reproducible evidence.
 3. The current feature-space/model figures are explanatory snapshot figures. They are not a substitute for raw-source-derived evidence.
 4. Episode-level LOEO still does not test new-day, new-operator, new-Ball or new-surface generalization because the current semantic set is mostly one session/operator/assembly.
@@ -47,7 +52,7 @@ These are not documentation bugs and should not be hidden by additional software
 
 ## Data and naming corrections
 
-- The canonical local bundle name is `putttrack_imu_dataset_20260904.zip`.
+- The canonical versioned bundle is `datasets/putttrack_imu_dataset_20260904.zip`; it contains 161 unique captures and 113,867 `tag_motion` records.
 - `imu_data_20250306_161150.csv` is not in the PuttTrack package or repository, has no accepted PuttTrack provenance and remains excluded. Do not reintroduce it unless its origin is independently established.
 - The executable capture profile IDs are `handling`, `rolling_pickup`, `pickup_carry`, `putt_gentle`, `putt_normal`, `putt_rail_collision` and `track_step_drop`. Planning tables should use these executable IDs.
 - `handling` is the strict no-lift control: the Ball remains in continuous surface contact.

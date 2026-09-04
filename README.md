@@ -74,9 +74,15 @@ putts reach the gyro range boundary, so no product accuracy is claimed. The
 measured values, label audit, provisional detector and required no-lift/
 rolling-pickup holdout gates are recorded in
 [`PICKUP_DETECTION_STATUS_20260904.md`](docs/research/PICKUP_DETECTION_STATUS_20260904.md).
-A repeatable local export tool, `python3 tools/package_imu_dataset.py`, packages
-all unique raw IMU captures with a data dictionary, quality manifest, SHA-256
-checksums and model-analysis brief; generated archives and `runs/` remain local.
+A repeatable export tool, `python3 tools/package_imu_dataset.py`, packages all
+unique raw IMU captures with a data dictionary, quality manifest, SHA-256
+checksums and model-analysis brief. The canonical first-campaign archive is now
+versioned at
+[`datasets/putttrack_imu_dataset_20260904.zip`](datasets/putttrack_imu_dataset_20260904.zip),
+with its browsable row-level manifest under
+[`docs/research/imu_analysis_20260904`](docs/research/imu_analysis_20260904/README.md).
+Duplicate working copies, incomplete captures and later live `runs/` remain
+local until they are reviewed into an experiment batch.
 The hardware-neutral tee/cup input path is also implemented: assigned-Ball tee
 presence can reach READY, while cup completion requires optical entry plus
 PN532 confirmation of the exact active Ball within 3 seconds and an

@@ -19,7 +19,10 @@ The current finding is that short positive vertical impulse combined with one-se
 - `model_benchmark_fold_predictions_3f.csv` — held-out prediction for every episode/model fold.
 - `model_benchmark_leave_one_episode_out.csv` — original reviewed snapshot table; its post-hoc physics row and legacy full-feature rows remain historical/reporting artifacts.
 - `next_capture_plan.csv` — minimum next capture matrix for handling/no-lift, rolling pickup, clean putt, collision/step and later cup sequences.
-- `dataset_manifest_audit_summary.csv` — category-level audit derived from the full local manifest; the complete row-level audit remains in the local delivery bundle.
+- `dataset_manifest_audit_summary.csv` — category-level audit derived from the full manifest.
+- `MANIFEST.csv` / `MANIFEST.json` — complete row-level provenance, label-quality, health, clipping, timing and SHA-256 audit for all 161 unique captures in the first-campaign archive.
+- `SHA256SUMS.txt` — checksums for every byte-preserved raw JSONL in the archive.
+- `../../../datasets/putttrack_imu_dataset_20260904.zip` — canonical downloadable archive containing all 161 original captures plus its data dictionary and analysis brief.
 - `GITHUB_NEXT_CHANGE_RECOMMENDATION.md` — proposed holdout-evaluator implementation scope.
 - `REVIEW_NOTES_AND_OPEN_QUESTIONS.md` — post-merge review, resolved reproducibility items and remaining evidence gaps.
 - `figures/01_pickup_feature_space.svg` — current pickup/putt/roll feature-space view.
@@ -41,8 +44,18 @@ Do not infer product accuracy from the current 11/11 pickup and 0/11 selected-ne
 
 Do not copy these thresholds into Gameplay or scoring code. The next implementation target is a host/Edge holdout evaluator that reports whole-episode/session metrics, confidence intervals, clipping and provenance while keeping `authority=false`.
 
-The three-feature ML baseline is now reproducible from the preserved episode-level feature ledger. This does **not** make it an independent holdout result and does not make the underlying feature extraction reproducible from raw field JSONL, because those raw field runs intentionally remain outside Git. The legacy `logistic_full` / `rf_full` snapshot rows are also not promoted to reproducible evidence because their full feature definition was not preserved.
+The three-feature ML baseline is now reproducible from the preserved
+episode-level feature ledger, and Git also contains the byte-preserved source
+JSONL in the first-campaign archive. This does **not** make the result an
+independent holdout: the thresholds and feature choices were still selected
+after inspecting the same campaign. The legacy `logistic_full` / `rf_full`
+snapshot rows are also not promoted to reproducible evidence because their full
+feature definition was not preserved.
 
 ## Data policy
 
-The generated ZIP bundle, raw field `runs/`, duplicate local captures and the complete row-level manifest audit remain local. Git contains only the reviewed analysis artifacts, compact derived episode-level evidence needed for reproducibility, and existing curated research evidence.
+The immutable first-campaign ZIP, its complete row-level manifest and all newer
+reviewed experiment batches are versioned in Git. Duplicate working copies,
+incomplete/live `runs/` and captures without accepted PuttTrack provenance stay
+local. The ZIP is historical and must not be regenerated in place; publish a
+new dated archive when later reviewed batches need a consolidated export.

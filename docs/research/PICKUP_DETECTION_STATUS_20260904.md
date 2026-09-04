@@ -24,10 +24,12 @@ high-confidence policy may automatically affect the current hole.
 
 ## Available physical evidence
 
-The local workspace currently contains 161 unique raw IMU JSONL files with
-113,867 `tag_motion` records. The repeatable packager is
-`tools/package_imu_dataset.py`; generated archives and `runs/` remain local and
-are intentionally not claimed as checked-in GitHub data.
+The first collection campaign contains 161 unique raw IMU JSONL files with
+113,867 `tag_motion` records. Its byte-preserved canonical archive is versioned
+at `datasets/putttrack_imu_dataset_20260904.zip`, with a complete browsable
+manifest under `docs/research/imu_analysis_20260904/`. The repeatable packager
+is `tools/package_imu_dataset.py`; duplicate, incomplete and newly captured
+working files under `runs/` remain local until reviewed.
 
 The most relevant recent sets are:
 

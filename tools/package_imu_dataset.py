@@ -230,7 +230,7 @@ def discover() -> tuple[list[dict[str, object]], dict[str, list[str]], int]:
 def csv_text(rows: list[dict[str, object]]) -> str:
     public = [{key: value for key, value in row.items() if key != "_source"} for row in rows]
     output = io.StringIO(newline="")
-    writer = csv.DictWriter(output, fieldnames=list(public[0]))
+    writer = csv.DictWriter(output, fieldnames=list(public[0]), lineterminator="\n")
     writer.writeheader()
     writer.writerows(public)
     return output.getvalue()
