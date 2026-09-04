@@ -70,7 +70,6 @@ jobs:
           test ! -e .bootstrap/mcu-motion-demo-v0
           test ! -e .github/workflows/bootstrap-mcu-motion-demo-v0.yml
           test ! -e .github/workflows/ncs-tag-motion-demo-build.yml
-          git diff --cached --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit \
