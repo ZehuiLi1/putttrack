@@ -36,10 +36,14 @@ jobs:
             > tools/imu_state_discovery.py
           # NumPy 2.0 removed the deprecated trapz alias.
           sed -i 's/np\.trapz/np.trapezoid/g' tools/imu_state_discovery.py
+          # Preserve numeric target dtype in binary LOEO instead of object/unknown.
+          sed -i 's/pred = np.empty(len(Y), dtype=object)/pred = np.empty(Y.shape, dtype=Y.dtype)/g' tools/imu_state_discovery.py
           python -m py_compile tools/imu_state_discovery.py
 
       - name: Run complete episode-level discovery pass
+        shell: bash
         run: |
+          set -o pipefail
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           python tools/imu_state_discovery.py \
             --root "$GITHUB_WORKSPACE" \
