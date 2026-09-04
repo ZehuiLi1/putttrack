@@ -9,6 +9,7 @@ on:
       - "src/putttrack/tag/motion_evidence.py"
       - "tools/generate_embedded_pickup_config.py"
       - "tools/monitor_embedded_motion.py"
+      - "tools/replay_embedded_motion_raw.py"
       - "tools/test_embedded_motion_c.sh"
       - "scripts/nrf54l15_tag/build_tag_app.sh"
       - "scripts/nrf54l15_tag/build_motion_demo.sh"
@@ -16,6 +17,7 @@ on:
       - "tests/test_motion_evidence_packet.py"
       - "tests/test_embedded_pickup_config_sync.py"
       - "tests_research/embedded_motion_c_harness.c"
+      - "tests_research/embedded_motion_raw_replay.c"
       - ".github/workflows/embedded-motion-demo.yml"
   workflow_dispatch:
 
@@ -34,8 +36,21 @@ jobs:
         run: python tools/verify.py
       - name: Check generated frozen config
         run: python tools/generate_embedded_pickup_config.py --check
-      - name: Compile and run MCU algorithm as host C
+      - name: Compile and run synthetic MCU algorithm harness
         run: bash tools/test_embedded_motion_c.sh
+      - name: Replay MCU algorithm on reviewed raw JSONL
+        run: |
+          python tools/replay_embedded_motion_raw.py \
+            --output-dir artifacts/embedded-motion-raw-replay \
+            --fail-on-pickup-boundary
+      - name: Upload raw replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedded-motion-raw-replay
+          path: artifacts/embedded-motion-raw-replay
+          if-no-files-found: warn
+          retention-days: 30
 
   ncs-build:
     runs-on: ubuntu-22.04
