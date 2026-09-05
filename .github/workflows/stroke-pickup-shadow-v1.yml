@@ -1,0 +1,91 @@
+name: Stroke Pickup Shadow V1
+
+on:
+  push:
+    branches:
+      - research/stroke-pickup-shadow-v1-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stroke-pickup-shadow-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  host:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Repository tests and generated configuration
+        run: |
+          python tools/verify.py
+          python tools/generate_stroke_pickup_config.py --check
+      - name: Reproduce all-raw C replay
+        run: |
+          python tools/replay_stroke_pickup_v1.py --output-dir /tmp/shadow-replay
+          python tools/replay_stroke_pickup_v1.py --output-dir /tmp/shadow-repeat
+          for name in capture_results.csv events.jsonl summary.json; do
+            cmp "docs/research/stroke_pickup_v1_20260905/replay_v1/$name" "/tmp/shadow-replay/$name"
+            cmp "/tmp/shadow-replay/$name" "/tmp/shadow-repeat/$name"
+          done
+
+  ncs-target:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile NFC shadow firmware on actual nRF54L15 Tag target
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
+          # The image ENTRYPOINT is ["/bin/bash", "-c"]. Passing separate
+          # "bash", "script.sh" arguments only runs an empty shell. Override
+          # explicitly and pass ONE complete command string instead.
+          docker run --rm --entrypoint /bin/bash \
+            -v "$GITHUB_WORKSPACE:/work/putttrack" \
+            -w /work/putttrack \
+            -e NCS_MANIFEST_REF=v3.4.0 \
+            -e NCS_DIR=/tmp/ncs-v3.4.0 \
+            -e OUT_DIR=/work/putttrack/build/ci-nrf54l15-stroke-pickup-v1 \
+            -e PUTTTRACK_ROOT=/work/putttrack \
+            -e BOARD=nrf54l15tag/nrf54l15/cpuapp \
+            ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0 \
+            -c 'set -euo pipefail; bash scripts/nrf54l15_tag/ci_build_stroke_pickup_v1.sh' \
+            2>&1 | tee /tmp/ncs-shadow-build.log
+          # These checks run OUTSIDE Docker: an empty container exit cannot
+          # masquerade as a successful compile/signature-layout gate.
+          app=build/ci-nrf54l15-stroke-pickup-v1/nrf54l15_tag_app/zephyr
+          test -s "$app/zephyr.elf"
+          test -s "$app/zephyr.signed.bin"
+          test -s "$app/zephyr.map"
+          grep -q '^CONFIG_PUTTTRACK_STROKE_PICKUP_V1=y$' "$app/.config"
+          grep -q '^CONFIG_PUTTTRACK_NFC_SERVICE=y$' "$app/.config"
+          grep -q '^CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION="0.1.19+0"$' "$app/.config"
+          grep -q 'spv1_push' "$app/zephyr.map"
+          mkdir -p artifacts/shadow-target
+          git rev-parse HEAD > artifacts/shadow-target/source-sha.txt
+          cp "$app/.config" artifacts/shadow-target/target-build-config.txt
+          cp /tmp/ncs-shadow-build.log artifacts/shadow-target/build.log
+          sha256sum "$app/zephyr.elf" "$app/zephyr.signed.bin" > artifacts/shadow-target/ci-image-digests.txt
+      - name: Preserve compile diagnostics only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stroke-pickup-target-diagnostics
+          path: artifacts/shadow-target/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Record boundary
+        if: always()
+        run: |
+          echo 'Source SHA: ${{ github.sha }}'
+          echo 'Compile/signature layout only. The CI key is disposable.'
+          echo 'CI images must NOT be flashed onto the physical Ball.'
+          echo 'No physical test-boot, action validation, battery or commercial accuracy is claimed.'

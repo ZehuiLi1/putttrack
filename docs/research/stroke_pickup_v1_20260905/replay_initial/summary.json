@@ -1,0 +1,52 @@
+{
+  "algorithm_id": "stroke_pickup_shadow_v1",
+  "authority": false,
+  "clean_gentle_operator_proxy": {
+    "episodes": 10,
+    "exactly_one_candidate": 10,
+    "more_than_one": 0,
+    "zero_candidates": 0
+  },
+  "code_sha256": "fe18707de7f91b6abe7b06bfb3398af7b42daeae0201bed2f6091e0f4f97091d",
+  "commercial_accuracy": null,
+  "config_sha256": "74acf96c2fdb19eb8d131234be63ef80ac47954e59d88d36ae251874269d6b24",
+  "context_bytes": 1256,
+  "exact_duplicate_paths_excluded": 9,
+  "independent_contact_timing_truth": false,
+  "known_challenges": {
+    "archived_normal_putt_episodes": 10,
+    "archived_normal_putt_with_one_candidate": 8,
+    "formal_roller_episodes": 86,
+    "formal_roller_stroke_candidates": 0,
+    "manual_roll_episodes": 2,
+    "manual_roll_false_stroke_candidates": 2,
+    "rolling_pickup_episodes": 10,
+    "rolling_pickup_episodes_with_pickup": 0
+  },
+  "limitations": [
+    "Development/replay observations, not independent testing.",
+    "All contact-source and second-stroke semantics remain candidates.",
+    "No label or GO marker enters the engine.",
+    "Invalid/diagnostic captures are not semantic accuracy evidence.",
+    "No adjacent-window split masquerades as independent validation."
+  ],
+  "no_lift_operator_proxy": {
+    "episodes": 10,
+    "episodes_with_pickup_candidate": 0,
+    "episodes_with_stroke_candidate": 0
+  },
+  "pickup_operator_proxy": {
+    "episodes": 20,
+    "episodes_with_candidate": 19,
+    "total_candidates": 19
+  },
+  "rail_operator_proxy": {
+    "episodes": 10,
+    "exactly_one_candidate": 5,
+    "more_than_one": 0,
+    "zero_candidates": 5
+  },
+  "raw_motion_samples": 168142,
+  "source_base": "ad566404272dc6f5695cb84fd551df5921f7f619",
+  "unique_raw_captures": 236
+}
