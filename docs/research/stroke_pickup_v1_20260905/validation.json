@@ -5,12 +5,17 @@
   "hardware_flashed_this_pass": false,
   "host_compiler": "cc -std=c11 -Wall -Wextra -Werror -pedantic",
   "host_verify": "PASS",
-  "ncs_target_build": "see exact-source CI run",
+  "ncs_target_build": "BLOCKED: real target compile has not passed final firmware/MCUboot acceptance",
+  "ncs_false_green_run_rejected": 33951422669,
+  "ncs_failed_job_reviewed": 101267841386,
+  "target_blocker": "MCUboot target build reports a slot0 partition alignment assertion. Inspect generated device tree/partition configuration against the confirmed device layout; do not change the physical layout or disable the assertion simply to obtain a green build.",
   "new_algorithm_config_sha256": "ad9ea020ebbf6ee4de00afbcea2d18e4633e84de36758f2aebb5a2ddf94fb361",
   "new_engine_protocol_tests": 38,
   "physical_action_acceptance": "NOT_RUN",
   "raw_replay_unique_captures": 236,
   "raw_samples": 168142,
   "unit_tests": 272,
-  "verifier_checks": 11
+  "verifier_checks": 11,
+  "safe_to_flash_from_this_delivery": false,
+  "release_status": "DRAFT_RESEARCH_SOURCE_NOT_FLASH_READY"
 }
