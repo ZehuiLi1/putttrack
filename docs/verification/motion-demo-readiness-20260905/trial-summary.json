@@ -1,0 +1,46 @@
+{
+  "operator_confirmed_pickups": 6,
+  "phases": [
+    {
+      "label": "five_repeated_pickups",
+      "operator_confirmed_count": 5,
+      "event_count_before": 0,
+      "event_count_after": 1
+    },
+    {
+      "label": "single_pickup_with_release_and_quiet_tail",
+      "operator_confirmed_count": 1,
+      "event_count_before": 1,
+      "event_count_after": 1,
+      "decision": "ACTIVE_UNKNOWN",
+      "impulse_mps": 1.36,
+      "gyro_mean_rads": 3.59,
+      "axis_consistency": 0.837,
+      "failing_frozen_predicate": "axis_consistency < 0.75"
+    }
+  ],
+  "observed_event_count_delta": 1,
+  "snapshot_count": 64,
+  "states": [
+    "ACTIVE_PENDING",
+    "ACTIVE_UNKNOWN",
+    "CARRIED_CANDIDATE",
+    "STATIONARY"
+  ],
+  "quality_flags": [
+    0
+  ],
+  "boot_ids": [
+    "814587483c53d702"
+  ],
+  "sensor_error_counts": [
+    0
+  ],
+  "gate": "FAIL_DO_NOT_CONFIRM",
+  "limitations": [
+    "operator-confirmed actions; no independent video truth",
+    "sparse SMP snapshots, not raw IMU; repeat-trial misses cannot be individually attributed",
+    "NFC RF reads, physical wake and other action gates not completed"
+  ],
+  "authority": false
+}

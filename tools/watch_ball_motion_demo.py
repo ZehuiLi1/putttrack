@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 from datetime import datetime
+import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -50,12 +53,12 @@ STATE_HINTS = {
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--device-name", default="PuttTrack-")
-    result.add_argument("--ble-address")
+    result.add_argument("--ble-address", required=True)
     result.add_argument(
         "--address-type",
         choices=("public", "random", "public-identity", "random-identity"),
     )
-    result.add_argument("--expected-device-id")
+    result.add_argument("--expected-device-id", required=True)
     result.add_argument("--hci-port", default="/dev/cu.usbmodem101")
     result.add_argument("--scan-timeout", type=int, default=15)
     result.add_argument("--timeout", type=int, default=30)
@@ -215,6 +218,14 @@ def validate_demo_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"motion demo response is missing fields: {missing}")
     if payload["authority"] is not False or payload["candidate_only"] is not True:
         raise ValueError("motion demo must remain candidate-only with authority=false")
+    if payload["demo_id"] != "mcu_motion_demo_v0":
+        raise ValueError("unsupported motion demo_id")
+    config = json.loads((REPO_ROOT / "configs/research/pickup_detector_v0.json").read_text())
+    expected_hash = hashlib.sha256(json.dumps(
+        config, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()).hexdigest()
+    if payload["pickup_config_sha256"] != expected_hash:
+        raise ValueError("pickup config hash differs from frozen repository detector")
     if not isinstance(payload["state"], str) or not payload["state"]:
         raise ValueError("motion demo state must be non-empty text")
     normalized = dict(payload)
@@ -267,6 +278,7 @@ def wait_for_policy(
                 command_id=STATUS_COMMAND,
             )
         )
+        validate_identity(last, args.expected_device_id)
         if last.power_policy == expected_policy:
             return last
         time.sleep(0.2)
@@ -275,13 +287,29 @@ def wait_for_policy(
     )
 
 
+def validate_identity(status: Any, expected: str) -> None:
+    if len(bytes.fromhex(expected)) != 8 or status.device_id != expected.lower():
+        raise RuntimeError("Ball identity does not match the expected full device ID")
+
+
+def validate_continuity(initial: Any, current: Any, *, require_active: bool = True) -> None:
+    validate_identity(current, initial.device_id)
+    for field in ("boot_id", "firmware_version", "sensor_recovery_generation"):
+        if getattr(current, field) != getattr(initial, field):
+            raise RuntimeError(f"Ball {field} changed during motion demo")
+    if current.sensor_health != "healthy" or not current.adxl367_ready or not current.bmi270_ready:
+        raise RuntimeError("Ball sensor health is not healthy")
+    if require_active and current.capture_safe is not True:
+        raise RuntimeError("Ball sensor health is not capture-safe")
+
+
 def main() -> int:
     args = parser().parse_args()
     if args.address_type and not args.ble_address:
         raise SystemExit("--address-type requires --ble-address")
-    if args.poll_interval <= 0:
+    if not math.isfinite(args.poll_interval) or args.poll_interval <= 0:
         raise SystemExit("--poll-interval must be positive")
-    if args.duration_seconds < 0:
+    if not math.isfinite(args.duration_seconds) or args.duration_seconds < 0:
         raise SystemExit("--duration-seconds cannot be negative")
     if args.request_retries <= 0:
         raise SystemExit("--request-retries must be positive")
@@ -289,17 +317,21 @@ def main() -> int:
         raise SystemExit(f"HCI serial port does not exist: {args.hci_port}")
 
     nrfutil = find_nrfutil(args.nrfutil)
-    switched = False
+    restore_needed = False
     status = status_from_smp(
         request(nrfutil, args, operation=0, command_id=STATUS_COMMAND)
     )
-    if args.expected_device_id and status.device_id != args.expected_device_id.lower():
-        raise RuntimeError(
-            f"connected device {status.device_id} does not match "
-            f"--expected-device-id {args.expected_device_id.lower()}"
-        )
+    validate_identity(status, args.expected_device_id)
+    # A healthy idle Ball intentionally reports capture_safe=false until research
+    # mode starts its stream. Quarantine must still fail before any mode write.
+    validate_continuity(status, status, require_active=False)
+    initial_status = status
+    # Probe the read-only contract before any power write. Other 0.1.18
+    # branches assign a different meaning to command 24.
+    validate_demo_payload(request(nrfutil, args, operation=0, command_id=MOTION_DEMO_COMMAND))
 
     try:
+        restore_needed = not args.no_set_research
         if not args.no_set_research and status.power_policy != "research":
             request(
                 nrfutil,
@@ -308,7 +340,7 @@ def main() -> int:
                 command_id=POWER_RESEARCH_COMMAND,
             )
             status = wait_for_policy(nrfutil, args, "research")
-            switched = True
+            validate_continuity(initial_status, status)
         print(
             f"Connected Ball {status.device_id} · firmware {status.firmware_version} · "
             f"policy {status.power_policy}. Results are candidate-only; Ctrl+C stops."
@@ -329,6 +361,9 @@ def main() -> int:
                     command_id=MOTION_DEMO_COMMAND,
                 )
             )
+            current_status = status_from_smp(request(nrfutil, args, operation=0, command_id=STATUS_COMMAND))
+            validate_continuity(initial_status, current_status, require_active=not args.no_set_research)
+            payload["source_status"] = asdict(current_status)
             key = (
                 payload["state_code"],
                 payload["event_count"],
@@ -343,8 +378,10 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nStopped by operator.")
     finally:
-        if switched and not args.no_restore_auto:
+        if restore_needed and not args.no_restore_auto:
             try:
+                cleanup_status = status_from_smp(request(nrfutil, args, operation=0, command_id=STATUS_COMMAND))
+                validate_identity(cleanup_status, args.expected_device_id)
                 request(
                     nrfutil,
                     args,
@@ -355,6 +392,7 @@ def main() -> int:
                 print("Ball restored to auto power policy.")
             except Exception as exc:  # pragma: no cover - physical cleanup path
                 print(f"WARN: failed to restore auto policy: {exc}", file=sys.stderr)
+                raise RuntimeError("failed to restore auto policy") from exc
     return 0
 
 

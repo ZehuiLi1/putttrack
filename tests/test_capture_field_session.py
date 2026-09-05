@@ -92,6 +92,17 @@ class CaptureFieldSessionTests(unittest.TestCase):
         for profile in PROFILES.values():
             self.assertLessEqual(3.0 + profile.episode_seconds, 17.0)
 
+    def test_stroke_profiles_keep_planned_counts_separate_from_truth(self) -> None:
+        for name, expected in (("stroke_single_gentle", 1),
+                               ("stroke_two_after_stop", 2),
+                               ("stroke_second_while_rolling", 2),
+                               ("stroke_one_multiple_rails", 1),
+                               ("stroke_other_ball_contact", 0)):
+            command = build_capture_command(args(profile=name), 1)
+            notes = command[command.index("--notes") + 1]
+            self.assertIn(f"planned_strokes={expected}", notes)
+            self.assertIn("planned_only=true", notes)
+
     @patch("tools.capture_field_session.input", return_value="q")
     @patch("tools.capture_field_session.run_command", side_effect=(0, 0))
     def test_quit_without_capture_still_restores_auto(self, command, _input) -> None:
