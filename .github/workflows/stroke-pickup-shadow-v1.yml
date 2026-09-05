@@ -1,0 +1,142 @@
+name: Stroke Pickup Shadow V1
+
+on:
+  push:
+    branches:
+      - research/stroke-pickup-shadow-v1-20260905
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stroke-pickup-shadow-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'ZehuiLi1/putttrack' && github.ref == 'refs/heads/research/stroke-pickup-shadow-v1-20260905'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      source_sha: ${{ steps.source.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Materialize checksum-locked source delivery on isolated research branch
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, hashlib, lzma, os, pathlib, subprocess, tempfile
+          root = pathlib.Path('.')
+          delivery = root / '.research_delivery/stroke_v1'
+          branch = 'research/stroke-pickup-shadow-v1-20260905'
+          if os.environ['GITHUB_REF'] != 'refs/heads/' + branch:
+              raise SystemExit('research branch only')
+          if delivery.exists():
+              expected = [delivery / f'part-{i:02d}.b64' for i in range(6)]
+              if sorted(delivery.iterdir()) != expected:
+                  raise SystemExit('unexpected delivery files')
+              encoded = ''.join(p.read_text() for p in expected)
+              packed = base64.b64decode(encoded, validate=True)
+              if hashlib.sha256(packed).hexdigest() != 'f4d1c4931f861fa02077abc312978272f00b779f28d7543950829427d435e46b':
+                  raise SystemExit('delivery checksum mismatch')
+              patch = lzma.decompress(packed)
+              if len(patch) != 124843:
+                  raise SystemExit('unexpected source patch length')
+              subprocess.run(['git', 'merge-base', '--is-ancestor', 'ad566404272dc6f5695cb84fd551df5921f7f619', 'HEAD'], check=True)
+              allowed = ('firmware/nrf54l15_tag_app/', 'firmware/nrf54l15_tag_ota/', 'scripts/nrf54l15_tag/', 'configs/research/', 'src/putttrack/tag/', 'tools/', 'tests/', 'docs/research/stroke_pickup_v1_20260905/')
+              count = 0
+              for line in patch.decode('utf-8').splitlines():
+                  if not line.startswith('diff --git '):
+                      continue
+                  fields = line.split()
+                  if len(fields) != 4:
+                      raise SystemExit('unexpected patch path syntax')
+                  for prefixed in fields[2:]:
+                      path = prefixed[2:]
+                      if prefixed[:2] not in ('a/', 'b/') or not path.startswith(allowed) or '..' in pathlib.PurePosixPath(path).parts:
+                          raise SystemExit('unapproved source path')
+                  count += 1
+              if count != 27:
+                  raise SystemExit(f'unexpected changed source file count: {count}')
+              with tempfile.NamedTemporaryFile(suffix='.patch') as f:
+                  f.write(patch); f.flush()
+                  subprocess.run(['git', 'apply', '--check', f.name], check=True)
+                  subprocess.run(['git', 'apply', '--index', f.name], check=True)
+              subprocess.run(['python', 'tools/generate_stroke_pickup_config.py', '--check'], check=True)
+              base = 'docs/research/stroke_pickup_v1_20260905'
+              subprocess.run(['python', 'tools/replay_stroke_pickup_v1.py', '--initial-baseline', '--output-dir', base + '/replay_initial'], check=True)
+              subprocess.run(['python', 'tools/replay_stroke_pickup_v1.py', '--output-dir', base + '/replay_v1'], check=True)
+              subprocess.run(['git', 'add', base], check=True)
+              subprocess.run(['git', 'rm', '-r', '--', str(delivery)], check=True)
+              subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
+              subprocess.run(['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'], check=True)
+              subprocess.run(['git', 'commit', '-m', 'research: implement BMI270 stroke/pickup shadow and preserve all-raw replay'], check=True)
+              subprocess.run(['git', 'push', 'origin', 'HEAD:refs/heads/' + branch], check=True)
+          sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('source_sha=' + sha + '\n')
+          print('Exact materialized source:', sha)
+          PY
+
+  host:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Repository tests and generated configuration
+        run: |
+          python tools/verify.py
+          python tools/generate_stroke_pickup_config.py --check
+      - name: Reproduce all-raw C replay
+        run: |
+          python tools/replay_stroke_pickup_v1.py --output-dir /tmp/shadow-replay
+          python tools/replay_stroke_pickup_v1.py --output-dir /tmp/shadow-repeat
+          for name in capture_results.csv events.jsonl summary.json; do
+            cmp "docs/research/stroke_pickup_v1_20260905/replay_v1/$name" "/tmp/shadow-replay/$name"
+            cmp "/tmp/shadow-replay/$name" "/tmp/shadow-repeat/$name"
+          done
+
+  ncs-target:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+      - name: Compile NFC shadow firmware on real nRF54L15 Tag target
+        run: |
+          docker pull ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work/putttrack" \
+            -w /work/putttrack \
+            -e NCS_MANIFEST_REF=v3.4.0 \
+            -e NCS_DIR=/tmp/ncs-v3.4.0 \
+            -e OUT_DIR=/work/putttrack/build/ci-nrf54l15-stroke-pickup-v1 \
+            -e PUTTTRACK_ROOT=/work/putttrack \
+            -e BOARD=nrf54l15tag/nrf54l15/cpuapp \
+            ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0 \
+            bash scripts/nrf54l15_tag/ci_build_stroke_pickup_v1.sh
+      - name: Record boundary
+        if: always()
+        run: |
+          echo 'Source SHA: ${{ needs.prepare.outputs.source_sha }}'
+          echo 'Compile/signature layout only. The CI key is disposable.'
+          echo 'CI images must NOT be flashed onto the physical Ball.'
+          echo 'No physical test-boot, action validation, battery or commercial accuracy is claimed.'
