@@ -1,7 +1,24 @@
 # PuttTrack Project Status
 
-**As of:** 2026-09-04
-**Active direction:** BLE + motion + physical tee/cup; Channel Sounding deferred
+Player-facing priority is now stroke counting. See
+[`STROKE_COUNTING_PLAN_20260905_CN.md`](research/STROKE_COUNTING_PLAN_20260905_CN.md).
+The hole screen persistently exposes per-hole strokes, and the field tooling now
+has paired 0/1/2-stroke and collision-control profiles plus raw-capture-linked
+truth review and count evaluation. No validated physical stroke detector exists
+yet; motion candidates remain non-authoritative.
+
+Latest physical recheck and PR #25 signed Demo candidate (2026-09-05):
+[`MOTION_DEMO_READINESS_20260905.md`](verification/MOTION_DEMO_READINESS_20260905.md).
+The confirmed `0.1.17` Ball was found in ADXL367 quarantine and recovered after
+one controlled SMP reset. The NFC Demo then passed signed OTA test boot, but
+operator-confirmed pickup trials failed (one event across five repeated plus
+one isolated pickup). The isolated miss failed the frozen axis-consistency
+predicate. The unconfirmed Demo was rolled back to healthy `0.1.17`. The dashboard below
+describes the earlier baseline; it does not establish that the recurrent sensor
+initialization fault is fixed.
+
+**As of:** 2026-09-05
+**Active direction:** player-visible stroke counting + physical tee/cup; Channel Sounding deferred
 
 This is the short, evidence-ranked project dashboard. Detailed decisions remain
 in the architecture, ADR and hardware documents. Status labels mean:

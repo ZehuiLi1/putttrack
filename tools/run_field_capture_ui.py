@@ -89,6 +89,13 @@ $('#finish').addEventListener('click',async()=>{try{await api('/api/session/fini
 
 
 PROFILE_COPY = {
+    "stroke_single_gentle": ("计杆：轻推一杆", "预期 1 杆，结束后确认实际动作"),
+    "stroke_single_normal": ("计杆：正常一杆", "预期 1 杆，自然停止"),
+    "stroke_two_after_stop": ("计杆：停球后第二杆", "预期 2 杆，中间完全停止"),
+    "stroke_second_while_rolling": ("计杆：滚球中第二杆", "预期 2 杆，中间不等待停止"),
+    "stroke_one_multiple_rails": ("计杆：一杆多次碰撞", "预期 1 杆，至少两次撞栏不加杆"),
+    "stroke_other_ball_contact": ("计杆：被其他球撞到", "预期 0 杆，球杆不接触研究球"),
+    "stroke_hand_roll_control": ("计杆：手推对照", "预期 0 杆，不使用球杆"),
     "pickup_carry": ("拿起、携带、放下", "拿起球，走几步，再放下"),
     "pickup_drop": ("拿起、携带、低高度丢下", "模拟玩家随手丢球，不要用力砸球"),
     "handling": ("触摸但不拿起", "球始终接触地面，只触摸、转动或轻微挪动"),
@@ -253,6 +260,7 @@ class FieldCaptureApp:
                     "short": PROFILE_COPY[key][1],
                     "seconds": profile.episode_seconds,
                     "instruction": profile.instruction,
+                    "planned_strokes": profile.planned_strokes,
                 }
                 for key, profile in PROFILES.items()
             },

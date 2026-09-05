@@ -313,6 +313,12 @@ class RuntimeTests(unittest.TestCase):
 class PresentationSecurityTests(unittest.TestCase):
     def test_dynamic_player_and_ball_content_uses_text_content_not_inner_html(self) -> None:
         self.assertNotIn("innerHTML", TEE_SCREEN_HTML)
+
+    def test_hole_screen_has_persistent_accessible_stroke_count(self) -> None:
+        self.assertIn('id="stroke-count"', TEE_SCREEN_HTML)
+        self.assertIn('aria-live="polite"', TEE_SCREEN_HTML)
+        self.assertIn("renderStrokes()", TEE_SCREEN_HTML)
+        self.assertIn("active.strokes", TEE_SCREEN_HTML)
         self.assertIn("textContent", TEE_SCREEN_HTML)
         self.assertIn("createElement", TEE_SCREEN_HTML)
 

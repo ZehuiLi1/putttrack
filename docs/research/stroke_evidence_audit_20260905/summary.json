@@ -1,0 +1,112 @@
+{
+  "all_compared_feature_ranges_overlap": true,
+  "audit_kind": "descriptive_stroke_evidence",
+  "authority": false,
+  "candidate_burst_definition": {
+    "meaning": "descriptive threshold clusters; not putter contacts",
+    "merge_gap_s": 0.16,
+    "signal": "adjacent BMI270 acceleration vector delta",
+    "thresholds_mps2": [
+      20.0,
+      40.0
+    ]
+  },
+  "capture_integrity_passed": true,
+  "conclusions": [
+    "Post-GO 50 Hz IMU records preserve large motion transients in both episode groups.",
+    "Simple maxima and threshold-cluster counts do not separate the observed clean-putt and putt-plus-rail groups.",
+    "The captures have episode-level instructions but no independent timestamps for putter and rail contacts, so source-classification accuracy cannot be calculated."
+  ],
+  "episode_counts": {
+    "clean_gentle_putt": 10,
+    "putt_plus_rail": 10,
+    "putt_plus_uncontrolled_obstacle": 1
+  },
+  "feature_comparisons": {
+    "candidate_bursts_ge_20_mps2": {
+      "clean_gentle_putt": {
+        "max": 5.0,
+        "median": 4.0,
+        "min": 2.0
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 5.0,
+        "median": 1.0,
+        "min": 1.0
+      }
+    },
+    "candidate_bursts_ge_40_mps2": {
+      "clean_gentle_putt": {
+        "max": 4.0,
+        "median": 1.0,
+        "min": 1.0
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 3.0,
+        "median": 1.0,
+        "min": 1.0
+      }
+    },
+    "gyro_clip_samples": {
+      "clean_gentle_putt": {
+        "max": 126.0,
+        "median": 41.5,
+        "min": 0.0
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 37.0,
+        "median": 9.5,
+        "min": 2.0
+      }
+    },
+    "max_adjacent_accel_vector_delta_mps2": {
+      "clean_gentle_putt": {
+        "max": 116.83824636763758,
+        "median": 85.98062090713654,
+        "min": 41.850543681598566
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 123.72037588091588,
+        "median": 109.13279697966524,
+        "min": 52.47458278725435
+      }
+    },
+    "max_bmi_accel_norm_mps2": {
+      "clean_gentle_putt": {
+        "max": 106.83274159989709,
+        "median": 71.87299877735938,
+        "min": 40.54651961785259
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 114.02885889063306,
+        "median": 88.7819084696817,
+        "min": 46.84098651907879
+      }
+    },
+    "max_gyro_norm_rads": {
+      "clean_gentle_putt": {
+        "max": 52.08898431922491,
+        "median": 38.23282213566788,
+        "min": 32.617493475211745
+      },
+      "observed_ranges_overlap": true,
+      "putt_plus_rail": {
+        "max": 60.461195799354044,
+        "median": 48.09347931068857,
+        "min": 37.325720658154864
+      }
+    }
+  },
+  "required_next_evidence": [
+    "Operator- or video-reviewed putter-contact timestamps from GO.",
+    "Separate rail/contact timestamps for collision episodes.",
+    "Zero-stroke hand-roll and other-ball-contact controls plus one- and two-stroke episodes."
+  ],
+  "schema_version": 1,
+  "source_discrimination_status": "INSUFFICIENT_TRUTH"
+}

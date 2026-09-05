@@ -96,6 +96,13 @@ def wait_for_phase(app: FieldCaptureApp, phase: str) -> dict[str, object]:
 
 
 class FieldCaptureWebTests(unittest.TestCase):
+    def test_stroke_profiles_expose_planned_counts_as_plans(self) -> None:
+        app = FieldCaptureApp(args())
+        config = app.config()["profiles"]
+        self.assertEqual(config["stroke_single_gentle"]["planned_strokes"], 1)
+        self.assertEqual(config["stroke_other_ball_contact"]["planned_strokes"], 0)
+        self.assertIsNone(config["pickup_carry"]["planned_strokes"])
+
     def test_page_injects_token_and_uses_safe_text_rendering(self) -> None:
         page = page_for_token("secret-token")
         self.assertNotIn("__TOKEN__", page)

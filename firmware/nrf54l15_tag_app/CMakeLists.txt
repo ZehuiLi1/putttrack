@@ -6,3 +6,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(putttrack_tag)
 
 target_sources(app PRIVATE src/main.c)
+target_sources_ifdef(CONFIG_PUTTTRACK_MOTION_DEMO_V0 app PRIVATE src/motion_demo_v0.c)

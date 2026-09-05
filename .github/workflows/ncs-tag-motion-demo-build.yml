@@ -1,0 +1,52 @@
+name: NCS Tag Motion Demo Build
+
+on:
+  push:
+    branches:
+      - demo/mcu-motion-state-v0-20260905
+    paths:
+      - "firmware/nrf54l15_tag_app/**"
+      - "firmware/nrf54l15_tag_ota/**"
+      - "scripts/nrf54l15_tag/ci_build_tag_motion_demo.sh"
+      - ".github/workflows/ncs-tag-motion-demo-build.yml"
+  pull_request:
+    paths:
+      - "firmware/nrf54l15_tag_app/**"
+      - "firmware/nrf54l15_tag_ota/**"
+      - "scripts/nrf54l15_tag/ci_build_tag_motion_demo.sh"
+      - ".github/workflows/ncs-tag-motion-demo-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ncs-v3-4-0:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+
+      - name: Pull Nordic v3.4.0 toolchain
+        run: docker pull ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
+
+      - name: Compile nRF54L15 Tag application with disposable CI key
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work/putttrack" \
+            -w /work/putttrack \
+            -e NCS_MANIFEST_REF=v3.4.0 \
+            -e NCS_DIR=/tmp/ncs-v3.4.0 \
+            -e OUT_DIR=/work/putttrack/build/ci-nrf54l15-tag-motion-demo \
+            -e PUTTTRACK_ROOT=/work/putttrack \
+            -e BOARD=nrf54l15tag/nrf54l15/cpuapp \
+            ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0 \
+            bash scripts/nrf54l15_tag/ci_build_tag_motion_demo.sh
+
+      - name: Preserve trust boundary
+        if: always()
+        run: |
+          echo "This proves source compatibility and reports build memory only."
+          echo "The disposable CI key and resulting image are not deployment artifacts."
+          echo "Physical OTA, test boot, sensor behavior, current and demo accuracy remain separate gates."

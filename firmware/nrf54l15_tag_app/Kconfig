@@ -4,6 +4,19 @@ source "Kconfig.zephyr"
 
 menu "PuttTrack Tag options"
 
+
+config PUTTTRACK_MOTION_DEMO_V0
+	bool "Enable the research-only on-Ball motion-state demo"
+	default n
+	help
+	  Run the frozen stationary-start pickup hypothesis and a conservative
+	  rolling-candidate display state at the existing 50 Hz stream rate. The
+	  result is exposed through encrypted custom mcumgr command 24 with
+	  authority=false. It never changes strokes, scores, hole state or penalties.
+	  Sensor errors and timing faults fail closed to UNKNOWN_QUALITY. Gyro
+	  clipping blocks pickup confirmation; a generic saturated-rotation candidate
+	  may remain visible with an explicit quality flag.
+
 config PUTTTRACK_NFC_SERVICE
 	bool "Enable the experimental NFC service record"
 	default n

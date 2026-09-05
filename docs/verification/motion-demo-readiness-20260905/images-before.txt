@@ -1,0 +1,20 @@
+ Pairing using Just Works confirmed and accepted
+
+Image
+	slot: 0
+	version: 0.1.17
+	hash: 0d67e10dc4948b60c39dc4123d778ab15989fe655d3992b99766f72565486d230f5504d0ff71a9dc7821ec51e929e56e2a2eb9759b30f238f9d9c32ece62e1a8
+	bootable: true
+	pending: false
+	confirmed: true
+	active: true
+	permanent: false
+Image
+	slot: 1
+	version: 0.1.16
+	hash: 4128faddacb1a7f785044c164750830d19e42aff28fbe659fc6a643dcb394ee92e99bdaecf4d0beb7f19bbae06b08e9981e883d24a024202a3ea83576723879e
+	bootable: true
+	pending: false
+	confirmed: false
+	active: false
+	permanent: false

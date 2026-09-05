@@ -4,6 +4,14 @@ PuttTrack is a research and product-development repository for a smart mini-golf
 
 ## Current execution direction
 
+The immediate player-facing priority is reliable per-hole stroke counting:
+one putter contact should increment the displayed count once, while subsequent
+rail/obstacle/ball collisions must not add strokes. The screen now keeps the
+current hole count visible and the field tools include paired 0/1/2-stroke
+capture profiles, immutable raw-capture truth review and count evaluation.
+There is not yet a validated physical stroke detector. See
+[`STROKE_COUNTING_PLAN_20260905_CN.md`](docs/research/STROKE_COUNTING_PLAN_20260905_CN.md).
+
 Bluetooth Channel Sounding is deferred for the current MVP. The active path is
 nRF54L15 Tag identity/health/generic motion over BLE, signed OTA, physical
 tee/cup/feature sensors and the existing sensor-independent Gameplay Engine.

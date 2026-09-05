@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "demo_id": "mcu_motion_demo_v0",
+  "firmware_version": "0.1.18",
+  "status": "research_demo_not_product_classifier",
+  "authority": false,
+  "candidate_only": true,
+  "target": {
+    "application": "firmware/nrf54l15_tag_app",
+    "board": "nrf54l15tag/nrf54l15/cpuapp",
+    "sensor": "BMI270",
+    "stream_rate_hz": 50,
+    "history_samples": 128,
+    "history_seconds": 2.56,
+    "transport": "encrypted custom mcumgr group 64 command 24"
+  },
+  "persistent_states": [
+    "BOOTSTRAP",
+    "STATIONARY",
+    "ACTIVE_PENDING",
+    "ROLLING_CANDIDATE",
+    "CARRIED_CANDIDATE",
+    "ACTIVE_UNKNOWN",
+    "UNKNOWN_QUALITY"
+  ],
+  "events": [
+    "PICKUP_FROM_REST"
+  ],
+  "pickup_from_rest": {
+    "source_config": "configs/research/pickup_detector_v0.json",
+    "source_config_canonical_sha256": "62c82c1a313f70912a5bb6c2f53c635fe179c537cdb3738dbc5d2a347050c8ad",
+    "continuous_runtime_adaptation": "replace the experiment GO marker with the immediately preceding qualified one-second stationary dwell",
+    "baseline": {
+      "minimum_samples": 40,
+      "minimum_duration_s": 0.9,
+      "maximum_accel_norm_stdev_mps2": 0.15,
+      "maximum_gyro_norm_rms_rads": 0.08
+    },
+    "onset": {
+      "lookahead_samples": 10,
+      "minimum_active_samples": 6,
+      "accel_norm_deviation_mps2": 0.5,
+      "gyro_norm_rads": 0.25
+    },
+    "decision": {
+      "positive_vertical_impulse_mps": "> 0.5",
+      "mean_gyro_norm_1s_rads": "< 10.0",
+      "gyro_axis_consistency_1s": "< 0.75",
+      "bmi270_gyro_clipping_in_required_window": "UNKNOWN_QUALITY"
+    }
+  },
+  "rolling_candidate": {
+    "status": "post_hoc_display_gate_not_independently_validated",
+    "initial_one_second": {
+      "minimum_mean_gyro_norm_rads": 8.0,
+      "minimum_axis_consistency": 0.9
+    },
+    "tracking_half_second": {
+      "minimum_mean_gyro_norm_rads": 2.0,
+      "minimum_axis_consistency": 0.85
+    },
+    "warning": "This state only demonstrates sustained dominant-axis rotation. It is not stroke, speed, collision or rolling-pickup authority."
+  },
+  "quality_bits": {
+    "1": "sensor_invalid",
+    "2": "sequence_gap",
+    "4": "source_time_regression",
+    "8": "baseline_not_stationary",
+    "16": "insufficient_feature_window",
+    "32": "bmi270_gyro_clipped; blocks pickup but may accompany ROLLING_CANDIDATE"
+  },
+  "explicitly_unsupported": [
+    "rolling_pickup_confirmation",
+    "putter_impact_confirmation",
+    "putter_vs_rail_vs_ball_collision_source",
+    "validated_slowing_or_settling",
+    "cup_entry_or_rest",
+    "stroke_count_or_score_mutation",
+    "automatic_penalty"
+  ]
+}

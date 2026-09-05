@@ -36,9 +36,50 @@ class Profile:
     label: str
     episode_seconds: float
     instruction: str
+    planned_strokes: int | None = None
 
 
 PROFILES = {
+    "stroke_single_gentle": Profile(
+        "stroke_single_gentle", 12.0,
+        "GO 后等约 1 秒，用球杆轻击一次；让球自然停止，结束提示前不要捡球。",
+        1,
+    ),
+    "stroke_single_normal": Profile(
+        "stroke_single_normal", 12.0,
+        "GO 后等约 1 秒，用球杆正常击球一次；让球自然停止，结束提示前不要捡球。",
+        1,
+    ),
+    "stroke_two_after_stop": Profile(
+        "stroke_two_after_stop", 14.0,
+        "GO 后约 1 秒轻击一次；球完全停止后再等 2 秒，再用球杆轻击一次。"
+        "动作必须在结束提示前完成，不要捡球；未完成两杆则标注偏差。",
+        2,
+    ),
+    "stroke_second_while_rolling": Profile(
+        "stroke_second_while_rolling", 12.0,
+        "GO 后约 1 秒用球杆轻击一次；球仍缓慢滚动时用球杆再轻击一次，"
+        "随后让球停止，结束提示前不要捡球。",
+        2,
+    ),
+    "stroke_one_multiple_rails": Profile(
+        "stroke_one_multiple_rails", 12.0,
+        "GO 后约 1 秒用球杆击球一次，让球在固定边轨间碰撞至少两次；"
+        "不要再碰球。应计一杆，碰撞不新增杆数。",
+        1,
+    ),
+    "stroke_other_ball_contact": Profile(
+        "stroke_other_ball_contact", 12.0,
+        "研究球放在地面静止；GO 后用另一颗普通球撞它一次。"
+        "球杆不得接触研究球，结束提示前不要捡球；研究球应计零杆。",
+        0,
+    ),
+    "stroke_hand_roll_control": Profile(
+        "stroke_hand_roll_control", 12.0,
+        "GO 后约 1 秒用手推动研究球一次，让它自然停止。"
+        "不使用球杆，结束提示前不要捡球；应计零杆。",
+        0,
+    ),
     "pickup_carry": Profile(
         label="pickup_carry",
         episode_seconds=12.0,
@@ -174,6 +215,11 @@ def build_capture_command(
 ) -> list[str]:
     profile = PROFILES[args.profile]
     notes = profile.instruction
+    if profile.planned_strokes is not None:
+        notes += (
+            f" planned_strokes={profile.planned_strokes}; planned_only=true;"
+            " actual_strokes_and_contact_times_require_operator_review=true;"
+        )
     if args.notes:
         notes = f"{notes} {args.notes}"
     command = [

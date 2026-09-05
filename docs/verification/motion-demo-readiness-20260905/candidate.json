@@ -1,0 +1,23 @@
+{
+  "source_commit": "3a8be1b3f2cf5943bc7a8d2838e9ebe486feea94",
+  "github_pr": 25,
+  "firmware_version": "0.1.18+0",
+  "variant": "NFC service + continuous MCU Motion Demo V0",
+  "application_sha256": "cdf44659094412a9de548ccc301e327f1aea8c29e9d64162e40e49cfe65c9009",
+  "mcuboot_digest": "d9488b1c8cde0ccad1373fefd3b42bcc4d0af0883b85185c371709fe7d465811d02601aa1a43443ae621f4badabb384bf82d1b0325bb0517d741f0afab52cfed",
+  "signature_verified": true,
+  "flash_bytes": 207064,
+  "ram_bytes": 217180,
+  "physical_test_boot": true,
+  "confirmed_device_version": "0.1.17",
+  "application_path_relative_to_worktree": "build/nrf54l15-tag-demo-3a8be1b/nrf54l15_tag_app/zephyr/zephyr.signed.bin",
+  "authority": false,
+  "active_device_version": "0.1.17",
+  "active_image_confirmed": true,
+  "rollback_device_version": "0.1.17",
+  "test_boot_id": "814587483c53d702",
+  "candidate_image_confirmed": false,
+  "physical_action_gate": "FAIL",
+  "rolled_back": true,
+  "rollback_boot_id": "5b576832db42e57f"
+}
