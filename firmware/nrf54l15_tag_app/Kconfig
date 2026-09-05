@@ -17,6 +17,15 @@ config PUTTTRACK_MOTION_DEMO_V0
 	  clipping blocks pickup confirmation; a generic saturated-rotation candidate
 	  may remain visible with an explicit quality flag.
 
+config PUTTTRACK_STROKE_PICKUP_V1
+    bool "Research-only stroke/pickup shadow V1 (commands 25/26)"
+    depends on !PUTTTRACK_MOTION_DEMO_V0
+    default n
+    help
+      Run a 50 Hz generic candidate engine with explicit event history.
+      Candidate counts are not gameplay strokes; pickup is not cheating truth.
+      Command 26 starts an explicitly operator-delimited bench trial only.
+
 config PUTTTRACK_NFC_SERVICE
 	bool "Enable the experimental NFC service record"
 	default n

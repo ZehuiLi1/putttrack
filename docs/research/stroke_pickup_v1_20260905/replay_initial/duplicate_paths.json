@@ -1,0 +1,47 @@
+[
+  {
+    "canonical": "experiments/research_ball_r0_stationary/raw/stationary-o1-r01.jsonl",
+    "sha256": "9f4e45f69fe07991a9c0f6f55339e17bf1d5d3e2491b6c90364e9ed2617a2898",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/02_curated_stationary/stationary-o1-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r0_stationary/raw/stationary-o2-r01.jsonl",
+    "sha256": "db87ffd8feb16a676779c6c567dc7ba0dc269345d75b3ea1d6c33a4445750258",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/02_curated_stationary/stationary-o2-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/armed-stationary-smoke-r01.jsonl",
+    "sha256": "156dabc150c147ceafe5f4d87444bdfb44246b2ae190d7c03099e93fa863c5de",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/armed-stationary-smoke-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/pickup-carry-r01.jsonl",
+    "sha256": "25e3967efd5b56aa08a6e01cac693ac1a8971f74640481c579e3fa01cbbf7d16",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/pickup-carry-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/restrained-repeated-taps-r01.jsonl",
+    "sha256": "8a02d252a2761246dcf5f591fed9de158cfc63f5e1fc2e67d64b3bb6ebb0dce9",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/restrained-repeated-taps-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/roll-manual-light-r01.jsonl",
+    "sha256": "c85593691850eee622f6e5b8ee02c17e4617598d11350d75d6eefccfd618674e",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/roll-manual-light-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/roll-manual-medium-r01.jsonl",
+    "sha256": "f10bb725c8416493b36849992d5eb4679b74fa4b6e9e55704ebf50ffe4d77d6a",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/roll-manual-medium-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/stationary-post-r01.jsonl",
+    "sha256": "773c561727add22cb755ad793f7423ec254dc37d7edcf760ec7707b5d1c60654",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/stationary-post-r01.jsonl"
+  },
+  {
+    "canonical": "experiments/research_ball_r1_manual_floor/raw/stationary-pre-r01.jsonl",
+    "sha256": "58bbc7ec7deb99088a44bf41c862c9b00728f58ef4b1fc863aa8934619d84f86",
+    "source": "datasets/putttrack_imu_dataset_20260904.zip::putttrack_imu_dataset_20260904/data/03_curated_manual_floor/stationary-pre-r01.jsonl"
+  }
+]

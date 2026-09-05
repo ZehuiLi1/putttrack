@@ -1,0 +1,16 @@
+{
+  "authority": false,
+  "deterministic_replay": "CSV, JSONL and JSON matched two runs",
+  "device_key_signed_image": "NOT_BUILT",
+  "hardware_flashed_this_pass": false,
+  "host_compiler": "cc -std=c11 -Wall -Wextra -Werror -pedantic",
+  "host_verify": "PASS",
+  "ncs_target_build": "see exact-source CI run",
+  "new_algorithm_config_sha256": "ad9ea020ebbf6ee4de00afbcea2d18e4633e84de36758f2aebb5a2ddf94fb361",
+  "new_engine_protocol_tests": 38,
+  "physical_action_acceptance": "NOT_RUN",
+  "raw_replay_unique_captures": 236,
+  "raw_samples": 168142,
+  "unit_tests": 272,
+  "verifier_checks": 11
+}

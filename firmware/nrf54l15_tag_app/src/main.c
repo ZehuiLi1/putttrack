@@ -37,6 +37,9 @@
 #if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
 #include "motion_demo_v0.h"
 #endif
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+#include "stroke_pickup_v1.h"
+#endif
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #include <hal/nrf_nfct.h>
@@ -54,7 +57,11 @@
 #endif
 
 #define PUTTTRACK_PROTOCOL_VERSION 1U
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+#define PUTTTRACK_FIRMWARE_VERSION "0.1.19"
+#else
 #define PUTTTRACK_FIRMWARE_VERSION "0.1.18"
+#endif
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -67,6 +74,8 @@
 #define PUTTTRACK_MGMT_ID_POWER_IDLE 22U
 #define PUTTTRACK_MGMT_ID_ENTER_SYSTEM_OFF 23U
 #define PUTTTRACK_MGMT_ID_MOTION_DEMO 24U
+#define PUTTTRACK_MGMT_ID_STROKE_PICKUP 25U
+#define PUTTTRACK_MGMT_ID_SHADOW_NEW_TRIAL 26U
 
 #define STATUS_PACKET_SIZE 64U
 #define MOTION_PACKET_SIZE 56U
@@ -293,6 +302,14 @@ static struct k_work_delayable system_off_work;
 K_MUTEX_DEFINE(packet_mutex);
 #if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
 K_MUTEX_DEFINE(motion_demo_mutex);
+#endif
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+static struct spv1_context shadow_engine;
+/* Separate readback storage avoids >4KB stack frames in the SMP worker. */
+static struct spv1_context shadow_readback;
+static char shadow_event_hex[SPV1_EVENT_CAPACITY * 64U * 2U];
+K_MUTEX_DEFINE(shadow_engine_mutex);
+K_MUTEX_DEFINE(shadow_rpc_mutex);
 #endif
 K_SEM_DEFINE(power_event_sem, 0, 1);
 
@@ -860,6 +877,89 @@ static int putttrack_mgmt_power_idle(struct smp_streamer *ctxt)
 	return putttrack_mgmt_set_power_policy(ctxt, PUTTTRACK_POWER_IDLE);
 }
 
+
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+static int putttrack_mgmt_stroke_pickup(struct smp_streamer *ctxt)
+{
+    zcbor_state_t *zse = ctxt->writer->zs;
+    uint8_t wire[64];
+    char id_hex[DEVICE_ID_MAX_SIZE * 2U], boot_hex[BOOT_ID_SIZE * 2U];
+    bool ok;
+    k_mutex_lock(&shadow_rpc_mutex, K_FOREVER);
+    k_mutex_lock(&shadow_engine_mutex, K_FOREVER);
+    shadow_readback = shadow_engine;
+    k_mutex_unlock(&shadow_engine_mutex);
+    const struct spv1_context *c = &shadow_readback;
+    uint32_t first_id = c->event_count ? c->latest_id - c->event_count + 1U : 0U;
+    for (uint32_t i = 0U; i < c->event_count; i++) {
+        const struct spv1_event *e = &c->events[(first_id + i - 1U) % SPV1_EVENT_CAPACITY];
+        sys_put_le32(e->id, wire); sys_put_le32(e->type, wire + 4);
+        sys_put_le32(e->reason, wire + 8); sys_put_le32(e->quality, wire + 12);
+        sys_put_le32(e->onset_seq, wire + 16); sys_put_le32(e->end_seq, wire + 20);
+        sys_put_le64(e->onset_us, wire + 24); sys_put_le64(e->decision_us, wire + 32);
+        sys_put_le32((uint32_t)e->impulse_milli, wire + 40);
+        sys_put_le32((uint32_t)e->gyro_mean_milli, wire + 44);
+        sys_put_le32(e->direction_milli, wire + 48); sys_put_le32(e->axial_milli, wire + 52);
+        sys_put_le32(e->impact_milli, wire + 56); sys_put_le32(e->clip_permille, wire + 60);
+        bytes_to_hex(wire, sizeof(wire), shadow_event_hex + i * 128U);
+    }
+    bytes_to_hex(device_id, device_id_len, id_hex);
+    bytes_to_hex(boot_id, sizeof(boot_id), boot_hex);
+    struct zcbor_string id = {.value = (const uint8_t *)id_hex, .len = device_id_len * 2U};
+    struct zcbor_string boot = {.value = (const uint8_t *)boot_hex, .len = sizeof(boot_id) * 2U};
+    struct zcbor_string data = {.value = (const uint8_t *)shadow_event_hex, .len = c->event_count * 128U};
+    ok = zcbor_tstr_put_lit(zse, "algorithm_id") && zcbor_tstr_put_lit(zse, SPV1_ID) &&
+         zcbor_tstr_put_lit(zse, "config_sha256") && zcbor_tstr_put_lit(zse, SPV1_CONFIG_SHA256) &&
+         zcbor_tstr_put_lit(zse, "firmware_version") && zcbor_tstr_put_lit(zse, PUTTTRACK_FIRMWARE_VERSION) &&
+         zcbor_tstr_put_lit(zse, "authority") && zcbor_bool_put(zse, false) &&
+         zcbor_tstr_put_lit(zse, "candidate_only") && zcbor_bool_put(zse, true) &&
+         zcbor_tstr_put_lit(zse, "device_id") && zcbor_tstr_encode(zse, &id) &&
+         zcbor_tstr_put_lit(zse, "boot_id") && zcbor_tstr_encode(zse, &boot) &&
+         zcbor_tstr_put_lit(zse, "stream_hz") && zcbor_uint32_put(zse, current_stream_rate_hz) &&
+         zcbor_tstr_put_lit(zse, "generation") && zcbor_uint32_put(zse, c->generation) &&
+         zcbor_tstr_put_lit(zse, "sensor_recovery_generation") && zcbor_uint32_put(zse, sensor_recovery_generation) &&
+         zcbor_tstr_put_lit(zse, "source_seq") && zcbor_uint32_put(zse, c->source_sequence) &&
+         zcbor_tstr_put_lit(zse, "source_us") && zcbor_uint64_put(zse, c->source_us) &&
+         zcbor_tstr_put_lit(zse, "state") && zcbor_uint32_put(zse, c->state) &&
+         zcbor_tstr_put_lit(zse, "armed") && zcbor_bool_put(zse, c->armed) &&
+         zcbor_tstr_put_lit(zse, "held_hint") && zcbor_bool_put(zse, c->held_hint) &&
+         zcbor_tstr_put_lit(zse, "count_incomplete") && zcbor_bool_put(zse, c->count_incomplete) &&
+         zcbor_tstr_put_lit(zse, "stroke_candidates") && zcbor_uint32_put(zse, c->stroke_candidates) &&
+         zcbor_tstr_put_lit(zse, "pickup_candidates") && zcbor_uint32_put(zse, c->pickup_candidates) &&
+         zcbor_tstr_put_lit(zse, "ambiguous_contacts") && zcbor_uint32_put(zse, c->ambiguous_contacts) &&
+         zcbor_tstr_put_lit(zse, "unknown_onsets") && zcbor_uint32_put(zse, c->unknown_onsets) &&
+         zcbor_tstr_put_lit(zse, "quality_breaks") && zcbor_uint32_put(zse, c->quality_breaks) &&
+         zcbor_tstr_put_lit(zse, "quality_flags") && zcbor_uint32_put(zse, c->current_quality) &&
+         zcbor_tstr_put_lit(zse, "first_event_id") && zcbor_uint32_put(zse, first_id) &&
+         zcbor_tstr_put_lit(zse, "latest_event_id") && zcbor_uint32_put(zse, c->latest_id) &&
+         zcbor_tstr_put_lit(zse, "overwritten_events") && zcbor_uint32_put(zse, c->overwritten) &&
+         zcbor_tstr_put_lit(zse, "event_size") && zcbor_uint32_put(zse, 64U) &&
+         zcbor_tstr_put_lit(zse, "event_count") && zcbor_uint32_put(zse, c->event_count) &&
+         zcbor_tstr_put_lit(zse, "events_hex") && zcbor_tstr_encode(zse, &data);
+    k_mutex_unlock(&shadow_rpc_mutex);
+    return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
+}
+
+static int putttrack_mgmt_shadow_new_trial(struct smp_streamer *ctxt)
+{
+    /* Explicit research command: operator has placed/released the ball.
+     * This is not physical ground truth and never touches Gameplay. */
+    if (atomic_get(&power_policy) != PUTTTRACK_POWER_RESEARCH ||
+        atomic_get(&runtime_state) != PUTTTRACK_RUNTIME_ACTIVE ||
+        atomic_get(&sensor_health) != PUTTTRACK_SENSOR_HEALTHY ||
+        !adxl367_ready || !bmi270_ready) return MGMT_ERR_EINVAL;
+    k_mutex_lock(&shadow_engine_mutex, K_FOREVER);
+    spv1_new_trial(&shadow_engine);
+    uint32_t generation = shadow_engine.generation;
+    k_mutex_unlock(&shadow_engine_mutex);
+    zcbor_state_t *zse = ctxt->writer->zs;
+    bool ok = zcbor_tstr_put_lit(zse, "accepted") && zcbor_bool_put(zse, true) &&
+              zcbor_tstr_put_lit(zse, "authority") && zcbor_bool_put(zse, false) &&
+              zcbor_tstr_put_lit(zse, "generation") && zcbor_uint32_put(zse, generation);
+    return ok ? MGMT_ERR_EOK : MGMT_ERR_EMSGSIZE;
+}
+#endif
+
 #if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
 static int putttrack_mgmt_motion_demo(struct smp_streamer *ctxt)
 {
@@ -1002,6 +1102,10 @@ static int putttrack_mgmt_enter_system_off(struct smp_streamer *ctxt)
 #endif
 
 static const struct mgmt_handler putttrack_mgmt_handlers[] = {
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+    [PUTTTRACK_MGMT_ID_STROKE_PICKUP] = {.mh_read = putttrack_mgmt_stroke_pickup, .mh_write = NULL},
+    [PUTTTRACK_MGMT_ID_SHADOW_NEW_TRIAL] = {.mh_read = NULL, .mh_write = putttrack_mgmt_shadow_new_trial},
+#endif
 	[PUTTTRACK_MGMT_ID_STATUS] = {
 		.mh_read = putttrack_mgmt_status,
 		.mh_write = NULL,
@@ -1508,6 +1612,11 @@ static void increment_saturating(uint32_t *value)
 
 static void clear_motion_history(void)
 {
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+    k_mutex_lock(&shadow_engine_mutex, K_FOREVER);
+    spv1_invalidate(&shadow_engine);
+    k_mutex_unlock(&shadow_engine_mutex);
+#endif
 	k_mutex_lock(&packet_mutex, K_FOREVER);
 	motion_ring_write_index = 0U;
 	motion_ring_count = 0U;
@@ -1987,6 +2096,20 @@ static bool sample_motion(void)
 		bmi270_gyro_clip_count++;
 	}
 	sys_put_le32(errors, &snapshot[52]);
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+    struct spv1_sample shadow_sample = {
+        .sequence = sequence, .time_us = source_monotonic_us,
+        .valid = (flags & MOTION_FLAG_BMI270_VALID) != 0U, .sensor_errors = errors,
+    };
+    for (size_t i = 0U; i < 3U; i++) {
+        shadow_sample.accel_micro[i] = (int32_t)sys_get_le32(&snapshot[28U + i * 4U]);
+        shadow_sample.gyro_micro[i] = (int32_t)sys_get_le32(&snapshot[40U + i * 4U]);
+    }
+    k_mutex_lock(&shadow_engine_mutex, K_FOREVER);
+    spv1_push(&shadow_engine, &shadow_sample);
+    k_mutex_unlock(&shadow_engine_mutex);
+#endif
+
 
 #if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
 	struct motion_demo_v0_sample demo_sample = {
@@ -2249,7 +2372,10 @@ int main(void)
 	int64_t next_sample_ms;
 	uint32_t previous_period_ms = 0U;
 
-	initialize_sensor_reboot_retention();
+    initialize_sensor_reboot_retention();
+#if defined(CONFIG_PUTTTRACK_STROKE_PICKUP_V1)
+    spv1_init(&shadow_engine);
+#endif
 #if defined(CONFIG_PUTTTRACK_MOTION_DEMO_V0)
 	motion_demo_v0_init(&motion_demo);
 #endif

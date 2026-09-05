@@ -7,3 +7,5 @@ project(putttrack_tag)
 
 target_sources(app PRIVATE src/main.c)
 target_sources_ifdef(CONFIG_PUTTTRACK_MOTION_DEMO_V0 app PRIVATE src/motion_demo_v0.c)
+
+target_sources_ifdef(CONFIG_PUTTTRACK_STROKE_PICKUP_V1 app PRIVATE src/stroke_pickup_v1.c)
