@@ -6,10 +6,37 @@ This is a **local player-experience slice** built on top of the locked Gameplay
 Engine and Evidence Foundation. The nRF54L15 Tag stationary telemetry and the
 generic-motion candidate ingress are physically/software validated. The
 hardware-neutral tee/cup observation policy and HTTP ingress are implemented
-and software-tested; actual tee/cup mechanisms, Ball-to-tee correlation,
-feature sensing and stroke confirmation remain physical gates.
+and software-tested.
+
+**As of 2026-09-09, the prototype hardware required for the first real vertical
+slice is prepared: NFC Tee + Smart Ball + IMU + optical Cup.** The project has
+therefore moved from hardware preparation into physical system integration.
+This is not yet a Physical pass: Ball-to-tee correlation, physical stroke
+confirmation, real Cup completion and whole-hole automatic play still require
+integrated evidence.
 
 The purpose is to prove that the player-facing flow can remain stable while real sensing work proceeds through Issue #1 and later localisation/evidence Issues.
+
+## Current physical milestone
+
+The immediate V1 path is deliberately restricted to the smallest automatic hole:
+
+```text
+NFC Tee
+  -> Ball identity / presence
+  -> BLE session + hole ARM
+  -> Ball ACK
+  -> READY
+  -> IMU-based stroke confirmation
+  -> stroke count
+  -> optical Cup confirmation
+  -> HOLE COMPLETE
+```
+
+For this milestone, Channel Sounding, spatial localisation, bonus/hazard zones,
+custom production Ball PCB and multi-hole scaling are explicitly outside the
+critical path. They should only be reopened after this simple one-hole chain has
+been demonstrated reliably under real play.
 
 ## Player flow
 
@@ -194,17 +221,49 @@ faults and zero score/state invariant failures. See
 
 The implementation was developed against the merged Evidence Foundation. Existing Gameplay authority was not redesigned.
 
+## Next physical validation sequence
+
+1. Connect the real NFC Tee, Smart Ball/IMU and optical Cup to the canonical
+   evidence path without changing Gameplay authority.
+2. Run 20 repeated bench cycles:
+   `Ball present -> READY -> stroke -> optional second stroke -> Cup -> complete -> reset`.
+3. Fix only integration failures exposed by those cycles: duplicate events,
+   stale sessions, wrong-Ball acceptance, missing reset, event ordering or
+   excessive latency.
+4. Move the same setup onto one real mini-golf lane and test normal/gentle/hard
+   putts, wall/rail collisions, repeated collisions, pickup/replacement and real
+   Cup entry.
+5. Preserve one common timestamped log across Tee, Ball/IMU and Cup, including
+   session ID, hole ID, Ball ID, event ID/sequence, stroke count and latency.
+   Preserve raw IMU windows around disputed events.
+6. Run 30 consecutive real automatic rounds with no manual score intervention.
+
+## Physical acceptance targets
+
+These are next-test engineering targets, not measured claims:
+
+- Tee: >=49/50 correct installed Ball presentations, zero wrong-Ball or duplicate-session acceptance;
+- Stroke: >=98/100 real putts correctly counted in the first integrated pass,
+  while rail/wall collisions and pickup/replacement do not create extra strokes;
+- Cup: target 100/100 real entries detected in the formal Cup test;
+- Whole hole: 30 consecutive real rounds from Tee presentation through
+  `HOLE_COMPLETE` without manual score intervention.
+
+Passing this gate upgrades PuttTrack from a set of validated components plus a
+software vertical slice to a **working physical one-hole system prototype**.
+
 ## What remains unverified
 
 - first-time-player usability with real people;
 - sunlight readability, outdoor display and audio hardware;
-- physical tee/cup mechanism and Ball-identity correlation;
+- integrated physical Ball-to-tee correlation under real installed conditions;
+- real stroke confirmation accuracy across putts, collisions and pickup/replacement;
+- real Cup completion reliability and end-to-end latency;
 - labelled impact/rolling/pickup distributions and calibrated confidence;
-- real motion candidate + independent sensor to confirmed-event latency;
 - physical Channel Sounding accuracy or update rate;
-- one-hole 1,000-round soak.
+- physical one-hole soak.
 
 The last item means a **physical** mechanism/human-play soak. The software-only
 1,000-round fault-injection gate has passed.
 
-Those remain in Issue #1 and Issue #12. This slice should not be used to mark physical UX or scoring-sensor gates as passed.
+Those remain in Issue #1 and Issue #12. This slice should not be used to mark physical UX or scoring-sensor gates as passed until the real one-hole acceptance sequence above is completed.
