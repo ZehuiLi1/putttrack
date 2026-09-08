@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+menu "PuttTrack Tag motion demo options"
+
+config PUTTTRACK_NFC_SERVICE
+	bool "Enable the experimental NFC service record"
+	default n
+	help
+	  Build the read-only Type 2 Tag NDEF service record and one-shot bounded
+	  fast-BLE discovery window. In the motion demo, a completed NFC data read
+	  also resets the non-authoritative embedded motion baseline for Tee testing.
+
+config PUTTTRACK_NFC_SYSTEM_OFF_TEST
+	bool "Enable explicit NFC System OFF wake experiment"
+	depends on PUTTTRACK_NFC_SERVICE
+	default n
+	help
+	  Preserve the explicit laboratory-only System OFF experiment from the
+	  baseline Tag application.
+
+endmenu

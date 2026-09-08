@@ -12,8 +12,8 @@ REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 if [[ "$BUILD_DIR" != /* ]]; then
   BUILD_DIR="$REPO_DIR/$BUILD_DIR"
 fi
-APP_DIR="$REPO_DIR/firmware/nrf54l15_tag_app"
-APP_IMAGE_NAME="nrf54l15_tag_app"
+APP_DIR="${PUTTTRACK_APP_DIR:-$REPO_DIR/firmware/nrf54l15_tag_app}"
+APP_IMAGE_NAME="${PUTTTRACK_APP_IMAGE_NAME:-nrf54l15_tag_app}"
 OTA_DIR="$REPO_DIR/firmware/nrf54l15_tag_ota"
 APP_OVERLAY="$OTA_DIR/nrf54l15tag_ota.overlay"
 MCUBOOT_OVERLAY="$OTA_DIR/mcuboot.overlay"
@@ -29,7 +29,7 @@ PUTTTRACK_EXTRA_DTC_OVERLAY_FILE="${PUTTTRACK_EXTRA_DTC_OVERLAY_FILE:-}"
   echo "NCS workspace not found at $NCS_DIR" >&2
   exit 2
 }
-for required_file in "$APP_DIR/CMakeLists.txt" "$APP_DIR/prj.conf" \
+for required_file in "$APP_DIR/CMakeLists.txt" \
   "$APP_OVERLAY" "$MCUBOOT_OVERLAY" "$MCUBOOT_CONF"; do
   [ -f "$required_file" ] || {
     echo "Required file not found: $required_file" >&2
@@ -72,7 +72,7 @@ if [[ -n "$PUTTTRACK_EXTRA_DTC_OVERLAY_FILE" ]]; then
 fi
 if [[ -n "$PUTTTRACK_EXTRA_CONF_FILE" ]]; then
   BUILD_CMAKE_ARGS+=(
-    "-Dnrf54l15_tag_app_EXTRA_CONF_FILE=$PUTTTRACK_EXTRA_CONF_FILE"
+    "-D${APP_IMAGE_NAME}_EXTRA_CONF_FILE=$PUTTTRACK_EXTRA_CONF_FILE"
   )
 fi
 
