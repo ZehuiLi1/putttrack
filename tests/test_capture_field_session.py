@@ -29,6 +29,7 @@ def args(**overrides: object) -> argparse.Namespace:
         "ble_address": None,
         "address_type": None,
         "notes": None,
+        "transport": "hci",
     }
     values.update(overrides)
     return argparse.Namespace(**values)
@@ -66,6 +67,24 @@ class CaptureFieldSessionTests(unittest.TestCase):
         self.assertIn("--address-type", command)
         self.assertNotIn("--device-name", command)
 
+    def test_native_transport_uses_mac_ble_without_hci_port(self) -> None:
+        values = args(
+            transport="native",
+            ble_address="11111111-2222-3333-4444-555555555555",
+        )
+        power = build_power_command(values, "research")
+        capture = build_capture_command(values, 2, wait_for_go_ack=True)
+
+        self.assertIn("manage_tag_ble.py", " ".join(power))
+        self.assertIn("capture_tag_ble.py", " ".join(capture))
+        self.assertNotIn("--hci-port", power)
+        self.assertNotIn("--hci-port", capture)
+        self.assertIn("--wait-for-go-ack", capture)
+        self.assertEqual(
+            capture[capture.index("--ble-address") + 1],
+            "11111111-2222-3333-4444-555555555555",
+        )
+
     def test_validation_rejects_unsafe_or_ambiguous_values(self) -> None:
         invalid = (
             (args(count=0), "count"),
@@ -73,6 +92,14 @@ class CaptureFieldSessionTests(unittest.TestCase):
             (args(session_id="bad session"), "session-id"),
             (args(expected_device_id="1234"), "expected-device-id"),
             (args(address_type="random"), "requires"),
+            (
+                args(
+                    transport="native",
+                    ble_address="identifier",
+                    address_type="random",
+                ),
+                "only valid",
+            ),
         )
         for values, message in invalid:
             with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):

@@ -14,8 +14,10 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CAPTURE_TOOL = REPO_ROOT / "tools" / "capture_tag_smp.py"
+NATIVE_CAPTURE_TOOL = REPO_ROOT / "tools" / "capture_tag_ble.py"
 ANALYZE_TOOL = REPO_ROOT / "tools" / "analyze_tag_capture.py"
 POWER_TOOL = REPO_ROOT / "tools" / "set_tag_power_mode.py"
+NATIVE_MANAGE_TOOL = REPO_ROOT / "tools" / "manage_tag_ble.py"
 
 
 def project_python() -> str:
@@ -114,6 +116,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--session-id", default=default_session_id())
     parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "runs")
     parser.add_argument("--hci-port", default="/dev/cu.usbmodem101")
+    parser.add_argument(
+        "--transport",
+        choices=("hci", "native"),
+        default="hci",
+        help="USB HCI adapter or the host's native BLE controller",
+    )
     parser.add_argument("--expected-device-id", required=True)
     parser.add_argument("--device-name", default="PuttTrack-")
     parser.add_argument("--ble-address")
@@ -138,6 +146,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--expected-device-id must be exactly 16 hexadecimal characters")
     if args.address_type and not args.ble_address:
         raise ValueError("--address-type requires --ble-address")
+    if getattr(args, "transport", "hci") == "native" and args.address_type:
+        raise ValueError("--address-type is only valid with the HCI transport")
 
 
 def selector_args(args: argparse.Namespace) -> list[str]:
@@ -156,6 +166,18 @@ def output_path(args: argparse.Namespace, repetition: int) -> Path:
 
 
 def build_power_command(args: argparse.Namespace, mode: str) -> list[str]:
+    if getattr(args, "transport", "hci") == "native":
+        command = [
+            PYTHON,
+            str(NATIVE_MANAGE_TOOL),
+            "--device-id",
+            args.expected_device_id.lower(),
+        ]
+        if args.ble_address:
+            command.extend(("--address", args.ble_address))
+        command.extend(("--scan-timeout", "15", "--timeout", "20"))
+        command.append(mode)
+        return command
     return [
         PYTHON,
         str(POWER_TOOL),
@@ -163,6 +185,34 @@ def build_power_command(args: argparse.Namespace, mode: str) -> list[str]:
         "--hci-port",
         args.hci_port,
         *selector_args(args),
+    ]
+
+
+def build_status_command(args: argparse.Namespace) -> list[str]:
+    if getattr(args, "transport", "hci") == "native":
+        command = [
+            PYTHON,
+            str(NATIVE_MANAGE_TOOL),
+            "--device-id",
+            args.expected_device_id.lower(),
+        ]
+        if args.ble_address:
+            command.extend(("--address", args.ble_address))
+        command.extend(("--scan-timeout", "6", "--timeout", "12"))
+        command.append("status")
+        return command
+    return [
+        PYTHON,
+        str(CAPTURE_TOOL),
+        "--mode",
+        "snapshot",
+        "--count",
+        "1",
+        "--hci-port",
+        args.hci_port,
+        *selector_args(args),
+        "--expected-device-id",
+        args.expected_device_id.lower(),
     ]
 
 
@@ -176,6 +226,30 @@ def build_capture_command(
     notes = profile.instruction
     if args.notes:
         notes = f"{notes} {args.notes}"
+    if getattr(args, "transport", "hci") == "native":
+        command = [
+            PYTHON,
+            str(NATIVE_CAPTURE_TOOL),
+            "--device-name",
+            args.device_name,
+            "--expected-device-id",
+            args.expected_device_id.lower(),
+            "--armed-countdown",
+            "3",
+            "--episode-seconds",
+            str(profile.episode_seconds),
+            "--label",
+            profile.label,
+            "--notes",
+            notes,
+            "--output",
+            str(output_path(args, repetition)),
+        ]
+        if args.ble_address:
+            command.extend(("--ble-address", args.ble_address))
+        if wait_for_go_ack:
+            command.extend(("--wait-for-go-ack", "--go-ack-timeout", "20"))
+        return command
     command = [
         PYTHON,
         str(CAPTURE_TOOL),

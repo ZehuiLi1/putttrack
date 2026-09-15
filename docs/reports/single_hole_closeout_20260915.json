@@ -1,0 +1,199 @@
+{
+  "date": "2026-09-15",
+  "scope": "Single-ball one-hole prototype stage closeout; current emphasis actual strike count, handling negatives deferred",
+  "automated_checks": {
+    "python_unittest": {
+      "passed": 273,
+      "failed": 0
+    },
+    "pn532_builds": [
+      "airm2m_core_esp32c3",
+      "nfc_service"
+    ]
+  },
+  "firmware": {
+    "tag": {
+      "version": "0.1.21",
+      "sha256": "9532df5bc33488e63c6ea315ba4c9598894710f3ec0103d2b078a5eaeea7fd19",
+      "matches_previously_installed_artifact": true
+    },
+    "xiao": {
+      "version": "0.2.7",
+      "sha256": "1d77285b6669fef53254bfec070dcab6ef1eea9aa5910dbc2c0f95ed9ad77204",
+      "matches_previously_installed_artifact": true
+    }
+  },
+  "sleep_wake": {
+    "tag": {
+      "source": "runs/tag_021_ball_sleep_cycles.json",
+      "passed": true,
+      "rf_restored": true,
+      "cycles": [
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 3205,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 251,
+          "imu_check_passed": true
+        },
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 3204,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 250,
+          "imu_check_passed": true
+        },
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 3559,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 250,
+          "imu_check_passed": true
+        }
+      ]
+    },
+    "xiao": {
+      "source": "runs/xiao_027_enclosed_battery_sleep_cycles.json",
+      "passed": true,
+      "rf_restored": true,
+      "cycles": [
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 2629,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 251,
+          "imu_check_passed": true
+        },
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 2732,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 251,
+          "imu_check_passed": true
+        },
+        {
+          "passed": true,
+          "rf_resume_to_ble_ms": 2629,
+          "nfc_wake": true,
+          "ble_security_level": 2,
+          "new_pairings": 0,
+          "imu_samples": 251,
+          "imu_check_passed": true
+        }
+      ]
+    }
+  },
+  "placement": {
+    "tag": {
+      "source": "runs/placement_100_review_status.json",
+      "user_reported_approximate_percent": 99,
+      "automatic_recognition": {
+        "placements": 100,
+        "success": 100,
+        "resolved": 100,
+        "success_rate": 100.0,
+        "mean_ms": 1560.07,
+        "max_ms": 1926
+      }
+    },
+    "xiao": {
+      "source": "runs/xiao_enclosed_50_review.json",
+      "user_reported_approximate_percent": 100,
+      "automatic_recognition": {
+        "placements": 50,
+        "success": 50,
+        "resolved": 50,
+        "success_rate": 100.0,
+        "mean_ms": 1638.1,
+        "max_ms": 2753
+      }
+    }
+  },
+  "stroke": {
+    "replay": [
+      {
+        "round_id": "c9466e33d42e44a1b5fee7d24b6c1f82",
+        "model": "bench-stroke-xiao-v1-unvalidated",
+        "old_count": 2,
+        "new_count": 6,
+        "new_sequences": [
+          25183,
+          25378,
+          25554,
+          25717,
+          25877,
+          26003
+        ],
+        "user_label": null
+      },
+      {
+        "round_id": "305f48879be54e0b8db0960db3e23534",
+        "model": "bench-stroke-xiao-v1-unvalidated",
+        "old_count": 3,
+        "new_count": 6,
+        "new_sequences": [
+          28613,
+          28778,
+          28997,
+          29165,
+          29339,
+          29431
+        ],
+        "user_label": 6
+      },
+      {
+        "round_id": "0f26771d28e646d09386dbbc18556703",
+        "model": "bench-stroke-v0-unvalidated",
+        "old_count": 2,
+        "new_count": 2,
+        "new_sequences": [
+          1619,
+          2635
+        ],
+        "user_label": null
+      },
+      {
+        "round_id": "643856159331474ba2b86f963cd0f523",
+        "model": "bench-stroke-v0-unvalidated",
+        "old_count": 3,
+        "new_count": 3,
+        "new_sequences": [
+          4265,
+          4475,
+          4636
+        ],
+        "user_label": null
+      }
+    ],
+    "new_field_round": {
+      "source": "runs/xiao_v1_five_review_status.json",
+      "round_id": "891cbe90a789420392d3d93a78904ad3",
+      "model": "bench-stroke-xiao-v1-unvalidated",
+      "result": {
+        "round_id": "891cbe90a789420392d3d93a78904ad3",
+        "player": "测试玩家",
+        "device_id": "4d53cd7b5c288607",
+        "strokes": 5,
+        "cup_source": "simulation",
+        "completed_at": 1789442976.839625
+      },
+      "user_feedback": "About five strokes with one unspecified issue; total count agreement does not establish event-level precision."
+    }
+  },
+  "limits": [
+    "Original runs are local and Git-ignored; this is a summary, not a raw-data archive.",
+    "Automatic placement timings start with valid NFC, not physical placement.",
+    "PuttTrack cup results currently use simulation; Golf Up optical hardware deployment is user-confirmed.",
+    "XIAO v1 is experimental; replay on tuning data is not independent accuracy validation."
+  ]
+}

@@ -1,0 +1,82 @@
+/* Seeed XIAO Sense: own the IMU supply sequencing; keep OTA slot layout. */
+/delete-node/ &imu_power_default_on;
+&pdm_imu_pwr {
+ /delete-property/ regulator-boot-on;
+ startup-delay-us = <100000>;
+};
+/* The divider driver owns VBAT_EN and only powers it during measurement. */
+&vbat_pwr { status = "disabled"; };
+&uart20 { status = "disabled"; };
+&uart21 { status = "disabled"; };
+&spi00 { status = "disabled"; };
+&i2c22 { status = "disabled"; };
+&pdm20 { status = "disabled"; };
+/ {
+ aliases { battery-fuel-gauge = &fuel_gauge; };
+ vbatt: vbatt {
+  compatible = "voltage-divider";
+  io-channels = <&adc 0>;
+  output-ohms = <10000>;
+  full-ohms = <20000>;
+  power-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+  power-on-sample-delay-us = <10000>;
+ };
+ fuel_gauge: fuel_gauge {
+  compatible = "zephyr,fuel-gauge-composite";
+  source-primary = <&vbatt>;
+  device-chemistry = "lithium-ion";
+  /* Generic Li-ion OCV estimate, NOT a calibrated battery or presence detector. */
+  ocv-capacity-table-0 = <3000000 3500000 3600000 3650000 3700000
+                        3750000 3800000 3900000 4000000 4100000 4200000>;
+
+ };
+};
+&adc {
+ #address-cells = <1>;
+ #size-cells = <0>;
+ channel@0 {
+  reg = <0>;
+  zephyr,gain = "ADC_GAIN_1_4";
+  zephyr,reference = "ADC_REF_INTERNAL";
+  zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+  zephyr,resolution = <14>;
+  zephyr,oversampling = <8>;
+  zephyr,vref-mv = <900>;
+  zephyr,input-positive = <NRF_SAADC_AIN7>;
+ };
+};
+/delete-node/ &boot_partition;
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+/delete-node/ &storage_partition;
+
+&cpuapp_rram {
+	partitions {
+		boot_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(68)>;
+		};
+
+		slot0_partition: partition@11000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x11000 DT_SIZE_K(696)>;
+		};
+
+		slot1_partition: partition@bf000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0xbf000 DT_SIZE_K(696)>;
+		};
+
+		storage_partition: partition@16d000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x16d000 DT_SIZE_K(64)>;
+		};
+	};
+};
+
+&uicr { /delete-property/ nfct-pins-as-gpios; };
+&nfct { status = "okay"; };

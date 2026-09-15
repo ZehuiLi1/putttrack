@@ -1,5 +1,7 @@
 # PuttTrack Project Status
 
+> 2026-09-15 update: the enclosed Tag/XIAO one-hole prototype has reached stage closeout. Current firmware, physical evidence, scope and next mounting/strike tests are in [Single-hole closeout](SINGLE_HOLE_CLOSEOUT_20260915.md). Older baseline/version statements below are historical.
+
 **As of:** 2026-09-05
 **Active direction:** BLE + motion + physical tee/cup; Channel Sounding deferred
 

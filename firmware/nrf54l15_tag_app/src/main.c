@@ -36,10 +36,14 @@
 #include <zcbor_encode.h>
 
 #include "pickup_shadow_v0.h"
+#include "nfc_read_led.h"
+#if defined(CONFIG_SETTINGS)
+#include <zephyr/settings/settings.h>
+#endif
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 #include <hal/nrf_nfct.h>
-#include <nfc_t2t_lib.h>
+#include <nfc_t4t_lib.h>
 #include <nfc/ndef/uri_msg.h>
 #endif
 
@@ -52,8 +56,15 @@
 #endif
 #endif
 
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+#include "xiao_sense.h"
+#define PUTTTRACK_PROTOCOL_VERSION 2U
+#define PUTTTRACK_SENSOR_LAYOUT "lsm6ds3tr-c-single"
+#else
 #define PUTTTRACK_PROTOCOL_VERSION 1U
-#define PUTTTRACK_FIRMWARE_VERSION "0.1.18"
+#define PUTTTRACK_SENSOR_LAYOUT "adxl367-bmi270"
+#endif
+#define PUTTTRACK_FIRMWARE_VERSION CONFIG_PUTTTRACK_FIRMWARE_VERSION
 
 #define PUTTTRACK_MGMT_GROUP_ID 64U
 #define PUTTTRACK_MGMT_ID_STATUS 0U
@@ -79,7 +90,11 @@
 
 #define MOTION_STREAM_RATE_HZ 50U
 #define ADXL367_ODR_HZ 100U
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+#define ADXL367_RANGE_G 16U
+#else
 #define ADXL367_RANGE_G 2U
+#endif
 #define BMI270_ACCEL_ODR_HZ 100U
 #define BMI270_ACCEL_RANGE_G 16U
 #define BMI270_GYRO_ODR_HZ 100U
@@ -121,7 +136,7 @@
 #define ADXL367_POWER_CTL_WAKEUP_BIT BIT(3)
 
 /* Count a sample as clipped just before the configured full-scale rail. */
-#define ADXL367_CLIP_MICRO_MS2 19221034
+#define ADXL367_CLIP_MICRO_MS2 (ADXL367_RANGE_G * 9610517)
 #define BMI270_ACCEL_CLIP_MICRO_MS2 153768272
 #define BMI270_GYRO_CLIP_MICRO_RADS 34208453
 #define DEVICE_ID_MAX_SIZE 16U
@@ -182,17 +197,20 @@ static const struct bt_uuid_128 putttrack_status_uuid = BT_UUID_INIT_128(
 static const struct bt_uuid_128 putttrack_motion_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0x8f3a1002, 0x6e7d, 0x4b9a, 0xa6e8, 0x3f3f7d2c0001));
 
+static const struct device *const battery_fuel_gauge =
+	DEVICE_DT_GET(DT_ALIAS(battery_fuel_gauge));
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 static const struct device *const adxl367 = DEVICE_DT_GET(DT_NODELABEL(adxl367));
 static const struct device *const bmi270 = DEVICE_DT_GET(DT_NODELABEL(bmi270));
 static const struct device *const bmi270_spi = DEVICE_DT_GET(DT_NODELABEL(spi22));
-static const struct device *const battery_fuel_gauge =
-	DEVICE_DT_GET(DT_ALIAS(battery_fuel_gauge));
 static const struct i2c_dt_spec adxl367_i2c =
 	I2C_DT_SPEC_GET(DT_NODELABEL(adxl367));
 static const struct sensor_trigger idle_wake_trigger = {
 	.type = SENSOR_TRIG_THRESHOLD,
 	.chan = SENSOR_CHAN_ACCEL_XYZ,
 };
+
+#endif
 
 static uint8_t status_packet[STATUS_PACKET_SIZE];
 static uint8_t motion_packet[MOTION_PACKET_SIZE];
@@ -235,6 +253,13 @@ static bool adxl367_ready;
 static bool bmi270_ready;
 static atomic_t notify_enabled;
 static atomic_t ble_connected;
+/* Retained in RAM for SWD diagnosis when an encrypted read cannot complete. */
+static atomic_t ble_security_level;
+static atomic_t ble_security_error;
+static atomic_t ble_security_request_error;
+static atomic_t ble_pairing_count;
+static atomic_t ble_pairing_failure_count;
+static atomic_t ble_last_disconnect_reason;
 static atomic_t bluetooth_ready;
 static atomic_t power_policy = ATOMIC_INIT(PUTTTRACK_POWER_AUTO);
 static atomic_t runtime_state = ATOMIC_INIT(PUTTTRACK_RUNTIME_ACTIVE);
@@ -275,8 +300,14 @@ static struct sensor_reboot_retention sensor_reboot_retention __noinit;
 #define NFC_URI_BUFFER_SIZE 96U
 #define NFC_SERVICE_DISCOVERY_WINDOW_MS 10000U
 #define NFC_SYSTEM_OFF_DELAY_MS 2000U
+#define NFC_MIGRATION_WINDOW_MS 60000U
+#define NFC_MIGRATION_NONCE_SIZE 16U
+#define NFC_MIGRATION_COMMAND_PREFIX "PUTTTRACK:MIGRATE:1:"
 
 static uint8_t nfc_ndef_buffer[NFC_NDEF_BUFFER_SIZE];
+static uint8_t nfc_identity_file[NFC_NDEF_BUFFER_SIZE];
+static uint8_t nfc_last_migration_nonce[NFC_MIGRATION_NONCE_SIZE];
+static bool nfc_last_migration_nonce_valid;
 static atomic_t nfc_field_on_count;
 static atomic_t nfc_field_off_count;
 static atomic_t nfc_data_read_count;
@@ -284,12 +315,19 @@ static atomic_t nfc_field_present;
 static atomic_t nfc_service_window_active;
 static atomic_t nfc_service_window_open_count;
 static atomic_t nfc_service_window_suppressed_count;
+static atomic_t nfc_migration_window_active;
+static atomic_t nfc_migration_count;
+static atomic_t nfc_migration_command_count;
+static atomic_t nfc_migration_replay_count;
+static int32_t nfc_migration_error;
 static int32_t nfc_setup_error;
 static atomic_t system_off_pending;
 static int32_t system_off_entry_error;
 static bool nfc_system_off_wake;
 static struct k_work nfc_service_window_open_work;
 static struct k_work_delayable nfc_service_window_close_work;
+static struct k_work nfc_migration_authorize_work;
+static struct k_work_delayable nfc_migration_window_close_work;
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 static struct k_work_delayable system_off_work;
 #endif
@@ -640,7 +678,25 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 
 	ok = zcbor_tstr_put_lit(zse, "proto") &&
 	     zcbor_uint32_put(zse, PUTTTRACK_PROTOCOL_VERSION) &&
-	     zcbor_tstr_put_lit(zse, "seq") &&
+	     zcbor_tstr_put_lit(zse, "ble_bond_persistence") &&
+             zcbor_bool_put(zse, IS_ENABLED(CONFIG_BT_SETTINGS)) &&
+             zcbor_tstr_put_lit(zse, "ble_security_level") &&
+             zcbor_uint32_put(zse, atomic_get(&ble_security_level)) &&
+             zcbor_tstr_put_lit(zse, "ble_security_error") &&
+             zcbor_int32_put(zse, atomic_get(&ble_security_error)) &&
+             zcbor_tstr_put_lit(zse, "ble_security_request_error") &&
+             zcbor_int32_put(zse, atomic_get(&ble_security_request_error)) &&
+             zcbor_tstr_put_lit(zse, "ble_pairings") &&
+             zcbor_uint32_put(zse, atomic_get(&ble_pairing_count)) &&
+             zcbor_tstr_put_lit(zse, "ble_pairing_failures") &&
+             zcbor_uint32_put(zse, atomic_get(&ble_pairing_failure_count)) &&
+             zcbor_tstr_put_lit(zse, "ble_last_disconnect_reason") &&
+             zcbor_uint32_put(zse, atomic_get(&ble_last_disconnect_reason)) &&
+             zcbor_tstr_put_lit(zse, "sensor_layout") &&
+             zcbor_tstr_put_lit(zse, PUTTTRACK_SENSOR_LAYOUT) &&
+             zcbor_tstr_put_lit(zse, "pickup_shadow_model_validated") &&
+             zcbor_bool_put(zse, false) &&
+             zcbor_tstr_put_lit(zse, "seq") &&
 	     zcbor_uint32_put(zse, status_sequence) &&
 	     zcbor_tstr_put_lit(zse, "uptime_ms") &&
 	     zcbor_uint64_put(zse, (uint64_t)k_uptime_get()) &&
@@ -742,7 +798,9 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_uint32_put(zse, power_management_error_count) &&
 	     zcbor_tstr_put_lit(zse, "bmi_spi_suspended") &&
 	     zcbor_bool_put(zse, atomic_get(&bmi270_spi_suspended) != 0) &&
-	     zcbor_tstr_put_lit(zse, "battery_supported") &&
+	     zcbor_tstr_put_lit(zse, "battery_presence_known") &&
+             zcbor_bool_put(zse, false) &&
+             zcbor_tstr_put_lit(zse, "battery_supported") &&
 	     zcbor_bool_put(zse, battery_supported) &&
 	     zcbor_tstr_put_lit(zse, "battery_sample_valid") &&
 	     zcbor_bool_put(zse, battery_sample_valid) &&
@@ -773,6 +831,12 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_bool_put(zse, true) &&
 	     zcbor_tstr_put_lit(zse, "nfc_setup_error") &&
 	     zcbor_int32_put(zse, nfc_setup_error) &&
+	     zcbor_tstr_put_lit(zse, "nfc_read_led_enabled") &&
+	     zcbor_bool_put(zse, IS_ENABLED(CONFIG_PUTTTRACK_NFC_READ_LED)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_read_led_error") &&
+	     zcbor_int32_put(zse, nfc_read_led_error()) &&
+	     zcbor_tstr_put_lit(zse, "nfc_read_led_pulses") &&
+	     zcbor_uint32_put(zse, nfc_read_led_pulses()) &&
 	     zcbor_tstr_put_lit(zse, "nfc_field_on") &&
 	     zcbor_uint32_put(zse, (uint32_t)atomic_get(&nfc_field_on_count)) &&
 	     zcbor_tstr_put_lit(zse, "nfc_field_off") &&
@@ -792,6 +856,26 @@ static int putttrack_mgmt_status(struct smp_streamer *ctxt)
 	     zcbor_uint32_put(zse,
 			       (uint32_t)atomic_get(
 				       &nfc_service_window_suppressed_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_supported") &&
+	     zcbor_bool_put(zse, true) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_transport") &&
+	     zcbor_tstr_put_lit(zse, "ndef_type4_command") &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_window") &&
+	     zcbor_bool_put(zse,
+			    atomic_get(&nfc_migration_window_active) != 0) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_window_ms") &&
+	     zcbor_uint32_put(zse, NFC_MIGRATION_WINDOW_MS) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migrations") &&
+	     zcbor_uint32_put(zse,
+			       (uint32_t)atomic_get(&nfc_migration_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_commands") &&
+	     zcbor_uint32_put(zse,
+			       (uint32_t)atomic_get(&nfc_migration_command_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_replays") &&
+	     zcbor_uint32_put(zse,
+			       (uint32_t)atomic_get(&nfc_migration_replay_count)) &&
+	     zcbor_tstr_put_lit(zse, "nfc_migration_error") &&
+	     zcbor_int32_put(zse, nfc_migration_error) &&
 	     zcbor_tstr_put_lit(zse, "system_off_supported") &&
 	     zcbor_bool_put(zse,
 			     IS_ENABLED(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)) &&
@@ -1089,6 +1173,7 @@ static void enter_system_off(struct k_work *work)
 	}
 
 	system_off_entry_error = 0;
+	nfc_read_led_stop();
 	sys_poweroff();
 }
 
@@ -1352,7 +1437,8 @@ static void advertise(struct k_work *work)
 	     health == PUTTTRACK_SENSOR_DEGRADED ||
 	     health == PUTTTRACK_SENSOR_QUARANTINED)
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
-	    && atomic_get(&nfc_service_window_active) == 0
+	    && atomic_get(&nfc_service_window_active) == 0 &&
+	    atomic_get(&nfc_migration_window_active) == 0
 #endif
 	) {
 		parameters = &idle_advertising;
@@ -1407,6 +1493,94 @@ static void open_nfc_service_window(struct k_work *work)
 	(void)k_work_reschedule(&nfc_service_window_close_work,
 				K_MSEC(NFC_SERVICE_DISCOVERY_WINDOW_MS));
 }
+
+static void close_nfc_migration_window(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (atomic_cas(&nfc_migration_window_active, 1, 0)) {
+		refresh_advertising();
+	}
+}
+
+static void authorize_nfc_migration(struct k_work *work)
+{
+	int rc;
+
+	ARG_UNUSED(work);
+	rc = bt_unpair(BT_ID_DEFAULT, NULL);
+	nfc_migration_error = rc;
+	if (rc != 0) {
+		return;
+	}
+
+	atomic_inc(&nfc_migration_count);
+	atomic_set(&nfc_migration_window_active, 1);
+	refresh_advertising();
+	(void)k_work_reschedule(&nfc_migration_window_close_work,
+				K_MSEC(NFC_MIGRATION_WINDOW_MS));
+}
+
+static int hex_nibble(uint8_t value)
+{
+	if (value >= '0' && value <= '9') {
+		return value - '0';
+	}
+	if (value >= 'a' && value <= 'f') {
+		return value - 'a' + 10;
+	}
+	if (value >= 'A' && value <= 'F') {
+		return value - 'A' + 10;
+	}
+	return -1;
+}
+
+static bool parse_nfc_migration_command(size_t ndef_length,
+					uint8_t nonce[NFC_MIGRATION_NONCE_SIZE])
+{
+	const uint8_t *message = &nfc_ndef_buffer[2];
+	const size_t prefix_length = sizeof(NFC_MIGRATION_COMMAND_PREFIX) - 1U;
+	const size_t id_hex_length = (size_t)device_id_len * 2U;
+	const size_t nonce_hex_length = NFC_MIGRATION_NONCE_SIZE * 2U;
+	const size_t text_length = prefix_length + id_hex_length + 1U +
+				   nonce_hex_length;
+	const size_t payload_length = 3U + text_length;
+	const size_t message_length = 4U + payload_length;
+	size_t cursor;
+
+	if (ndef_length != message_length ||
+	    sys_get_be16(nfc_ndef_buffer) != ndef_length ||
+	    message[0] != 0xd1U || message[1] != 1U ||
+	    message[2] != payload_length || message[3] != 'T' ||
+	    message[4] != 2U || message[5] != 'e' || message[6] != 'n' ||
+	    memcmp(&message[7], NFC_MIGRATION_COMMAND_PREFIX,
+		   prefix_length) != 0) {
+		return false;
+	}
+	cursor = 7U + prefix_length;
+	for (size_t i = 0; i < device_id_len; ++i) {
+		int high = hex_nibble(message[cursor++]);
+		int low = hex_nibble(message[cursor++]);
+
+		if (high < 0 || low < 0 ||
+		    (uint8_t)((high << 4) | low) != device_id[i]) {
+			return false;
+		}
+	}
+	if (message[cursor++] != ':') {
+		return false;
+	}
+	for (size_t i = 0; i < NFC_MIGRATION_NONCE_SIZE; ++i) {
+		int high = hex_nibble(message[cursor++]);
+		int low = hex_nibble(message[cursor++]);
+
+		if (high < 0 || low < 0) {
+			return false;
+		}
+		nonce[i] = (uint8_t)((high << 4) | low);
+	}
+	return cursor == message_length;
+}
 #endif
 
 static void connected(struct bt_conn *conn, uint8_t err)
@@ -1416,13 +1590,18 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 	} else {
 		atomic_set(&ble_connected, 1);
+		/* Request the same L2 protection used by GATT/SMP immediately, so
+		 * commissioning does not depend on a host retrying an encrypted read.
+		 */
+		atomic_set(&ble_security_request_error, bt_conn_set_security(conn, BT_SECURITY_L2));
 	}
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	ARG_UNUSED(conn);
-	ARG_UNUSED(reason);
+	atomic_set(&ble_last_disconnect_reason, reason);
+	atomic_clear(&ble_security_level);
 	atomic_clear(&notify_enabled);
 	atomic_clear(&ble_connected);
 }
@@ -1432,10 +1611,43 @@ static void recycled(void)
 	(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 }
 
+static void security_changed(struct bt_conn *conn, bt_security_t level,
+                             enum bt_security_err err)
+{
+ ARG_UNUSED(conn);
+ atomic_set(&ble_security_level, level);
+ atomic_set(&ble_security_error, err);
+}
+
+static void pairing_complete(struct bt_conn *conn, bool bonded)
+{
+ ARG_UNUSED(conn);
+ ARG_UNUSED(bonded);
+ atomic_inc(&ble_pairing_count);
+#if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
+ if (atomic_cas(&nfc_migration_window_active, 1, 0)) {
+  (void)k_work_cancel_delayable(&nfc_migration_window_close_work);
+ }
+#endif
+}
+
+static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
+{
+ ARG_UNUSED(conn);
+ atomic_inc(&ble_pairing_failure_count);
+ atomic_set(&ble_security_error, reason);
+}
+
+static struct bt_conn_auth_info_cb auth_info_callbacks = {
+ .pairing_complete = pairing_complete,
+ .pairing_failed = pairing_failed,
+};
+
 BT_CONN_CB_DEFINE(connection_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
 	.recycled = recycled,
+	.security_changed = security_changed,
 };
 
 static void initialize_identity(void)
@@ -1477,6 +1689,35 @@ static void initialize_sensor_reboot_retention(void)
 	}
 }
 
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+static void xiao_motion_trigger(void)
+{
+ atomic_set(&idle_wake_requested, 1);
+ k_sem_give(&power_event_sem);
+}
+static int set_adxl367_wakeup_mode(bool enable)
+{
+ /* Protocol 2 uses LSM motion interrupts; there is no ADXL wake-up mode. */
+ ARG_UNUSED(enable);
+ return 0;
+}
+static int enable_idle_wake_interrupt(void)
+{
+ int rc = pt_xiao_wake_enable(xiao_motion_trigger);
+ if (!rc) atomic_set(&idle_wake_interrupt_enabled, 1);
+ return rc;
+}
+static int disable_idle_wake_interrupt(void)
+{
+ int rc = pt_xiao_wake_disable();
+ if (!rc) {
+  atomic_clear(&idle_wake_interrupt_enabled);
+  atomic_clear(&idle_wake_requested);
+ }
+ return rc;
+}
+
+#else
 static int set_sensor_frequency(const struct device *device,
 				enum sensor_channel channel, int32_t frequency_hz)
 {
@@ -1629,6 +1870,8 @@ static int disable_idle_wake_interrupt(void)
 	return rc;
 }
 
+#endif
+
 static void increment_saturating(uint32_t *value)
 {
 	if (*value != UINT32_MAX) {
@@ -1727,6 +1970,39 @@ static void record_sensor_sample_result(uint32_t error_bits)
 	}
 }
 
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+static uint32_t verify_active_sensor_samples(void)
+{
+ struct sensor_value accel[3], gyro[3];
+ return pt_xiao_sample(accel, gyro) == 0 ? 0U :
+  SENSOR_ERROR_ADXL367_FETCH | SENSOR_ERROR_BMI270_FETCH;
+}
+static int configure_active_sensors(void)
+{
+ int rc = pt_xiao_active();
+ if (!rc) {
+  current_adxl367_odr_hz = 104U;
+  current_bmi270_accel_odr_hz = 104U;
+  current_bmi270_gyro_odr_hz = 104U;
+ } else increment_saturating(&sensor_error_count);
+ return rc;
+}
+static int configure_bmi270_full_scale(void)
+{
+ return pt_xiao_ready() ? 0 : -ENODEV;
+}
+static int configure_idle_sensors(void)
+{
+ int rc = pt_xiao_idle();
+ if (!rc) {
+  current_adxl367_odr_hz = 26U;
+  current_bmi270_accel_odr_hz = 26U;
+  current_bmi270_gyro_odr_hz = 0U;
+ } else increment_saturating(&sensor_error_count);
+ return rc;
+}
+
+#else
 static uint32_t verify_active_sensor_samples(void)
 {
 	struct sensor_value adxl_accel[3];
@@ -1844,12 +2120,19 @@ static int configure_idle_sensors(void)
 	return 0;
 }
 
+#endif
+
 static void initialize_sensors(void)
 {
 	uint32_t errors = 0U;
 
-	adxl367_ready = device_is_ready(adxl367);
-	bmi270_ready = device_is_ready(bmi270);
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+ adxl367_ready = pt_xiao_init() == 0;
+ bmi270_ready = adxl367_ready;
+#else
+ adxl367_ready = device_is_ready(adxl367);
+ bmi270_ready = device_is_ready(bmi270);
+#endif
 
 	if (!adxl367_ready) {
 		errors |= SENSOR_ERROR_ADXL367_FETCH;
@@ -1886,7 +2169,9 @@ static uint32_t recovery_retry_delay_ms(uint8_t attempts)
 static void attempt_sensor_recovery(void)
 {
 	uint32_t errors;
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 	int rc;
+#endif
 
 	if (atomic_get(&sensor_health) != PUTTTRACK_SENSOR_RECOVERING ||
 	    k_uptime_get() < next_sensor_recovery_ms) {
@@ -1895,6 +2180,7 @@ static void attempt_sensor_recovery(void)
 
 	increment_saturating(&sensor_recovery_attempt_count);
 	sensor_recovery_attempts_in_episode++;
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 	if (atomic_get(&bmi270_spi_suspended) != 0) {
 		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_RESUME);
 		if (rc == 0) {
@@ -1903,9 +2189,15 @@ static void attempt_sensor_recovery(void)
 			increment_saturating(&power_management_error_count);
 		}
 	}
+#endif
 
-	adxl367_ready = device_is_ready(adxl367);
-	bmi270_ready = device_is_ready(bmi270);
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+ adxl367_ready = pt_xiao_init() == 0;
+ bmi270_ready = adxl367_ready;
+#else
+ adxl367_ready = device_is_ready(adxl367);
+ bmi270_ready = device_is_ready(bmi270);
+#endif
 	errors = 0U;
 	if (!adxl367_ready) {
 		errors |= SENSOR_ERROR_ADXL367_FETCH;
@@ -2039,6 +2331,14 @@ static bool sample_motion(void)
 	bool motion_detected = false;
 
 	sequence++;
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+ rc = pt_xiao_sample(bmi_accel, bmi_gyro);
+ if (rc == 0) {
+  /* Protocol 2: the two acceleration slots contain the SAME physical sample. */
+  memcpy(adxl_accel, bmi_accel, sizeof(adxl_accel));
+  flags = MOTION_FLAG_ADXL367_VALID | MOTION_FLAG_BMI270_VALID;
+ } else errors = SENSOR_ERROR_ADXL367_FETCH | SENSOR_ERROR_BMI270_FETCH;
+#else
 	if (adxl367_ready) {
 		rc = sensor_sample_fetch(adxl367);
 		if (rc != 0) {
@@ -2074,6 +2374,8 @@ static bool sample_motion(void)
 	} else {
 		errors |= SENSOR_ERROR_BMI270_FETCH;
 	}
+
+#endif
 
 	if ((flags & MOTION_FLAG_ADXL367_VALID) != 0U) {
 		motion_detected |= vector_delta_exceeds(
@@ -2142,6 +2444,13 @@ static bool sample_idle_wake_sensor(void)
 	const int64_t squared_threshold =
 		(int64_t)IDLE_WAKE_DELTA_MICRO_MS2 * IDLE_WAKE_DELTA_MICRO_MS2;
 
+#if defined(CONFIG_PUTTTRACK_XIAO_SENSE)
+ struct sensor_value gyro[3];
+ if (pt_xiao_sample(adxl_accel, gyro) != 0) {
+  record_sensor_sample_result(SENSOR_ERROR_ADXL367_FETCH | SENSOR_ERROR_BMI270_FETCH);
+  return false;
+ }
+#else
 	if (!adxl367_ready || sensor_sample_fetch(adxl367) != 0) {
 		record_sensor_sample_result(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
@@ -2150,6 +2459,7 @@ static bool sample_idle_wake_sensor(void)
 		record_sensor_sample_result(SENSOR_ERROR_ADXL367_READ);
 		return false;
 	}
+#endif
 	record_sensor_sample_result(0U);
 	for (size_t index = 0; index < 3; index++) {
 		current[index] = sensor_value_to_i32_micro(&adxl_accel[index]);
@@ -2208,6 +2518,7 @@ static bool enter_idle_state(void)
 		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
 	}
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 	if (bmi270_ready && atomic_get(&bmi270_spi_suspended) == 0) {
 		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_SUSPEND);
 		if (rc == 0) {
@@ -2216,6 +2527,7 @@ static bool enter_idle_state(void)
 			increment_saturating(&power_management_error_count);
 		}
 	}
+#endif
 	current_stream_rate_hz = 0U;
 	idle_adxl_baseline_valid = false;
 	idle_wake_samples = 0U;
@@ -2230,7 +2542,9 @@ static bool enter_idle_state(void)
 
 static bool enter_active_state(void)
 {
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 	int rc;
+#endif
 
 	if (atomic_get(&runtime_state) == PUTTTRACK_RUNTIME_ACTIVE) {
 		return true;
@@ -2245,6 +2559,7 @@ static bool enter_active_state(void)
 		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH);
 		return false;
 	}
+#if !defined(CONFIG_PUTTTRACK_XIAO_SENSE)
 	if (bmi270_ready && atomic_get(&bmi270_spi_suspended) != 0) {
 		rc = pm_device_action_run(bmi270_spi, PM_DEVICE_ACTION_RESUME);
 		if (rc != 0) {
@@ -2254,6 +2569,7 @@ static bool enter_active_state(void)
 		}
 		atomic_clear(&bmi270_spi_suspended);
 	}
+#endif
 	if (configure_active_sensors() != 0) {
 		begin_sensor_recovery(SENSOR_ERROR_ADXL367_FETCH |
 				      SENSOR_ERROR_BMI270_FETCH);
@@ -2272,15 +2588,15 @@ static bool enter_active_state(void)
 }
 
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
-static void nfc_callback(void *context, nfc_t2t_event_t event,
-			 const uint8_t *data, size_t data_length)
+static void nfc_callback(void *context, nfc_t4t_event_t event,
+			 const uint8_t *data, size_t data_length, uint32_t flags)
 {
 	ARG_UNUSED(context);
 	ARG_UNUSED(data);
-	ARG_UNUSED(data_length);
+	ARG_UNUSED(flags);
 
 	switch (event) {
-	case NFC_T2T_EVENT_FIELD_ON:
+	case NFC_T4T_EVENT_FIELD_ON:
 		atomic_inc(&nfc_field_on_count);
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 		if (atomic_cas(&system_off_pending, 1, 0)) {
@@ -2294,13 +2610,36 @@ static void nfc_callback(void *context, nfc_t2t_event_t event,
 			atomic_inc(&nfc_service_window_suppressed_count);
 		}
 		break;
-	case NFC_T2T_EVENT_FIELD_OFF:
+	case NFC_T4T_EVENT_FIELD_OFF:
 		atomic_inc(&nfc_field_off_count);
 		atomic_clear(&nfc_field_present);
+		/* The command is one-shot. Expose the identity URI again next time. */
+		memcpy(nfc_ndef_buffer, nfc_identity_file,
+		       sizeof(nfc_ndef_buffer));
 		break;
-	case NFC_T2T_EVENT_DATA_READ:
+	case NFC_T4T_EVENT_NDEF_READ:
 		atomic_inc(&nfc_data_read_count);
+		nfc_read_led_notify();
 		break;
+	case NFC_T4T_EVENT_NDEF_UPDATED: {
+		uint8_t nonce[NFC_MIGRATION_NONCE_SIZE];
+
+		if (data_length == 0U ||
+		    !parse_nfc_migration_command(data_length, nonce)) {
+			break;
+		}
+		if (nfc_last_migration_nonce_valid &&
+		    memcmp(nonce, nfc_last_migration_nonce,
+			   sizeof(nonce)) == 0) {
+			atomic_inc(&nfc_migration_replay_count);
+			break;
+		}
+		memcpy(nfc_last_migration_nonce, nonce, sizeof(nonce));
+		nfc_last_migration_nonce_valid = true;
+		atomic_inc(&nfc_migration_command_count);
+		(void)k_work_submit(&nfc_migration_authorize_work);
+		break;
+	}
 	default:
 		break;
 	}
@@ -2310,7 +2649,7 @@ static int initialize_nfc_service(void)
 {
 	char device_id_hex[DEVICE_ID_MAX_SIZE * 2U + 1U];
 	char uri[NFC_URI_BUFFER_SIZE];
-	uint32_t ndef_length = sizeof(nfc_ndef_buffer);
+	uint32_t ndef_length = sizeof(nfc_identity_file) - 2U;
 	int uri_length;
 	int rc;
 
@@ -2331,19 +2670,24 @@ static int initialize_nfc_service(void)
 	 * not require replacing MCUboot over SWD.
 	 */
 	nrf_nfct_pad_config_enable_set(NRF_NFCT, true);
-	rc = nfc_t2t_setup(nfc_callback, NULL);
+	memset(nfc_identity_file, 0, sizeof(nfc_identity_file));
+	rc = nfc_t4t_setup(nfc_callback, NULL);
 	if (rc == 0) {
 		rc = nfc_ndef_uri_msg_encode(NFC_URI_NONE,
 					     (const uint8_t *)uri,
 					     (uint16_t)uri_length,
-					     nfc_ndef_buffer,
+					     &nfc_identity_file[2],
 					     &ndef_length);
 	}
 	if (rc == 0) {
-		rc = nfc_t2t_payload_set(nfc_ndef_buffer, ndef_length);
+		sys_put_be16((uint16_t)ndef_length, nfc_identity_file);
+		memcpy(nfc_ndef_buffer, nfc_identity_file,
+		       sizeof(nfc_ndef_buffer));
+		rc = nfc_t4t_ndef_rwpayload_set(nfc_ndef_buffer,
+						 sizeof(nfc_ndef_buffer));
 	}
 	if (rc == 0) {
-		rc = nfc_t2t_emulation_start();
+		rc = nfc_t4t_emulation_start();
 	}
 	nfc_setup_error = rc;
 
@@ -2359,19 +2703,35 @@ int main(void)
 	initialize_sensor_reboot_retention();
 	initialize_identity();
 	initialize_advertising_name();
+	nfc_read_led_init();
 	scan_response_data[0].data_len = (uint8_t)strlen(advertising_name);
 	k_work_init_delayable(&advertise_work, advertise);
 #if defined(CONFIG_PUTTTRACK_NFC_SERVICE)
 	k_work_init(&nfc_service_window_open_work, open_nfc_service_window);
 	k_work_init_delayable(&nfc_service_window_close_work,
 			      close_nfc_service_window);
+	k_work_init(&nfc_migration_authorize_work, authorize_nfc_migration);
+	k_work_init_delayable(&nfc_migration_window_close_work,
+			      close_nfc_migration_window);
 #if defined(CONFIG_PUTTTRACK_NFC_SYSTEM_OFF_TEST)
 	k_work_init_delayable(&system_off_work, enter_system_off);
 #endif
 #endif
 	sample_battery();
 	initialize_sensors();
+	(void)bt_conn_auth_info_cb_register(&auth_info_callbacks);
 	if (bt_enable(NULL) == 0) {
+#if defined(CONFIG_SETTINGS)
+		int rc = settings_load();
+		if (rc != 0) {
+			return rc;
+		}
+#endif
+#if defined(CONFIG_BT_DEVICE_NAME_DYNAMIC)
+		if (bt_set_name(advertising_name) != 0) {
+			return -EINVAL;
+		}
+#endif
 		atomic_set(&bluetooth_ready, 1);
 		(void)k_work_reschedule(&advertise_work, K_NO_WAIT);
 	}

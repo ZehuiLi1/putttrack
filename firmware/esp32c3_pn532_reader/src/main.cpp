@@ -3,16 +3,19 @@
 #include <SPI.h>
 
 #include "app_config.h"
+#include "cup_sensor.h"
 #include "roller_motor.h"
 
 namespace {
 
 Adafruit_PN532 pn532(PT_PN532_SS, &SPI);
 HardwareSerial motor_uart(1);
-RollerMotor roller_motor(motor_uart);
+bool handleNfcConsoleCommand(const String &line);
+RollerMotor roller_motor(motor_uart, handleNfcConsoleCommand);
 
 struct NdefResult {
   bool type2 = false;
+  bool type4 = false;
   bool valid = false;
   size_t type2_advertised_bytes = 0;
   size_t type2_loaded_bytes = 0;
@@ -26,9 +29,13 @@ struct NdefResult {
 };
 
 String active_uid;
+String active_device_id;
+bool active_type4 = false;
 uint32_t consecutive_reads = 0;
 uint32_t last_seen_ms = 0;
 bool stable_reported = false;
+bool rf_paused = false;
+uint32_t rf_resume_at = 0;
 
 String uidToHex(const uint8_t *uid, uint8_t uid_length) {
   static constexpr char HEX_DIGITS[] = "0123456789ABCDEF";
@@ -304,6 +311,148 @@ bool parseNdefRecords(const uint8_t *message, size_t message_length,
   return true;
 }
 
+bool exchangeApdu(const uint8_t *command, size_t command_length,
+                  uint8_t *response, uint8_t &response_length) {
+  if (command_length > 62U) return false;
+  const bool exchanged = pn532.inDataExchange(const_cast<uint8_t *>(command),
+                            static_cast<uint8_t>(command_length), response,
+                            &response_length);
+  const int status_word = exchanged && response_length >= 2U
+      ? (response[response_length - 2U] << 8U) | response[response_length - 1U]
+      : -1;
+  if (!exchanged || status_word != 0x9000) {
+    Serial.printf("{\"event\":\"apdu_failure\",\"ins\":%u,\"p1\":%u,\"p2\":%u,"
+                  "\"transport_ok\":%s,\"diagnostic\":%u,\"status_word\":%d}\n",
+                  command[1], command[2], command[3], exchanged ? "true" : "false",
+                  pn532.lastExchangeDiagnostic(), status_word);
+    return false;
+  }
+  response_length -= 2U;
+  return true;
+}
+
+bool selectType4Ndef() {
+  static const uint8_t SELECT_NDEF_APPLICATION[] = {
+      0x00, 0xA4, 0x04, 0x00, 0x07, 0xD2, 0x76,
+      0x00, 0x00, 0x85, 0x01, 0x01, 0x00};
+  static const uint8_t SELECT_NDEF_FILE[] = {0x00, 0xA4, 0x00, 0x0C,
+                                              0x02, 0xE1, 0x04};
+  uint8_t response[16] = {};
+  uint8_t response_length = sizeof(response);
+
+  if (!exchangeApdu(SELECT_NDEF_APPLICATION, sizeof(SELECT_NDEF_APPLICATION),
+                    response, response_length)) {
+    return false;
+  }
+  response_length = sizeof(response);
+  return exchangeApdu(SELECT_NDEF_FILE, sizeof(SELECT_NDEF_FILE), response,
+                      response_length);
+}
+
+bool readBinary(uint16_t offset, uint8_t *data, uint8_t length) {
+  uint8_t command[] = {0x00, 0xB0, static_cast<uint8_t>(offset >> 8U),
+                       static_cast<uint8_t>(offset), length};
+  uint8_t response[52] = {};
+  uint8_t response_length = sizeof(response);
+
+  if (!exchangeApdu(command, sizeof(command), response, response_length) ||
+      response_length != length) {
+    return false;
+  }
+  memcpy(data, response, length);
+  return true;
+}
+
+bool updateBinary(uint16_t offset, const uint8_t *data, uint8_t length) {
+  uint8_t command[5U + 32U] = {0x00, 0xD6,
+                               static_cast<uint8_t>(offset >> 8U),
+                               static_cast<uint8_t>(offset), length};
+  uint8_t response[8] = {};
+  uint8_t response_length = sizeof(response);
+
+  if (length > 32U) {
+    return false;
+  }
+  memcpy(&command[5], data, length);
+  return exchangeApdu(command, 5U + length, response, response_length) &&
+         response_length == 0U;
+}
+
+NdefResult readType4Ndef() {
+  NdefResult result;
+  uint8_t nlen_bytes[2] = {};
+
+  // The build-time Adafruit PN532 patch records the target selected by the
+  // immediately preceding readPassiveTargetID(), so no second RF activation is
+  // needed before the Type 4 APDU exchange.
+  if (!selectType4Ndef()) {
+    result.error = "not_type4_ndef";
+    return result;
+  }
+  result.type4 = true;
+  if (!readBinary(0U, nlen_bytes, sizeof(nlen_bytes))) {
+    result.error = "type4_nlen_unreadable";
+    return result;
+  }
+  const size_t ndef_length =
+      (static_cast<size_t>(nlen_bytes[0]) << 8U) | nlen_bytes[1];
+  if (ndef_length == 0U || ndef_length > PT_MAX_NDEF_BYTES) {
+    result.error = "type4_ndef_length_out_of_range";
+    return result;
+  }
+
+  static uint8_t message[PT_MAX_NDEF_BYTES];
+  size_t loaded = 0;
+  while (loaded < ndef_length) {
+    const uint8_t chunk = static_cast<uint8_t>(
+        min(static_cast<size_t>(48U), ndef_length - loaded));
+    if (!readBinary(static_cast<uint16_t>(2U + loaded), &message[loaded],
+                    chunk)) {
+      result.error = "type4_ndef_unreadable";
+      return result;
+    }
+    loaded += chunk;
+  }
+  parseNdefRecords(message, ndef_length, result);
+  return result;
+}
+
+bool writeType4Ndef(const uint8_t *message, size_t message_length) {
+  static const uint8_t EMPTY_NLEN[2] = {0x00, 0x00};
+
+  if (message_length == 0U || message_length > 0xFFFFU ||
+      !selectType4Ndef() || !updateBinary(0U, EMPTY_NLEN, sizeof(EMPTY_NLEN))) {
+    return false;
+  }
+  size_t written = 0;
+  while (written < message_length) {
+    const uint8_t chunk = static_cast<uint8_t>(
+        min(static_cast<size_t>(32U), message_length - written));
+    if (!updateBinary(static_cast<uint16_t>(2U + written), &message[written],
+                      chunk)) {
+      return false;
+    }
+    written += chunk;
+  }
+  const uint8_t nlen[] = {static_cast<uint8_t>(message_length >> 8U),
+                          static_cast<uint8_t>(message_length)};
+  return updateBinary(0U, nlen, sizeof(nlen));
+}
+
+bool readType2Page(uint8_t page, uint8_t *out) {
+  // inDataExchange waits for the response-ready signal. Adafruit's NTAG
+  // helper reads immediately after ACK, which races the emulated Tag.
+  uint8_t command[] = {0x30, page};
+  uint8_t response[16] = {};
+  uint8_t length = sizeof(response);
+  if (!pn532.inDataExchange(command, sizeof(command), response, &length) ||
+      length != sizeof(response)) {
+    return false;
+  }
+  memcpy(out, response, 4);
+  return true;
+}
+
 bool loadType2UserBytes(uint8_t *memory, size_t capacity,
                         size_t advertised_bytes, size_t required_bytes,
                         size_t &loaded_bytes) {
@@ -318,7 +467,7 @@ bool loadType2UserBytes(uint8_t *memory, size_t capacity,
     }
     const size_t page_number = 4U + (loaded_bytes / 4U);
     if (page_number > 0xFFU ||
-        !pn532.ntag2xx_ReadPage(static_cast<uint8_t>(page_number),
+        !readType2Page(static_cast<uint8_t>(page_number),
                                memory + loaded_bytes)) {
       return false;
     }
@@ -332,7 +481,7 @@ NdefResult readType2Ndef() {
   uint8_t page[4] = {};
 
   // Page 3 is the NFC Forum Type 2 capability container.
-  if (!pn532.ntag2xx_ReadPage(3, page)) {
+  if (!readType2Page(3, page)) {
     result.error = "capability_container_unreadable";
     return result;
   }
@@ -429,6 +578,145 @@ NdefResult readType2Ndef() {
   return result;
 }
 
+bool isHexNonce(const String &value) {
+  if (value.length() != 32U) {
+    return false;
+  }
+  for (size_t i = 0; i < value.length(); ++i) {
+    const char ch = value[i];
+    if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void printMigrationResult(bool accepted, const String &device_id,
+                          const String &nonce, const char *reason = nullptr) {
+  Serial.print(F("{\"event\":\"nfc_migration_command\",\"accepted\":"));
+  Serial.print(accepted ? F("true") : F("false"));
+  Serial.print(F(",\"device_id\":"));
+  printJsonString(device_id);
+  Serial.print(F(",\"nonce\":"));
+  printJsonString(nonce);
+  if (reason != nullptr) {
+    Serial.print(F(",\"reason\":"));
+    printJsonString(reason);
+  }
+  Serial.println('}');
+}
+
+bool rf_status_pending = true;
+
+void printRfStatus() {
+  // Capture the live NFC-A configuration after a successful transaction;
+  // power-on reset values are not necessarily the active reader settings.
+  static const uint16_t addresses[] = {0x6304, 0x6305, 0x6316, 0x6317,
+                                        0x6318, 0x6319, 0x6308};
+  uint8_t values[7] = {};
+  if (!pn532.readRegisters(addresses, values, 7)) {
+    Serial.println(F("{\"event\":\"rf_status\",\"ok\":false}"));
+    return;
+  }
+  Serial.printf("{\"event\":\"rf_status\",\"ok\":true,"
+                "\"context\":\"after_ndef_read\",\"tx_control\":%u,\"tx_auto\":%u,"
+                "\"rf_cfg\":%u,\"gs_n_on\":%u,\"cw_gs_p\":%u,"
+                "\"mod_gs_p\":%u,\"rx_threshold\":%u,"
+                "\"p_driver\":%u,\"n_driver\":%u}\n",
+                values[0], values[1], values[2], values[3], values[4],
+                values[5], values[6], values[4] & 0x3fU, values[3] >> 4U);
+}
+
+bool handleNfcConsoleCommand(const String &line) {
+  if (cupCommand(line)) return true;
+  if (line == "nfc rf pause" || line == "nfc rf resume") {
+    const bool pause = line == "nfc rf pause";
+    const bool ok = pn532.setRFField(!pause);
+    if (ok) {
+      rf_paused = pause;
+      rf_resume_at = millis() + 60000U;
+      active_uid = "";
+      active_device_id = "";
+      active_type4 = false;
+      consecutive_reads = 0;
+      stable_reported = false;
+    }
+    Serial.printf("{\"event\":\"rf_control\",\"ok\":%s,\"paused\":%s,\"lease_ms\":%u}\n",
+                  ok ? "true" : "false", rf_paused ? "true" : "false",
+                  rf_paused ? 60000U : 0U);
+    return true;
+  }
+  if (line == "nfc rf status") {
+    rf_status_pending = true;
+    Serial.println(F("{\"event\":\"rf_status_pending\"}"));
+    return true;
+  }
+  if (line == "nfc help") {
+    Serial.println(F("{\"event\":\"nfc_help\",\"commands\":["
+                     "\"nfc rf status\",\"nfc rf pause\",\"nfc rf resume\",\"nfc migrate <device_id> <nonce_32_hex>\"]}"));
+    return true;
+  }
+  if (!line.startsWith("nfc migrate ")) {
+    return false;
+  }
+
+  char device_id_buffer[33] = {};
+  char nonce_buffer[33] = {};
+  char trailing = '\0';
+  const int fields = sscanf(line.c_str(), "nfc migrate %32s %32s %c",
+                            device_id_buffer, nonce_buffer, &trailing);
+  String requested_device_id(device_id_buffer);
+  String nonce(nonce_buffer);
+  if (fields != 2 || !isHexDeviceId(requested_device_id) ||
+      !isHexNonce(nonce)) {
+    printMigrationResult(false, requested_device_id, nonce,
+                         "invalid_command");
+    return true;
+  }
+  requested_device_id.toLowerCase();
+  if (PT_NFC_STRESS_TEST) {
+    printMigrationResult(false, requested_device_id, nonce,
+                         "stress_test_read_only");
+    return true;
+  }
+  if (active_uid.isEmpty() || millis() - last_seen_ms > PT_TAG_REMOVED_MS) {
+    printMigrationResult(false, requested_device_id, nonce, "no_tag_present");
+    return true;
+  }
+  if (!active_type4 || active_device_id != requested_device_id) {
+    printMigrationResult(false, requested_device_id, nonce,
+                         "target_identity_mismatch");
+    return true;
+  }
+
+  const String text =
+      "PUTTTRACK:MIGRATE:1:" + requested_device_id + ":" + nonce;
+  uint8_t message[128] = {};
+  const size_t payload_length = 3U + text.length();
+  const size_t message_length = 4U + payload_length;
+  if (payload_length > 255U || message_length > sizeof(message)) {
+    printMigrationResult(false, requested_device_id, nonce,
+                         "command_too_large");
+    return true;
+  }
+  message[0] = 0xD1U;
+  message[1] = 0x01U;
+  message[2] = static_cast<uint8_t>(payload_length);
+  message[3] = 'T';
+  message[4] = 0x02U;
+  message[5] = 'e';
+  message[6] = 'n';
+  memcpy(&message[7], text.c_str(), text.length());
+
+  if (!writeType4Ndef(message, message_length)) {
+    printMigrationResult(false, requested_device_id, nonce,
+                         "type4_write_failed");
+    return true;
+  }
+  printMigrationResult(true, requested_device_id, nonce);
+  return true;
+}
+
 void printTagEvent(const String &uid, const NdefResult &ndef) {
   Serial.print(F("{\"event\":\"nfc_tag\",\"uid\":"));
   printJsonString(uid);
@@ -438,11 +726,15 @@ void printTagEvent(const String &uid, const NdefResult &ndef) {
   Serial.print(PT_STABLE_READ_TARGET);
   Serial.print(F(",\"ndef_ok\":"));
   Serial.print(ndef.valid ? F("true") : F("false"));
+  Serial.printf(",\"sak\":%u", unsigned(pn532.lastTargetSAK()));
   if (ndef.type2) {
     Serial.print(F(",\"type2_advertised_bytes\":"));
     Serial.print(ndef.type2_advertised_bytes);
     Serial.print(F(",\"type2_loaded_bytes\":"));
     Serial.print(ndef.type2_loaded_bytes);
+  }
+  if (ndef.type4) {
+    Serial.print(F(",\"type4\":true"));
   }
   if (ndef.valid) {
     Serial.print(F(",\"ndef_text\":"));
@@ -499,6 +791,7 @@ void setup() {
                 PT_PN532_SCK, PT_PN532_MISO, PT_PN532_MOSI, PT_PN532_SS);
 
   roller_motor.begin();
+  cupBegin();
 
   SPI.begin(PT_PN532_SCK, PT_PN532_MISO, PT_PN532_MOSI, PT_PN532_SS);
   pn532.begin();
@@ -517,13 +810,29 @@ void setup() {
   if (!pn532.SAMConfig()) {
     haltWithError(F("pn532_sam_config_failed"));
   }
-  pn532.setPassiveActivationRetries(0x01);
-  Serial.println(F("{\"event\":\"scan_ready\",\"technology\":\"NFC-A\"}"));
+  if (!pn532.setPassiveActivationRetries(0x00)) {
+    haltWithError(F("pn532_passive_retry_config_failed"));
+  }
+  Serial.printf("{\"event\":\"scan_ready\",\"technology\":\"NFC-A\","
+                "\"stress_test\":%s,\"scan_timeout_ms\":%u,\"scan_gap_ms\":%u,"
+                "\"command_window_ms\":%u,\"field_off_ms\":%u}\n",
+                PT_NFC_STRESS_TEST ? "true" : "false",
+                unsigned(PT_SCAN_TIMEOUT_MS), unsigned(PT_SCAN_GAP_MS),
+                unsigned(PT_TYPE4_COMMAND_WINDOW_MS), unsigned(PT_TYPE4_FIELD_OFF_MS));
 }
 
 void loop() {
+  cupService();
   roller_motor.serviceConsole();
   roller_motor.serviceDeadline();
+
+  if (rf_paused) {
+    if (static_cast<int32_t>(millis() - rf_resume_at) >= 0) {
+      handleNfcConsoleCommand("nfc rf resume");
+    }
+    delay(2);
+    return;
+  }
 
   // During a timed roller run, prioritize the stop deadline and host emergency
   // command. PN532 polling can block for hundreds of milliseconds and is not
@@ -550,8 +859,30 @@ void loop() {
     }
     last_seen_ms = now;
 
-    const NdefResult ndef = readType2Ndef();
+    // SAK bit 5 advertises ISO-DEP support. Do not probe a Type 2 tag
+    // with a Type 4 SELECT APDU: it can end the session and leave a delayed
+    // PN532 response that breaks the fallback activation.
+    const bool iso_dep = (pn532.lastTargetSAK() & 0x20U) != 0U;
+    NdefResult ndef = iso_dep ? readType4Ndef() : readType2Ndef();
+    active_type4 = ndef.type4 && ndef.valid && ndef.service_uri;
+    active_device_id = active_type4 ? ndef.device_id : "";
     printTagEvent(uid_hex, ndef);
+    if (rf_status_pending && ndef.valid && ndef.type4) {
+      rf_status_pending = false;
+      printRfStatus();
+    }
+
+    if (active_type4 && !PT_NFC_STRESS_TEST) {
+      // Keep a short window for a host-triggered migration write, then cycle
+      // the RF field so the Type 4 target starts a fresh transaction without
+      // requiring the operator to lift and replace the Ball.
+      const uint32_t command_deadline = millis() + PT_TYPE4_COMMAND_WINDOW_MS;
+      while (static_cast<int32_t>(command_deadline - millis()) > 0) {
+        roller_motor.serviceConsole();
+        roller_motor.serviceDeadline();
+        delay(1);
+      }
+    }
 
     if (!stable_reported && consecutive_reads >= PT_STABLE_READ_TARGET) {
       Serial.print(F("{\"event\":\"stability_pass\",\"uid\":"));
@@ -577,8 +908,23 @@ void loop() {
       printJsonString(active_uid);
       Serial.println('}');
       active_uid = "";
+      active_device_id = "";
+      active_type4 = false;
     }
   }
 
+  // Reset even after a failed activation: a target left selected by a partial
+  // transaction must be able to start over without physical removal.
+  active_type4 = false;
+  active_device_id = "";
+  // A pause received in the migration window must survive this loop's tail.
+  if (rf_paused) return;
+  if (!pn532.setRFField(false)) {
+    Serial.println(F("{\"event\":\"rf_cycle_failed\",\"phase\":\"off\"}"));
+  }
+  delay(PT_TYPE4_FIELD_OFF_MS);
+  if (!pn532.setRFField(true)) {
+    Serial.println(F("{\"event\":\"rf_cycle_failed\",\"phase\":\"on\"}"));
+  }
   delay(PT_SCAN_GAP_MS);
 }

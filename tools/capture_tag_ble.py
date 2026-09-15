@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
+import select
 import sys
 import time
 from typing import Any
@@ -40,7 +41,32 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scan-timeout", type=float, default=15.0)
     parser.add_argument("--duration", type=float, default=5.0)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--label")
+    parser.add_argument("--notes")
+    parser.add_argument("--armed-countdown", type=float)
+    parser.add_argument("--episode-seconds", type=float)
+    parser.add_argument("--wait-for-go-ack", action="store_true")
+    parser.add_argument("--go-ack-timeout", type=float, default=20.0)
     return parser
+
+
+async def countdown(seconds: float) -> None:
+    deadline = time.monotonic() + seconds
+    previous = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        displayed = max(1, int(remaining + 0.999))
+        if displayed != previous:
+            print(f"ARMED: GO in {displayed}", file=sys.stderr, flush=True)
+            previous = displayed
+        await asyncio.sleep(min(remaining, 0.1))
+
+
+def wait_for_go(timeout: float) -> bool:
+    readable, _, _ = select.select([sys.stdin], [], [], timeout)
+    return bool(readable and sys.stdin.readline().strip() == "GO")
 
 
 async def capture(args: argparse.Namespace) -> int:
@@ -96,12 +122,18 @@ async def capture(args: argparse.Namespace) -> int:
             emit(
                 {
                     "record_type": "tag_status",
+                    "transport": "native_ble",
                     "host_received_ns": time.time_ns(),
+                    "episode_label": args.label,
+                    "episode_notes": args.notes,
                     **status.to_dict(),
                 }
             )
 
+            latest_motion = None
+
             def on_motion(_: Any, data: bytearray) -> None:
+                nonlocal latest_motion
                 try:
                     motion = parse_motion(data)
                 except TelemetryProtocolError as exc:
@@ -115,18 +147,73 @@ async def capture(args: argparse.Namespace) -> int:
                         }
                     )
                     return
+                latest_motion = motion
                 capture_session.observe_motion(motion)
                 emit(
                     {
                         "record_type": "tag_motion",
+                        "transport": "native_ble",
                         "host_received_ns": time.time_ns(),
+                        "episode_label": args.label,
+                        "episode_notes": args.notes,
                         **motion.to_dict(),
                     }
                 )
 
-            if args.duration > 0:
+            capture_seconds = (
+                args.episode_seconds
+                if args.armed_countdown is not None
+                else args.duration
+            )
+            if capture_seconds > 0 or args.armed_countdown is not None:
                 await client.start_notify(MOTION_CHARACTERISTIC_UUID, on_motion)
-                await asyncio.sleep(args.duration)
+                if args.armed_countdown is not None:
+                    print(
+                        "ARMED: setup must already be complete; keep the Ball untouched",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    await countdown(args.armed_countdown)
+                    print(
+                        "ARMED: confirming device marker; keep waiting for GO",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    marker_deadline = time.monotonic() + 2.0
+                    while latest_motion is None and time.monotonic() < marker_deadline:
+                        await asyncio.sleep(0.05)
+                    if latest_motion is None:
+                        raise RuntimeError("native BLE stream produced no device marker")
+                    emit(
+                        {
+                            "record_type": "tag_episode_marker",
+                            "transport": "native_ble",
+                            "marker_kind": "action_start",
+                            "host_received_ns": time.time_ns(),
+                            "episode_label": args.label,
+                            "episode_notes": args.notes,
+                            "source_sequence": latest_motion.sequence,
+                            "source_monotonic_us": latest_motion.source_monotonic_us,
+                        }
+                    )
+                    if args.wait_for_go_ack:
+                        print(
+                            "GO_READY: device marker confirmed; waiting for controller",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        if not await asyncio.to_thread(
+                            wait_for_go, args.go_ack_timeout
+                        ):
+                            raise RuntimeError("GO acknowledgement timed out")
+                    print(
+                        f"GO: action window is {capture_seconds:.2f} seconds",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                await asyncio.sleep(capture_seconds)
+                if args.armed_countdown is not None:
+                    print("FREEZING: keep the Ball untouched", file=sys.stderr, flush=True)
                 await client.stop_notify(MOTION_CHARACTERISTIC_UUID)
 
             final_status = parse_status(
@@ -135,7 +222,10 @@ async def capture(args: argparse.Namespace) -> int:
             emit(
                 {
                     "record_type": "tag_status_final",
+                    "transport": "native_ble",
                     "host_received_ns": time.time_ns(),
+                    "episode_label": args.label,
+                    "episode_notes": args.notes,
                     **final_status.to_dict(),
                 }
             )
@@ -143,7 +233,10 @@ async def capture(args: argparse.Namespace) -> int:
             emit(
                 {
                     "record_type": "tag_capture_result",
+                    "transport": "native_ble",
                     "host_received_ns": time.time_ns(),
+                    "episode_label": args.label,
+                    "episode_notes": args.notes,
                     **report.to_dict(),
                 }
             )
@@ -168,6 +261,18 @@ def main() -> int:
         raise SystemExit("--scan-timeout must be positive")
     if args.duration < 0:
         raise SystemExit("--duration must not be negative")
+    if (args.armed_countdown is None) != (args.episode_seconds is None):
+        raise SystemExit(
+            "--armed-countdown and --episode-seconds must be provided together"
+        )
+    if args.armed_countdown is not None and (
+        args.armed_countdown <= 0 or args.episode_seconds <= 0
+    ):
+        raise SystemExit("armed countdown and episode duration must be positive")
+    if args.wait_for_go_ack and args.armed_countdown is None:
+        raise SystemExit("--wait-for-go-ack requires armed capture")
+    if args.go_ack_timeout <= 0:
+        raise SystemExit("--go-ack-timeout must be positive")
     return asyncio.run(capture(args))
 
 

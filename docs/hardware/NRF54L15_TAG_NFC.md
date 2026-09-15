@@ -2,6 +2,13 @@
 
 ## Status
 
+XIAO bench update, 2026-09-15: the user reports that with both external tuning
+capacitors disconnected, different tested ball orientations eventually reach
+stable NFC reading with the PN532. This is the current XIAO wiring baseline;
+the PCA20072 capacitor values below remain evidence for that earlier board,
+not a mandatory XIAO network. Acquisition time and range per angle have not
+been quantified in this observation.
+
 The powered and System OFF PCA20072 NFC paths passed end-to-end on 2026-09-03. A 26 mm,
 1.0 uH flexible loop and provisional 220 pF values at both C17 and C19 let an
 ESP32-C3/PN532 select the assembled research ball, read its PuttTrack service

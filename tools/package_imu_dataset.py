@@ -118,6 +118,8 @@ def annotation_for(relative: Path, category: str) -> tuple[str, str]:
 
 def summarize(path: Path, relative: Path, records: list[dict[str, object]], malformed: int) -> dict[str, object]:
     motion = [record for record in records if record.get("record_type") == MOTION_RECORD]
+    if any(record.get("protocol_version", 1) != 1 for record in motion):
+        raise ValueError("This legacy dual-sensor dataset packager cannot include XIAO protocol 2 captures")
     statuses = [
         record
         for record in records

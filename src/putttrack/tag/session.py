@@ -126,6 +126,9 @@ class TagCaptureSession:
         if self._finalized:
             raise TelemetryProtocolError("Tag capture session is already finalized")
 
+        if motion.protocol_version != self._initial.protocol_version:
+            self._issues.add("motion_protocol_changed")
+
         if self._first_motion_sequence is None:
             self._first_motion_sequence = motion.sequence
         prior = self._last_motion
@@ -165,6 +168,8 @@ class TagCaptureSession:
         self._finalized = True
         initial = self._initial
 
+        if status.protocol_version != initial.protocol_version:
+            self._issues.add("status_protocol_changed")
         if not hmac.compare_digest(status.device_id, initial.device_id):
             self._issues.add("device_id_changed")
         if not hmac.compare_digest(status.boot_id, initial.boot_id):

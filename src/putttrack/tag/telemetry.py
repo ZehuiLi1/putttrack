@@ -7,6 +7,8 @@ import struct
 from typing import Any, Mapping
 
 PROTOCOL_VERSION = 1
+SUPPORTED_PROTOCOL_VERSIONS = (1, 2)
+SENSOR_LAYOUTS = {1: "adxl367-bmi270", 2: "lsm6ds3tr-c-single"}
 STATUS_PACKET_SIZE = 64
 MOTION_PACKET_SIZE = 56
 
@@ -76,6 +78,14 @@ class StatusRecord:
     bmi270_spi_suspended: bool = False
     idle_wake_interrupt_enabled: bool = False
     adxl367_wakeup_mode_enabled: bool = False
+    ble_security_level: int | None = None
+    ble_security_error: int | None = None
+    ble_security_request_error: int | None = None
+    ble_pairing_count: int = 0
+    ble_pairing_failure_count: int = 0
+    ble_last_disconnect_reason: int | None = None
+    battery_presence_known: bool = False
+    pickup_shadow_model_validated: bool = False
     battery_supported: bool | None = None
     battery_sample_valid: bool | None = None
     battery_sample_error: int | None = None
@@ -92,6 +102,14 @@ class StatusRecord:
     nfc_service_window_ms: int | None = None
     nfc_service_window_open_count: int = 0
     nfc_service_window_suppressed_count: int = 0
+    nfc_migration_supported: bool | None = None
+    nfc_migration_transport: str | None = None
+    nfc_migration_window_active: bool = False
+    nfc_migration_window_ms: int | None = None
+    nfc_migration_count: int = 0
+    nfc_migration_command_count: int = 0
+    nfc_migration_replay_count: int = 0
+    nfc_migration_error: int | None = None
     system_off_supported: bool | None = None
     system_off_pending: bool = False
     system_off_entry_error: int | None = None
@@ -119,8 +137,12 @@ class StatusRecord:
     pickup_shadow_max_runtime_us: int = 0
     pickup_shadow_authority: bool | None = None
 
+    @property
+    def sensor_layout(self) -> str:
+        return SENSOR_LAYOUTS[self.protocol_version]
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {**asdict(self), "sensor_layout": self.sensor_layout}
 
 
 @dataclass(frozen=True)
@@ -135,8 +157,12 @@ class MotionRecord:
     bmi270_gyro_micro_rads: tuple[int, int, int]
     sensor_error_bits: int
 
+    @property
+    def sensor_layout(self) -> str:
+        return SENSOR_LAYOUTS[self.protocol_version]
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {**asdict(self), "sensor_layout": self.sensor_layout}
 
 
 @dataclass(frozen=True)
@@ -212,9 +238,9 @@ def _validate_header(packet: bytes, expected_size: int, label: str) -> None:
             f"{label} packet must be {expected_size} bytes, got {len(packet)}"
         )
     version, _, declared_size = struct.unpack_from("<BBH", packet)
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
-            f"unsupported {label} protocol version {version}; expected {PROTOCOL_VERSION}"
+            f"unsupported {label} protocol version {version}; expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     if declared_size != expected_size:
         raise TelemetryProtocolError(
@@ -365,10 +391,12 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
     """Normalize the custom mcumgr status response into the GATT record model."""
 
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
-            f"unsupported SMP status protocol version {version}; expected {PROTOCOL_VERSION}"
+            f"unsupported SMP status protocol version {version}; expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
+    if payload.get("sensor_layout", SENSOR_LAYOUTS[version]) != SENSOR_LAYOUTS[version]:
+        raise TelemetryProtocolError("SMP status sensor layout disagrees with protocol")
     device_id = _required_text(payload, "device_id")
     boot_id = _required_text(payload, "boot_id")
     try:
@@ -466,6 +494,14 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
         bmi270_spi_suspended=_optional_bool(payload, "bmi_spi_suspended") or False,
         idle_wake_interrupt_enabled=_optional_bool(payload, "wake_interrupt") or False,
         adxl367_wakeup_mode_enabled=_optional_bool(payload, "adxl_wakeup_mode") or False,
+        ble_security_level=_optional_non_negative_int(payload, "ble_security_level"),
+        ble_security_error=_optional_int(payload, "ble_security_error"),
+        ble_security_request_error=_optional_int(payload, "ble_security_request_error"),
+        ble_pairing_count=_optional_non_negative_int(payload, "ble_pairings") or 0,
+        ble_pairing_failure_count=_optional_non_negative_int(payload, "ble_pairing_failures") or 0,
+        ble_last_disconnect_reason=_optional_non_negative_int(payload, "ble_last_disconnect_reason"),
+        battery_presence_known=_optional_bool(payload, "battery_presence_known") or False,
+        pickup_shadow_model_validated=_optional_bool(payload, "pickup_shadow_model_validated") or False,
         battery_supported=battery_supported,
         battery_sample_valid=battery_sample_valid,
         battery_sample_error=_optional_int(payload, "battery_sample_error"),
@@ -491,6 +527,24 @@ def status_from_smp(payload: Mapping[str, Any]) -> StatusRecord:
             _optional_non_negative_int(payload, "nfc_service_window_suppressed")
             or 0
         ),
+        nfc_migration_supported=_optional_bool(payload, "nfc_migration_supported"),
+        nfc_migration_transport=_optional_text(payload, "nfc_migration_transport"),
+        nfc_migration_window_active=(
+            _optional_bool(payload, "nfc_migration_window") or False
+        ),
+        nfc_migration_window_ms=_optional_non_negative_int(
+            payload, "nfc_migration_window_ms"
+        ),
+        nfc_migration_count=(
+            _optional_non_negative_int(payload, "nfc_migrations") or 0
+        ),
+        nfc_migration_command_count=(
+            _optional_non_negative_int(payload, "nfc_migration_commands") or 0
+        ),
+        nfc_migration_replay_count=(
+            _optional_non_negative_int(payload, "nfc_migration_replays") or 0
+        ),
+        nfc_migration_error=_optional_int(payload, "nfc_migration_error"),
         system_off_supported=_optional_bool(payload, "system_off_supported"),
         system_off_pending=_optional_bool(payload, "system_off_pending") or False,
         system_off_entry_error=_optional_int(payload, "system_off_entry_error"),
@@ -556,10 +610,10 @@ def pickup_shadow_arm_from_smp(
     payload: Mapping[str, Any],
 ) -> PickupShadowArmResult:
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
             f"unsupported pickup-shadow protocol version {version}; "
-            f"expected {PROTOCOL_VERSION}"
+            f"expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     result = PickupShadowArmResult(
         protocol_version=version,
@@ -580,10 +634,10 @@ def pickup_shadow_result_from_smp(
     payload: Mapping[str, Any],
 ) -> PickupShadowResult:
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
             f"unsupported pickup-shadow protocol version {version}; "
-            f"expected {PROTOCOL_VERSION}"
+            f"expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     decision = _required_text(payload, "decision")
     if decision not in {
@@ -656,9 +710,9 @@ def motion_from_smp(payload: Mapping[str, Any]) -> MotionRecord:
     """Normalize the custom mcumgr motion snapshot into the GATT record model."""
 
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
-            f"unsupported SMP motion protocol version {version}; expected {PROTOCOL_VERSION}"
+            f"unsupported SMP motion protocol version {version}; expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     return MotionRecord(
         protocol_version=version,
@@ -683,9 +737,9 @@ def motion_window_from_smp(payload: Mapping[str, Any]) -> tuple[MotionRecord, ..
     """Decode a contiguous binary motion window returned by mcumgr command 2."""
 
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
-            f"unsupported SMP window protocol version {version}; expected {PROTOCOL_VERSION}"
+            f"unsupported SMP window protocol version {version}; expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     sample_size = _required_int(payload, "sample_size")
     count = _required_int(payload, "count")
@@ -714,6 +768,8 @@ def motion_window_from_smp(payload: Mapping[str, Any]) -> tuple[MotionRecord, ..
         parse_motion(raw[offset : offset + sample_size])
         for offset in range(0, len(raw), sample_size)
     )
+    if any(record.protocol_version != version for record in records):
+        raise TelemetryProtocolError("SMP window mixes sensor protocols")
     if records:
         if records[0].sequence != start_sequence or records[-1].sequence != end_sequence:
             raise TelemetryProtocolError("SMP window sequence metadata does not match its records")
@@ -733,10 +789,10 @@ def frozen_history_metadata_from_smp(
     """Validate metadata returned when the Tag freezes its history ring."""
 
     version = _required_int(payload, "proto")
-    if version != PROTOCOL_VERSION:
+    if version not in SUPPORTED_PROTOCOL_VERSIONS:
         raise TelemetryProtocolError(
             f"unsupported frozen-history protocol version {version}; "
-            f"expected {PROTOCOL_VERSION}"
+            f"expected one of {SUPPORTED_PROTOCOL_VERSIONS}"
         )
     metadata = FrozenHistoryMetadata(
         protocol_version=version,
@@ -783,6 +839,8 @@ def frozen_history_from_smp(
             raise TelemetryProtocolError("frozen-history capture ID changed during retrieval")
         if _required_int(payload, "chunk_index") != expected_index:
             raise TelemetryProtocolError("frozen-history chunk index is out of order")
+        if _required_int(payload, "proto") != metadata.protocol_version:
+            raise TelemetryProtocolError("frozen history mixes sensor protocols")
         records.extend(motion_window_from_smp(payload))
     if len(records) != metadata.sample_count:
         raise TelemetryProtocolError("frozen-history reassembled sample count is inconsistent")

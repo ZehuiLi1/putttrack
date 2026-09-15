@@ -14,6 +14,7 @@ import secrets
 import subprocess
 import sys
 import threading
+import time
 from typing import Any, Callable
 import webbrowser
 
@@ -28,6 +29,7 @@ from tools.capture_field_session import (  # noqa: E402
     PROFILES,
     build_capture_command,
     build_power_command,
+    build_status_command,
     output_path,
     validate_args,
 )
@@ -50,21 +52,25 @@ PAGE_HTML = r'''<!doctype html>
     .panel{background:var(--card);border:1px solid #e3eae5;border-radius:24px;box-shadow:var(--shadow);padding:24px;margin-bottom:18px}.panel h2{font-size:18px;margin:0 0 16px}.profiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.profile{position:relative}.profile input{position:absolute;opacity:0}.profile label{display:block;height:100%;padding:16px;border:1px solid var(--line);border-radius:15px;cursor:pointer;transition:.15s;background:#fbfdfb}.profile label:hover{border-color:#8ebb9f;transform:translateY(-1px)}.profile input:checked+label{border:2px solid var(--green);padding:15px;background:#eff8f2;box-shadow:0 0 0 3px #dff0e5}.profile strong{display:block;font-size:15px;margin-bottom:5px}.profile span{display:block;color:var(--muted);font-size:12px;line-height:1.45}
     .form-row{display:grid;grid-template-columns:1fr 130px;gap:12px;margin-top:18px}label.field{font-size:12px;font-weight:750;color:var(--muted)}input[type=text],select{display:block;width:100%;margin-top:7px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font:inherit}button{border:0;border-radius:14px;padding:15px 18px;font:inherit;font-weight:800;cursor:pointer;transition:.15s}button:hover:not(:disabled){transform:translateY(-1px)}button:disabled{cursor:not-allowed;opacity:.42}.primary{background:var(--green);color:white;width:100%;font-size:16px}.primary:hover:not(:disabled){background:var(--green2)}.go{background:var(--lime);color:#173016;width:100%;font-size:22px;padding:21px}.secondary{background:#edf2ee;color:var(--ink);width:100%;margin-top:9px}
     .capture{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.stage{min-height:245px;display:flex;flex-direction:column;justify-content:space-between}.stage-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.12em;text-transform:uppercase}.message{font-size:clamp(25px,4vw,42px);line-height:1.12;font-weight:850;letter-spacing:-.035em;margin:12px 0}.message.go-active{color:var(--green);font-size:clamp(38px,7vw,68px);text-shadow:0 7px 24px rgba(18,106,69,.18)}.instruction{color:var(--muted);line-height:1.55}.progress{height:9px;border-radius:99px;background:#edf1ee;overflow:hidden;margin-top:20px}.progress div{height:100%;background:var(--green);width:0;transition:width .3s}.stats{display:grid;gap:10px}.stat{background:#f3f7f4;border-radius:15px;padding:15px}.stat small{display:block;color:var(--muted);margin-bottom:4px}.stat strong{font-size:20px}.result{margin-top:15px;padding:12px 14px;background:#f7faf8;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.5;min-height:44px}
-    .telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.telemetry-grid .panel{margin-bottom:0}.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.panel-head h2{margin:0}.mini-pill{padding:6px 10px;border-radius:999px;background:#edf4ef;color:var(--green);font-size:11px;font-weight:800}.device-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}.metric{border:1px solid #e5ebe7;background:#fbfdfb;border-radius:13px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.metric strong{font-size:17px;overflow-wrap:anywhere}.metric.wide{grid-column:1/-1}.chart-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 2px 4px}.chart-title strong{font-size:13px}.legend{display:flex;gap:12px;color:var(--muted);font-size:11px}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--dot)}.chart-wrap{height:205px;width:100%}.chart-wrap canvas{display:block;width:100%;height:100%}.quality{border-radius:12px;background:#f3f7f4;padding:11px 13px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:8px}.quality.warn{background:#fff7e8;color:var(--warn)}.quality.bad{background:#fff0f0;color:var(--bad)}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
-    @media(max-width:720px){main{padding-top:24px}.top{display:block}.status-pill{display:inline-block;margin-top:16px}.profiles{grid-template-columns:1fr 1fr}.capture,.telemetry-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.panel{padding:18px;border-radius:19px}}
+    .connection-grid,.telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.connection-grid .panel,.telemetry-grid .panel{margin-bottom:0}.connection-grid{margin-bottom:18px}.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.panel-head h2{margin:0}.mini-pill{padding:6px 10px;border-radius:999px;background:#edf4ef;color:var(--green);font-size:11px;font-weight:800}.mini-pill.warn{background:#fff3dc;color:var(--warn)}.mini-pill.bad{background:#ffe8e8;color:var(--bad)}.device-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}.metric{border:1px solid #e5ebe7;background:#fbfdfb;border-radius:13px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.metric strong{font-size:17px;overflow-wrap:anywhere}.metric.wide{grid-column:1/-1}.connection-detail{color:var(--muted);font-size:13px;line-height:1.55;overflow-wrap:anywhere}.chart-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 2px 4px}.chart-title strong{font-size:13px}.legend{display:flex;gap:12px;color:var(--muted);font-size:11px}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--dot)}.chart-wrap{height:205px;width:100%}.chart-wrap canvas{display:block;width:100%;height:100%}.quality{border-radius:12px;background:#f3f7f4;padding:11px 13px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:8px}.quality.warn{background:#fff7e8;color:var(--warn)}.quality.bad{background:#fff0f0;color:var(--bad)}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+    @media(max-width:720px){main{padding-top:24px}.top{display:block}.status-pill{display:inline-block;margin-top:16px}.profiles{grid-template-columns:1fr 1fr}.capture,.connection-grid,.telemetry-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.panel{padding:18px;border-radius:19px}}
     @media(max-width:440px){.profiles{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <main>
-  <header class="top"><div><div class="eyebrow">PuttTrack Research</div><h1>IMU 数据采集台</h1><p class="subtitle">选择一种动作，准备好球后按一次开始。倒计时、采集、保存、检查和低功耗恢复全部自动完成。</p></div><div id="status-pill" class="status-pill">正在连接…</div></header>
+  <header class="top"><div><div class="eyebrow">PuttTrack Research</div><h1>统一实验台</h1><p class="subtitle">同一页面检查 Mac BLE、Ball IMU 和 PN532 NFC，再完成倒计时、采集、保存与数据质量检查。</p></div><div id="status-pill" class="status-pill">正在连接…</div></header>
   <section class="panel" id="setup-panel"><h2>1. 选择要采集的数据</h2><div id="profiles" class="profiles"></div><div class="form-row"><label class="field">批次名称<input id="session-id" type="text" maxlength="64"></label><label class="field">采集次数<select id="count"><option>1</option><option>5</option><option selected>10</option><option>20</option><option>30</option></select></label></div><label class="field" style="display:block;margin-top:12px">备注（可选）<input id="notes" type="text" maxlength="300" placeholder="例如：客厅短绒地毯、操作者 A、Ball R1"></label><button id="prepare" class="primary" style="margin-top:18px">准备这个批次</button></section>
   <section class="panel capture"><div class="stage"><div><div class="stage-label">当前步骤</div><div id="message" class="message">先选择动作并准备批次</div><div id="instruction" class="instruction">Ball 保持静止；程序准备完成后再开始动作。</div><div class="progress"><div id="progress"></div></div></div><div><button id="start" class="go" disabled>开始本组采集</button><button id="finish" class="secondary" disabled>结束批次并恢复低功耗</button></div></div><div class="stats"><div class="stat"><small>动作</small><strong id="active-profile">—</strong></div><div class="stat"><small>进度</small><strong id="counter">0 / 0</strong></div><div class="stat"><small>最近结果</small><strong id="last-state">—</strong></div><div id="result" class="result">还没有采集结果。</div></div></section>
+  <section class="connection-grid">
+    <article class="panel"><div class="panel-head"><h2>Mac BLE / Ball</h2><span id="ble-link" class="mini-pill warn">正在检查</span></div><div class="device-grid"><div class="metric"><small>传输方式</small><strong id="ble-transport">—</strong></div><div class="metric"><small>加密</small><strong id="ble-security">—</strong></div><div class="metric wide"><small>设备身份</small><strong id="ble-device">—</strong></div></div><div id="ble-detail" class="connection-detail">等待第一次状态读取。</div></article>
+    <article class="panel"><div class="panel-head"><h2>PN532 / NFC</h2><span id="nfc-link" class="mini-pill warn">正在检查</span></div><div class="device-grid"><div class="metric"><small>当前连续读取</small><strong id="nfc-consecutive">0</strong></div><div class="metric"><small>最长连续读取</small><strong id="nfc-best">0</strong></div><div class="metric wide"><small>最近身份</small><strong id="nfc-device">—</strong></div></div><div id="nfc-detail" class="connection-detail">等待 ESP32-C3 串口。</div></article>
+  </section>
   <section class="telemetry-grid">
     <article class="panel"><div class="panel-head"><h2>Ball 状态</h2><span id="device-link" class="mini-pill">未读取</span></div><div class="device-grid"><div class="metric"><small>电池电压</small><strong id="battery-voltage">—</strong></div><div class="metric"><small>剩余电量</small><strong id="battery-soc">—</strong></div><div class="metric"><small>功耗 / 运行状态</small><strong id="power-state">—</strong></div><div class="metric"><small>IMU 采样</small><strong id="stream-state">—</strong></div><div class="metric wide"><small>传感器 / 固件</small><strong id="sensor-state">—</strong></div></div><div class="chart-title"><strong>本批次电压趋势</strong><span id="battery-points" class="legend">0 个读数</span></div><div class="chart-wrap"><canvas id="battery-chart" role="img" aria-label="本批次电池电压趋势图">浏览器不支持图表。</canvas></div></article>
     <article class="panel"><div class="panel-head"><h2>每组 IMU 趋势</h2><span id="run-count" class="mini-pill">0 组</span></div><div class="chart-title"><strong>角速度（rad/s）</strong><div class="legend"><span style="--dot:#126a45">峰值</span><span style="--dot:#d68b1d">RMS</span></div></div><div class="chart-wrap"><canvas id="imu-chart" role="img" aria-label="每组 IMU 角速度峰值和均方根趋势图">浏览器不支持图表。</canvas></div><div id="quality" class="quality">完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。</div></article>
   </section>
-  <div class="footer-note">页面只在本机开放。采集期间不要关闭此窗口或拔下 XIAO nRF52840。</div>
+  <div id="footer-note" class="footer-note">页面只在本机开放。采集期间不要关闭此窗口。</div>
 </main>
 <script>
 const TOKEN=__TOKEN__;
@@ -77,8 +83,9 @@ function setPill(phase){const p=$('#status-pill');p.className='status-pill';if([
 function beep(){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=880;g.gain.setValueAtTime(.15,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.22);o.connect(g).connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.22)}catch(e){}}
 function drawChart(canvas,series,labels,emptyText){const rect=canvas.getBoundingClientRect(),width=Math.max(280,Math.round(rect.width)),height=Math.max(180,Math.round(rect.height)),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=width*dpr;canvas.height=height*dpr;const c=canvas.getContext('2d');c.scale(dpr,dpr);c.clearRect(0,0,width,height);c.font='11px system-ui';c.fillStyle='#617067';if(!series.length||!series.some(x=>x.values.length)){c.textAlign='center';c.fillText(emptyText,width/2,height/2);return}const all=series.flatMap(x=>x.values).filter(Number.isFinite);if(!all.length)return;let lo=Math.min(...all),hi=Math.max(...all),pad=Math.max((hi-lo)*.18,series[0].minimumPad||.05);lo=Math.max(series[0].floor??-Infinity,lo-pad);hi+=pad;const left=46,right=12,top=14,bottom=28,w=width-left-right,h=height-top-bottom;c.strokeStyle='#e3eae5';c.fillStyle='#617067';c.textAlign='right';for(let i=0;i<4;i++){const y=top+h*i/3,value=hi-(hi-lo)*i/3;c.beginPath();c.moveTo(left,y);c.lineTo(width-right,y);c.stroke();c.fillText(value.toFixed(series[0].digits??2),left-7,y+4)}const n=Math.max(...series.map(x=>x.values.length));const xAt=i=>left+(n<=1?w/2:w*i/(n-1));c.textAlign='center';labels.forEach((label,i)=>{if(labels.length<=8||i===0||i===labels.length-1)c.fillText(label,xAt(i),height-8)});series.forEach(item=>{c.strokeStyle=item.color;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();item.values.forEach((value,i)=>{const x=xAt(i),y=top+(hi-value)/(hi-lo)*h;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();item.values.forEach((value,i)=>{c.fillStyle=item.color;c.beginPath();c.arc(xAt(i),top+(hi-value)/(hi-lo)*h,3,0,Math.PI*2);c.fill()})})}
 function renderTelemetry(s){const d=s.device_status,b=s.battery_history||[],runs=s.result_history||[];$('#device-link').textContent=d?`已读取 · ${d.device_id.slice(-6)}`:'未读取';$('#battery-voltage').textContent=d?.battery_voltage_mv!=null?`${(d.battery_voltage_mv/1000).toFixed(3)} V`:'—';$('#battery-soc').textContent=d?.battery_soc_percent!=null?`${d.battery_soc_percent}%${d.battery_soc_estimated?'（估算）':''}`:'—';$('#power-state').textContent=d?`${d.mode} / ${d.runtime_state}`:'—';$('#stream-state').textContent=d?(d.stream_rate_hz?`${d.stream_rate_hz} Hz`:(d.bmi270_spi_suspended?'0 Hz · BMI270 休眠':'0 Hz')):'—';const health=d?.sensor_health==='healthy'?'正常':(d?.sensor_health||'—');$('#sensor-state').textContent=d?`${health} · FW ${d.firmware_version}`:'—';$('#battery-points').textContent=`${b.length} 个读数`;$('#run-count').textContent=`${runs.length} 组`;drawChart($('#battery-chart'),b.length?[{values:b.map(x=>x.voltage_mv/1000),color:'#126a45',digits:3,minimumPad:.01,floor:0}]:[],b.map(x=>x.source),'等待设备电压读数');drawChart($('#imu-chart'),runs.length?[{values:runs.map(x=>x.gyro_peak),color:'#126a45',digits:2,minimumPad:.1,floor:0},{values:runs.map(x=>x.gyro_rms),color:'#d68b1d'}]:[],runs.map(x=>String(x.index)),'完成采集后显示角速度趋势');const q=$('#quality');q.className='quality';if(!runs.length){q.textContent='完成第一组采集后，这里会显示连续性、丢包和量程饱和检查。';return}const last=runs[runs.length-1],problems=[];if(last.continuity!=='PASS')problems.push(`连续性 ${last.continuity}`);if(last.sequence_gaps)problems.push(`${last.sequence_gaps} 个序列缺口`);if(last.clip_samples)problems.push(`${last.clip_samples} 个饱和样本`);if(problems.length){q.classList.add(last.continuity==='FAIL'||last.sequence_gaps?'bad':'warn');q.textContent=`第 ${last.index} 组需检查：${problems.join(' · ')}`;}else{q.textContent=`第 ${last.index} 组数据完整：连续性 PASS，无序列缺口，无量程饱和。`}}
+function renderConnections(s){const d=s.device_status,m=s.ble_monitor||{},n=s.nfc||{};const bl=$('#ble-link');bl.className='mini-pill '+(d?'':m.error?'bad':'warn');bl.textContent=d?'已加密连接':m.error?'连接失败':'正在检查';$('#ble-transport').textContent=s.transport==='native'?'Mac 原生 BLE':'USB nRF52840 HCI';$('#ble-security').textContent=d?(d.ble_security_level?`Level ${d.ble_security_level}`:'已加密'):'—';$('#ble-device').textContent=d?`${d.device_id} · FW ${d.firmware_version}`:'—';$('#ble-detail').textContent=d?`IMU ${d.sensor_health} · ${d.runtime_state} · ${d.stream_rate_hz} Hz`:(m.error||'等待第一次状态读取。');const nl=$('#nfc-link');nl.className='mini-pill '+(n.reader_ready?'':n.error?'bad':'warn');nl.textContent=n.reader_ready?(n.present?'正在读卡':'读卡器就绪'):n.error?'未连接':'正在检查';$('#nfc-consecutive').textContent=n.consecutive||0;$('#nfc-best').textContent=n.best||0;$('#nfc-device').textContent=n.device_id||n.uid||'—';$('#nfc-detail').textContent=n.present?(n.service_uri_ok?`PuttTrack URI 正常 · FW ${n.firmware_version||'—'}`:`已识别标签 · ${n.ndef_error||'身份未解析'}`):(n.error||n.port||'等待 ESP32-C3 串口。')}
 function acknowledgeGoAfterPaint(s){if(s.phase!=='go_ready'||lastGoAckAttempt===s.attempt_id||goAckPending)return;goAckPending=true;requestAnimationFrame(()=>requestAnimationFrame(async()=>{beep();try{await api('/api/capture/go-ack',{method:'POST',body:JSON.stringify({attempt_id:s.attempt_id})});lastGoAckAttempt=s.attempt_id}catch(e){lastGoAckAttempt=null}finally{goAckPending=false}}))}
-function render(s){lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#message').classList.toggle('go-active',['go_ready','capturing'].includes(s.phase));$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';const reconnect=s.phase==='error'&&s.low_power&&s.last_failure;$('#start').disabled=s.phase!=='ready'&&!reconnect;$('#start').textContent=reconnect?'重新连接并继续本批次':s.phase==='ready'?(s.last_failure?`重试第 ${s.completed+1} / ${s.count} 组`:`开始第 ${s.completed+1} / ${s.count} 组`):'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_failure){$('#last-state').textContent='本组未计入';const f=s.last_failure.file?` · 诊断 ${s.last_failure.file}`:'';$('#result').textContent=`第 ${s.last_failure.repetition} 组可以重试${f} · ${s.last_failure.detail}`}else if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderTelemetry(s);acknowledgeGoAfterPaint(s)}
+function render(s){lastPhase=s.phase;setPill(s.phase);$('#message').textContent=s.message;$('#message').classList.toggle('go-active',['go_ready','capturing'].includes(s.phase));$('#instruction').textContent=s.instruction||' ';$('#active-profile').textContent=profileTitle(s.profile);$('#counter').textContent=`${s.completed} / ${s.count}`;$('#progress').style.width=s.count?`${Math.min(100,s.completed/s.count*100)}%`:'0%';const reconnect=s.phase==='error'&&s.low_power&&s.last_failure;$('#start').disabled=s.phase!=='ready'&&!reconnect;$('#start').textContent=reconnect?'重新连接并继续本批次':s.phase==='ready'?(s.last_failure?`重试第 ${s.completed+1} / ${s.count} 组`:`开始第 ${s.completed+1} / ${s.count} 组`):'开始本组采集';$('#finish').disabled=!['ready','error'].includes(s.phase);$('#prepare').disabled=!['idle','complete'].includes(s.phase)&&(s.phase!=='error'||!s.low_power);if(s.last_failure){$('#last-state').textContent='本组未计入';const f=s.last_failure.file?` · 诊断 ${s.last_failure.file}`:'';$('#result').textContent=`第 ${s.last_failure.repetition} 组可以重试${f} · ${s.last_failure.detail}`}else if(s.last_result){$('#last-state').textContent=s.last_result.state||'已保存';$('#result').textContent=`${s.last_result.samples||0} 样本 · 陀螺峰值 ${Number(s.last_result.gyro_peak||0).toFixed(2)} rad/s · ${s.last_result.file}`}else{$('#last-state').textContent='—';$('#result').textContent='还没有采集结果。'}renderConnections(s);renderTelemetry(s);acknowledgeGoAfterPaint(s)}
 async function refresh(){try{render(await api('/api/state'))}catch(e){$('#status-pill').className='status-pill bad';$('#status-pill').textContent='服务连接失败'}}
 $('#prepare').addEventListener('click',async()=>{const profile=document.querySelector('input[name=profile]:checked')?.value;try{await api('/api/session',{method:'POST',body:JSON.stringify({profile,count:Number($('#count').value),session_id:$('#session-id').value.trim(),notes:$('#notes').value.trim()})});refresh()}catch(e){alert(e.message)}});
 $('#start').addEventListener('click',async()=>{try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();await api('/api/capture/start',{method:'POST',body:'{}'});refresh()}catch(e){alert(e.message)}});
@@ -129,7 +136,9 @@ def normalized_device_status(
     soc = payload.get("battery_soc_percent")
     return {
         "device_id": device_id,
-        "firmware_version": str(payload.get("firmware_version", "—")),
+        "firmware_version": str(
+            payload.get("firmware_version", payload.get("fw", "—"))
+        ),
         "battery_voltage_mv": (
             int(voltage)
             if payload.get("battery_sample_valid") and isinstance(voltage, (int, float))
@@ -144,12 +153,17 @@ def normalized_device_status(
         "capture_safe": bool(payload.get("capture_safe", False)),
         "mode": mode,
         "runtime_state": str(payload.get("runtime_state", "unknown")),
-        "stream_rate_hz": int(payload.get("stream_rate_hz", 0) or 0),
+        "stream_rate_hz": int(
+            payload.get("stream_rate_hz", payload.get("stream_hz", 0)) or 0
+        ),
         "bmi270_spi_suspended": bool(payload.get("bmi270_spi_suspended", False)),
         "adxl367_wakeup_mode_enabled": bool(
             payload.get("adxl367_wakeup_mode_enabled", False)
         ),
-        "sensor_error_count": int(payload.get("sensor_error_count", 0) or 0),
+        "sensor_error_count": int(
+            payload.get("sensor_error_count", payload.get("sensor_errors", 0)) or 0
+        ),
+        "ble_security_level": int(payload.get("ble_security_level", 0) or 0),
     }
 
 
@@ -223,6 +237,8 @@ class FieldCaptureApp:
         self.attempt_id = 0
         self.session_args: argparse.Namespace | None = None
         self.ready_timer: threading.Timer | None = None
+        self.monitor_stop = threading.Event()
+        self.monitor_threads: list[threading.Thread] = []
         self.state: dict[str, Any] = {
             "phase": "idle",
             "message": "先选择动作并准备批次",
@@ -238,11 +254,38 @@ class FieldCaptureApp:
             "last_failure": None,
             "attempt_id": 0,
             "low_power": True,
+            "transport": getattr(base_args, "transport", "hci"),
+            "ble_monitor": {"error": None, "last_update_ns": None},
+            "nfc": {
+                "connected": False,
+                "reader_ready": False,
+                "scan_ready": False,
+                "present": False,
+                "consecutive": 0,
+                "best": 0,
+                "total": 0,
+                "misses": 0,
+                "uid": None,
+                "device_id": None,
+                "firmware_version": None,
+                "service_uri_ok": False,
+                "ndef_error": None,
+                "port": None,
+                "error": None,
+                "last_seen_ns": None,
+            },
         }
 
     def snapshot(self) -> dict[str, Any]:
         with self.lock:
-            return copy.deepcopy(self.state)
+            result = copy.deepcopy(self.state)
+        nfc = result["nfc"]
+        last_seen = nfc.get("last_seen_ns")
+        if nfc.get("present") and isinstance(last_seen, int):
+            if time.time_ns() - last_seen > 3_000_000_000:
+                nfc["present"] = False
+                nfc["consecutive"] = 0
+        return result
 
     def config(self) -> dict[str, Any]:
         return {
@@ -257,6 +300,126 @@ class FieldCaptureApp:
                 for key, profile in PROFILES.items()
             },
         }
+
+    def start_monitors(self) -> None:
+        nfc_thread = threading.Thread(target=self._nfc_monitor_worker, daemon=True)
+        self.monitor_threads.append(nfc_thread)
+        nfc_thread.start()
+        if getattr(self.base_args, "transport", "hci") == "native":
+            ble_thread = threading.Thread(
+                target=self._native_ble_monitor_worker, daemon=True
+            )
+            self.monitor_threads.append(ble_thread)
+            ble_thread.start()
+
+    def _native_ble_monitor_worker(self) -> None:
+        while not self.monitor_stop.is_set():
+            with self.lock:
+                can_probe = (
+                    self.state["phase"] in {"idle", "complete", "error"}
+                    and self.current_process is None
+                )
+            if can_probe:
+                result = self.command_runner(build_status_command(self.base_args))
+                if result.returncode == 0:
+                    try:
+                        payload = json.loads(result.stdout)
+                        status = normalized_device_status(
+                            payload, self.base_args.expected_device_id
+                        )
+                    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                        with self.lock:
+                            self.state["ble_monitor"] = {
+                                "error": str(exc),
+                                "last_update_ns": time.time_ns(),
+                            }
+                    else:
+                        self._record_device_status(status, "监视")
+                        with self.lock:
+                            self.state["ble_monitor"] = {
+                                "error": None,
+                                "last_update_ns": time.time_ns(),
+                            }
+                else:
+                    detail = (result.stderr or result.stdout).strip().splitlines()
+                    with self.lock:
+                        self.state["ble_monitor"] = {
+                            "error": detail[-1] if detail else "Mac BLE 连接失败",
+                            "last_update_ns": time.time_ns(),
+                        }
+            self.monitor_stop.wait(6.0)
+
+    def _nfc_monitor_worker(self) -> None:
+        try:
+            import serial
+            from serial.tools import list_ports
+
+            configured = getattr(self.base_args, "nfc_port", None)
+            if configured in (None, "auto"):
+                ports = [
+                    item.device
+                    for item in list_ports.comports()
+                    if item.vid == 0x303A
+                ]
+                if len(ports) != 1:
+                    raise RuntimeError("未找到唯一的 ESP32-C3 NFC 串口")
+                port = ports[0]
+            else:
+                port = configured
+            with serial.Serial(
+                port=None, baudrate=115200, timeout=0.3, exclusive=True
+            ) as connection:
+                connection.dtr = False
+                connection.rts = False
+                connection.port = port
+                connection.open()
+                with self.lock:
+                    self.state["nfc"].update(
+                        connected=True, port=port, error=None
+                    )
+                while not self.monitor_stop.is_set():
+                    raw = connection.readline()
+                    if not raw:
+                        continue
+                    try:
+                        event = json.loads(raw.decode(errors="replace").strip())
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    kind = event.get("event")
+                    with self.lock:
+                        state = self.state["nfc"]
+                        if kind == "pn532_ready":
+                            state["reader_ready"] = True
+                        elif kind == "scan_ready":
+                            state["scan_ready"] = True
+                        elif kind == "nfc_tag":
+                            consecutive = int(event.get("consecutive_reads", 0))
+                            state.update(
+                                present=True,
+                                consecutive=consecutive,
+                                best=max(int(state["best"]), consecutive),
+                                total=int(state["total"]) + 1,
+                                uid=event.get("uid"),
+                                device_id=event.get("device_id"),
+                                firmware_version=event.get("firmware_version"),
+                                service_uri_ok=bool(event.get("service_uri_ok")),
+                                ndef_error=event.get("ndef_error"),
+                                last_seen_ns=time.time_ns(),
+                            )
+                        elif kind in {"scan_miss", "tag_removed"}:
+                            state["present"] = False
+                            state["consecutive"] = 0
+                            if kind == "scan_miss":
+                                state["misses"] = int(state["misses"]) + 1
+                        elif kind in {"fatal", "pn532_not_found"}:
+                            state["error"] = event.get("message") or str(kind)
+        except Exception as exc:
+            with self.lock:
+                self.state["nfc"].update(
+                    connected=False, reader_ready=False, error=str(exc)
+                )
 
     def _set(self, **changes: Any) -> None:
         with self.lock:
@@ -305,6 +468,7 @@ class FieldCaptureApp:
             ble_address=self.base_args.ble_address,
             address_type=self.base_args.address_type,
             notes=notes or None,
+            transport=getattr(self.base_args, "transport", "hci"),
         )
         validate_args(args)
         collisions = [
@@ -680,6 +844,7 @@ class FieldCaptureApp:
         )
 
     def close(self) -> None:
+        self.monitor_stop.set()
         self._cancel_ready_timeout()
         with self.lock:
             process = self.current_process
@@ -693,6 +858,8 @@ class FieldCaptureApp:
                 process.kill()
         if needs_restore and args is not None:
             self.command_runner(build_power_command(args, "auto"))
+        for thread in self.monitor_threads:
+            thread.join(timeout=1)
 
 
 def page_for_token(token: str) -> str:
@@ -794,6 +961,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--hci-port", default="/dev/cu.usbmodem101")
+    parser.add_argument(
+        "--transport",
+        choices=("hci", "native"),
+        default="native",
+        help="use Mac native BLE by default; hci uses a USB nRF52840 controller",
+    )
+    parser.add_argument(
+        "--nfc-port",
+        default="auto",
+        help="ESP32-C3 PN532 serial port, or auto for the sole Espressif port",
+    )
     parser.add_argument("--expected-device-id", default=DEFAULT_DEVICE_ID)
     parser.add_argument("--device-name", default="PuttTrack-")
     parser.add_argument("--ble-address")
@@ -831,6 +1009,7 @@ def main() -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     app = FieldCaptureApp(args)
+    app.start_monitors()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
     url = f"http://{args.host}:{server.server_port}/"
     print(f"PuttTrack IMU 采集台：{url}", flush=True)

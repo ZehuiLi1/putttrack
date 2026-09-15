@@ -62,12 +62,29 @@
 #define PT_MOTOR_PROBE_VALID_MS 60000
 #endif
 
+// Continuous read-only bench test. Set to 0 for host migration writes.
+#ifndef PT_NFC_STRESS_TEST
+#define PT_NFC_STRESS_TEST 1
+#endif
+
 #ifndef PT_SCAN_TIMEOUT_MS
-#define PT_SCAN_TIMEOUT_MS 350
+#define PT_SCAN_TIMEOUT_MS 250
 #endif
 
 #ifndef PT_SCAN_GAP_MS
-#define PT_SCAN_GAP_MS 80
+#define PT_SCAN_GAP_MS 5
+#endif
+
+#ifndef PT_TYPE4_COMMAND_WINDOW_MS
+#if PT_NFC_STRESS_TEST
+#define PT_TYPE4_COMMAND_WINDOW_MS 0
+#else
+#define PT_TYPE4_COMMAND_WINDOW_MS 40
+#endif
+#endif
+
+#ifndef PT_TYPE4_FIELD_OFF_MS
+#define PT_TYPE4_FIELD_OFF_MS 8
 #endif
 
 #ifndef PT_TAG_REMOVED_MS

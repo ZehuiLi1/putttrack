@@ -75,7 +75,7 @@ class TagTelemetryTests(unittest.TestCase):
             parse_motion(b"short")
 
         packet = bytearray(64)
-        struct.pack_into("<BBH", packet, 0, 2, 0, 64)
+        struct.pack_into("<BBH", packet, 0, 3, 0, 64)
         with self.assertRaises(TelemetryProtocolError):
             parse_status(packet)
 
@@ -161,6 +161,14 @@ class TagTelemetryTests(unittest.TestCase):
                 "nfc_service_window_ms": 10000,
                 "nfc_service_window_opens": 2,
                 "nfc_service_window_suppressed": 1,
+                "nfc_migration_supported": True,
+                "nfc_migration_transport": "ndef_type4_command",
+                "nfc_migration_window": True,
+                "nfc_migration_window_ms": 60000,
+                "nfc_migrations": 2,
+                "nfc_migration_commands": 3,
+                "nfc_migration_replays": 1,
+                "nfc_migration_error": 0,
                 "system_off_supported": True,
                 "system_off_pending": False,
                 "system_off_entry_error": 0,
@@ -228,6 +236,14 @@ class TagTelemetryTests(unittest.TestCase):
         self.assertEqual(status.nfc_service_window_ms, 10000)
         self.assertEqual(status.nfc_service_window_open_count, 2)
         self.assertEqual(status.nfc_service_window_suppressed_count, 1)
+        self.assertTrue(status.nfc_migration_supported)
+        self.assertEqual(status.nfc_migration_transport, "ndef_type4_command")
+        self.assertTrue(status.nfc_migration_window_active)
+        self.assertEqual(status.nfc_migration_window_ms, 60000)
+        self.assertEqual(status.nfc_migration_count, 2)
+        self.assertEqual(status.nfc_migration_command_count, 3)
+        self.assertEqual(status.nfc_migration_replay_count, 1)
+        self.assertEqual(status.nfc_migration_error, 0)
         self.assertTrue(status.system_off_supported)
         self.assertFalse(status.system_off_pending)
         self.assertEqual(status.system_off_entry_error, 0)

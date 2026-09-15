@@ -1,5 +1,7 @@
 # Current Execution Plan — BLE + Motion First, Channel Sounding Deferred
 
+> 2026-09-15 update: the enclosed Tag/XIAO one-hole prototype has reached stage closeout. Current firmware, physical evidence, scope and next mounting/strike tests are in [Single-hole closeout](SINGLE_HOLE_CLOSEOUT_20260915.md). Older baseline/version statements below are historical.
+
 **Status:** Active — M1 complete; M2 transport/development-board low-power
 validated; M4 physical-ingress software boundary implemented
 

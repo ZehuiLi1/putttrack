@@ -6,3 +6,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(putttrack_tag)
 
 target_sources(app PRIVATE src/main.c src/pickup_shadow_v0.c)
+
+target_sources_ifdef(CONFIG_PUTTTRACK_XIAO_SENSE app PRIVATE src/xiao_sense.c)
+target_sources_ifdef(CONFIG_PUTTTRACK_NFC_READ_LED app PRIVATE src/nfc_read_led.c)

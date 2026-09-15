@@ -119,7 +119,9 @@ void printHexByte(uint8_t value) {
 
 }  // namespace
 
-RollerMotor::RollerMotor(HardwareSerial &uart) : uart_(uart) {}
+RollerMotor::RollerMotor(HardwareSerial &uart,
+                         ExternalCommandHandler external_handler)
+    : uart_(uart), external_handler_(external_handler) {}
 
 void RollerMotor::begin() {
   // Enter a known-safe state on every MCU boot. This also stops a prior speed
@@ -242,6 +244,10 @@ void RollerMotor::handleLine(String line) {
     }
     run(static_cast<int>(rpm), static_cast<uint32_t>(seconds),
         static_cast<uint8_t>(acceleration), static_cast<int>(deceleration));
+    return;
+  }
+
+  if (external_handler_ != nullptr && external_handler_(line)) {
     return;
   }
 

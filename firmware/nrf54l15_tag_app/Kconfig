@@ -4,11 +4,20 @@ source "Kconfig.zephyr"
 
 menu "PuttTrack Tag options"
 
+config PUTTTRACK_XIAO_SENSE
+ bool "Use the XIAO nRF54L15 Sense single-IMU backend"
+ default n
+
+config PUTTTRACK_FIRMWARE_VERSION
+ string "Application version reported over BLE"
+ default "0.1.21"
+
+
 config PUTTTRACK_NFC_SERVICE
 	bool "Enable the experimental NFC service record"
 	default n
 	help
-	  Build the read-only Type 2 Tag NDEF service record and one-shot bounded
+	  Build the Type 4 Tag NDEF service record and one-shot bounded
 	  fast-BLE discovery window used by the PCA20072 NFC feasibility experiment.
 	  This option does not make NFC an authenticated transport and does not
 	  replace encrypted BLE SMP or signed OTA.
@@ -22,5 +31,13 @@ config PUTTTRACK_NFC_SYSTEM_OFF_TEST
 	  delay. NFC field sensing remains armed as a wake source. This is an
 	  explicit laboratory operation only; normal power policies never enter
 	  System OFF automatically.
+
+config PUTTTRACK_NFC_READ_LED
+	bool "Flash board user LED on a complete NDEF read event"
+	depends on PUTTTRACK_NFC_SERVICE && GPIO
+	default n
+	help
+	  Temporary bench feedback: 150 ms pulse, at most once per second.
+	  Indicates a tag-side read event, not reader CRC success or BLE identity.
 
 endmenu

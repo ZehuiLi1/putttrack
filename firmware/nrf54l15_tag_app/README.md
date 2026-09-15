@@ -174,3 +174,16 @@ and the expected full device ID. For legacy same-name images, keep other Tags of
 
 `--mode snapshot` remains available for firmware `0.1.2` and older, but it is a
 low-rate diagnostic path and must not be used for impact/rolling datasets.
+# NFC read indicator (Tag 0.1.21)
+
+The NFC service build enables `CONFIG_PUTTTRACK_NFC_READ_LED`, sharing the
+nonblocking indicator implementation with XIAO. On the nRF54L15 Tag, the board
+`led0` alias selects the blue user LED on active-low P2.09. It pulses for about
+150 ms on the Type 4 NDEF last-byte read event, at most once per second, and is
+turned off before System OFF. This indicates tag-side reading, not reader CRC
+success or BLE connection. SMP reports `nfc_read_led_enabled`,
+`nfc_read_led_error`, and `nfc_read_led_pulses`.
+
+Disable this temporary indicator for final consumption measurements. The base
+build without NFC keeps the option disabled; XIAO retains its own version and
+board LED mapping.

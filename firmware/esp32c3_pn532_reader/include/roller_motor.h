@@ -4,7 +4,10 @@
 
 class RollerMotor {
  public:
-  explicit RollerMotor(HardwareSerial &uart);
+  using ExternalCommandHandler = bool (*)(const String &line);
+
+  explicit RollerMotor(HardwareSerial &uart,
+                       ExternalCommandHandler external_handler = nullptr);
 
   void begin();
   void serviceConsole();
@@ -17,6 +20,7 @@ class RollerMotor {
   static constexpr size_t kConsoleLineBytes = 96;
 
   HardwareSerial &uart_;
+  ExternalCommandHandler external_handler_;
   char console_line_[kConsoleLineBytes] = {};
   size_t console_length_ = 0;
   bool probe_ok_ = false;

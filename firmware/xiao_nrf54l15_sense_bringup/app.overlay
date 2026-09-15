@@ -1,0 +1,13 @@
+/* Give this bench application explicit ownership of the IMU/MIC power rail. */
+&gpio0 {
+    /delete-node/ imu_power_default_on;
+};
+
+&pdm_imu_pwr {
+    /delete-property/ regulator-boot-on;
+    startup-delay-us = <100000>;
+};
+
+&lsm6ds3tr_c {
+    zephyr,deferred-init;
+};

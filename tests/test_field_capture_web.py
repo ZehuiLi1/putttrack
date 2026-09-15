@@ -31,6 +31,8 @@ def args(**overrides: object) -> argparse.Namespace:
         "output_dir": Path("runs"),
         "idle_timeout_seconds": 60.0,
         "no_browser": True,
+        "transport": "hci",
+        "nfc_port": None,
     }
     values.update(overrides)
     return argparse.Namespace(**values)
@@ -104,6 +106,8 @@ class FieldCaptureWebTests(unittest.TestCase):
         self.assertNotIn("innerHTML", page)
         self.assertIn("battery-chart", page)
         self.assertIn("imu-chart", page)
+        self.assertIn("PN532 / NFC", page)
+        self.assertIn("Mac BLE / Ball", page)
         self.assertIn("剩余电量", page)
         self.assertIn("确认 GO 标记", page)
         self.assertIn("重新连接并继续本批次", page)
