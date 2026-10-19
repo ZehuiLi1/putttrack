@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#071a18">
+<title>Blackjack Challenge · Star 风格虚拟资金训练 V3</title>
+<style>
+:root{--bg:#071a18;--bg2:#0b2420;--panel:#102c28;--panel2:#143a32;--line:#315249;--ink:#f1f7f1;--muted:#9ab9ad;--gold:#f5cb79;--green:#4ee3aa;--red:#ff968d;--blue:#80cbff}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 10% -10%,#1b5945 0,transparent 37%),radial-gradient(ellipse at 95% 10%,#173a32 0,transparent 32%),var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft Yahei",Arial,sans-serif;color:var(--ink);line-height:1.45;min-height:100vh;-webkit-tap-highlight-color:transparent}
+button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:3px}.shell{max-width:920px;margin:0 auto;padding:18px 18px max(40px,env(safe-area-inset-bottom))}.brand{display:flex;gap:11px;align-items:center}.brand-mark{width:45px;height:45px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(155deg,#f8dca4,#dba552);font-size:24px;color:#103129;box-shadow:0 8px 30px #070a0840}.brand h1{font-size:17px;letter-spacing:.2px;margin:0;line-height:1.1}.brand p{font-size:12px;color:var(--muted);margin:5px 0 0}.topline{display:flex;align-items:center;justify-content:space-between;gap:10px}.pill{border:1px solid #42635b;color:#c1dbc9;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:700;white-space:nowrap}.intro{font-size:13px;color:#b8d0c6;margin:14px 0 13px}.two-tabs{display:flex;gap:6px;background:#0d2521;border-radius:15px;padding:5px;border:1px solid var(--line)}.two-tabs button{flex:1;background:transparent;color:#aacabe;border:0;padding:12px 9px;border-radius:11px;font-weight:750;font-size:14px}.two-tabs button.active{background:#2b654f;color:white;box-shadow:0 2px 12px #0003}.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 14px}.stat{background:#12302b;border:1px solid #244b40;border-radius:14px;padding:10px 8px;text-align:center}.stat .val{display:block;font-size:22px;font-weight:820;font-variant-numeric:tabular-nums;letter-spacing:-.7px}.stat .lbl{color:#95b7a9;font-size:11px;margin-top:2px}.filters{display:flex;align-items:center;gap:8px;overflow-x:auto;margin:0 -18px 13px;padding:0 18px 3px;scrollbar-width:none}.filters::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;border-radius:999px;color:#a9c8b8;background:#142e29;border:1px solid #315547;font-size:12px;padding:8px 12px;min-height:34px}.chip.active{background:#d6b97a;border-color:#eddaa7;color:#18362d;font-weight:800}.table{position:relative;border:1px solid #467662;border-radius:25px;background:radial-gradient(ellipse at 50% 8%,#22634d,#11503e 52%,#0e3e34 80%);box-shadow:0 10px 30px #0005, inset 0 0 0 5px #143d33, inset 0 0 0 7px #36765d;overflow:hidden;padding:17px 14px 19px}.table:before{content:"";position:absolute;border:1px solid #ffffff19;border-radius:300px;top:18px;left:12%;width:76%;height:82%;pointer-events:none}.table-inner{position:relative}.table-header{display:flex;align-items:center;justify-content:space-between;gap:8px}.round-label{font-size:11px;letter-spacing:.8px;font-weight:850;color:#d5e9dc}.tag{font-size:11px;border-radius:999px;padding:5px 9px;border:1px solid #ffffff45;color:#e5f6ec;background:#ffffff15}.dealer-area,.player-area{display:flex;align-items:center;flex-direction:column}.dealer-area{margin-top:12px}.player-area{margin-top:14px}.area-label{font-size:12px;letter-spacing:.3px;color:#d2eee0;font-weight:750;margin-bottom:7px}.cards{display:flex;justify-content:center;gap:7px;min-height:107px;align-items:center;flex-wrap:nowrap}.card{height:100px;width:68px;max-width:21vw;min-width:49px;border-radius:10px;background:#fffefa;border:1px solid #e2e2dc;box-shadow:0 5px 0 #cbd1cd,0 8px 18px #001c1880;color:#1b2925;display:flex;flex-direction:column;justify-content:space-between;padding:7px 8px;transform:translateY(0);animation:slide .18s ease-out;flex:0 1 68px}.card.red{color:#d13e45}.card .corner{font-weight:850;font-size:20px;letter-spacing:-1px}.card .suit{font-size:30px;text-align:center;line-height:1}.card .bottom{text-align:right;font-weight:700;font-size:14px}.card.back{background:repeating-linear-gradient(40deg,#123d37 0,#123d37 7px,#e5bd69 7px,#e5bd69 8px);border:3px solid #f1e3aa;box-shadow:0 5px 0 #224337,0 8px 15px #0005}.card.back .corner,.card.back .suit,.card.back .bottom{visibility:hidden}.point{margin-top:9px;font-size:15px;color:#ebf7ef;font-weight:800;letter-spacing:.1px}.point strong{font-size:19px;color:#fff}.divider{width:80%;height:1px;background:linear-gradient(90deg,transparent,#daebdb77,transparent);margin:12px auto 5px}.game-note{margin:9px auto 0;max-width:640px;text-align:center;color:#d2e3d9;font-size:12px}.status{border:1px solid #2f574b;background:#102924;border-radius:17px;margin-top:11px;padding:14px 15px}.prompt-title{font-size:16px;font-weight:830}.prompt-sub{font-size:12px;color:#a4c0b1;margin-top:5px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}.action{height:66px;border-radius:15px;border:1px solid #578679;display:flex;justify-content:center;align-items:center;flex-direction:column;gap:1px;font-size:18px;font-weight:900;transition:transform .12s,filter .12s}.action:active{transform:scale(.98)}.action small{font-size:11px;font-weight:600;opacity:.74}.hit{background:#daf3e4;color:#0c4530}.stand{background:#f8deab;color:#4d3413}.action:disabled{opacity:.4;cursor:not-allowed}.result{display:none;margin-top:11px;padding:14px;border-radius:16px;background:#19372f;border:1px solid #517566}.result.show{display:block;animation:slide .18s ease}.result.good{border-color:#318d69;background:#103a30}.result.bad{border-color:#ad6965;background:#422a2b}.result-top{display:flex;gap:9px;justify-content:space-between;align-items:start}.result-title{font-size:17px;font-weight:900}.result-desc{font-size:13px;color:#ddede4;margin-top:6px}.numbers{display:flex;gap:7px;margin-top:11px}.num{flex:1;background:#0a2520a8;border:1px solid #ffffff12;border-radius:11px;padding:8px 10px}.num .k{display:block;font-size:11px;color:#abc5b9}.num .v{display:block;font-weight:800;font-size:16px;margin-top:4px}.next{border:0;border-radius:14px;background:linear-gradient(110deg,#f0cc84,#ffdfa7);color:#203830;font-weight:850;font-size:16px;min-height:53px;padding:12px 17px;margin-top:11px;width:100%;box-shadow:0 5px 18px #0002}.secondary{background:#133d32;border:1px solid #2d6751;color:#d5f8e4;box-shadow:none}.check-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}.switch-wrap{display:flex;align-items:center;gap:9px;color:#b4d0c1;font-size:12px;cursor:pointer}.switch-wrap input{accent-color:#64deb4;width:17px;height:17px}.subtle-button{background:transparent;border:1px solid #426053;border-radius:10px;color:#b2cbbd;padding:8px 10px;font-size:12px}.section{margin-top:15px;background:#102923;border:1px solid #2a4c40;border-radius:17px;padding:15px}.section h2{font-size:15px;margin:0 0 10px}.rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.rule{background:#173a31;border:1px solid #295244;padding:12px;border-radius:11px}.rule strong{display:block;font-size:13px;color:#f6deab}.rule span{display:block;font-size:12px;color:#b7d2c5;margin-top:4px;line-height:1.5}.section p{font-size:12px;color:#b6cfc4;margin:8px 0 0}.details{margin-top:11px;font-size:12px;color:#b6cfc4}.details summary{cursor:pointer;color:#e1dbba;font-weight:750;outline-offset:3px}.details-content{padding-top:8px}.details-content p{margin:5px 0}.footer{font-size:11px;color:#98b0a5;padding:20px 0 5px;line-height:1.6}.footer a{color:#e5d19d}.tiny{font-size:11px;color:var(--muted)}.live-feed{font-size:13px;color:#d4f4dc;margin-top:7px}.hidden{display:none!important}.main-area{max-width:740px;margin:auto}.progress{height:5px;border-radius:12px;background:#315345;margin-bottom:12px;overflow:hidden}.progress span{display:block;height:100%;background:#eec97e;width:0%;transition:width .2s}.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;background:#ebd097;color:#163327;font-weight:800;font-size:13px;padding:11px 16px;border-radius:16px;box-shadow:0 8px 30px #0008;max-width:min(90vw,460px);text-align:center;display:none}.toast.show{display:block;animation:slide .18s ease}.categorynote{display:flex;gap:8px;justify-content:space-between;margin:5px 0 0;color:#c1dace;font-size:12px}.mini-hint{font-size:11px;color:#a3c4b6;padding:0 2px;margin:9px 0 0;text-align:center}.mode-controls{display:flex;justify-content:space-between;gap:10px;align-items:center}.kbd{display:inline-flex;background:#1b4137;color:#c7e0cf;border-radius:5px;border:1px solid #497163;padding:1px 5px;font-size:10px;margin:0 1px}.dealer-history{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}.dealer-history .card{height:54px;width:40px;min-width:40px;padding:4px;border-radius:6px;box-shadow:0 3px 0 #cbd1cd;align-items:center}.dealer-history .corner{font-size:12px}.dealer-history .suit{font-size:14px}.dealer-history .bottom{display:none}.countdot{color:#f0d590}.live-outcome{font-weight:850}.live-outcome.win{color:#75f0b8}.live-outcome.lose{color:#ffaeaa}
+@media (min-width:720px){.shell{padding:28px 24px 45px}.brand h1{font-size:22px}.brand-mark{width:52px;height:52px}.table{padding:23px 24px 25px}.card{height:119px;width:83px;flex-basis:83px;padding:9px}.card .corner{font-size:23px}.card .suit{font-size:35px}.cards{min-height:127px;gap:10px}.stats .val{font-size:25px}.rule-grid{grid-template-columns:repeat(4,1fr)}.action{height:72px}.intro{font-size:14px}.section{padding:19px}.dealer-area{margin-top:12px}.player-area{margin-top:15px}}
+@media (max-width:360px){.shell{padding-left:12px;padding-right:12px}.filters{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}.card{width:58px;height:92px;min-width:45px;padding:6px;flex-basis:58px}.card .corner{font-size:17px}.card .suit{font-size:26px}.stat .val{font-size:19px}.rule-grid{grid-template-columns:1fr 1fr}}
+
+/* Compact mobile table: choices remain near the first viewport for rapid drills. */
+@media (max-width:600px){
+ .intro{margin:9px 0 9px;font-size:12px;line-height:1.36}
+ .stat-grid{margin:9px 0 9px;gap:6px}.stat{padding:7px 4px;border-radius:11px}.stat .val{font-size:19px}.stat .lbl{font-size:10px}
+ .filters{margin-bottom:6px;padding-bottom:1px}.chip{padding:7px 10px;font-size:11px;min-height:32px}
+ .categorynote{margin-top:2px;font-size:11px}.progress{margin-bottom:7px}
+ .table{padding:12px 12px 12px;border-radius:21px}
+ .table:before{top:9px;height:91%}.table-header{min-height:19px}.round-label{font-size:10px}.tag{padding:3px 7px;font-size:10px}
+ .dealer-area{margin-top:5px}.player-area{margin-top:7px}
+ .area-label{font-size:10px;margin-bottom:4px}.cards{min-height:77px;gap:6px}
+ .card{width:54px;height:74px;flex-basis:54px;min-width:44px;padding:5px 6px;border-radius:8px;box-shadow:0 3px 0 #cbd1cd,0 5px 12px #001c1880}
+ .card .corner{font-size:16px}.card .suit{font-size:24px}.card .bottom{font-size:11px}
+ .point{margin-top:4px;font-size:12px}.point strong{font-size:16px}.divider{margin:7px auto 3px}
+ .game-note{margin-top:7px;font-size:10px;line-height:1.35}
+ .status{padding:11px 12px;margin-top:8px;border-radius:14px}.prompt-title{font-size:14px}.prompt-sub{font-size:11px;margin-top:3px}
+ .actions{margin-top:8px;gap:8px}.action{height:56px;font-size:17px;border-radius:12px}
+ .result{margin-top:8px;padding:10px}.result-title{font-size:15px}.result-desc{font-size:12px}
+ .next{margin-top:8px;min-height:48px}.check-row{margin-top:9px}.section{margin-top:12px}
+}
+
+/* Clearly separate a playable hand from an already-settled hand. */
+.live-toolbar{margin-top:11px;padding:10px 12px;border:1px solid #537b6f;background:#173d32;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.live-state{font-size:12px;font-weight:800;color:#d9f4e5;line-height:1.5}
+.live-new{border:1px solid #e9cf8e;background:#f4d89e;color:#24372a;border-radius:10px;min-height:39px;padding:7px 12px;font-size:13px;font-weight:850;flex:0 0 auto}
+.live-state.is-over{color:#f7d28c}
+@media (max-width:370px){.live-toolbar{gap:5px;padding:9px}.live-state{font-size:11px}.live-new{font-size:12px;padding:7px}}
+@keyframes slide{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* V3: Cash and session controls */
+.cash-wrap{display:none;margin:9px 0 12px;background:linear-gradient(165deg,#17392f,#0c2925);border:1px solid #517567;border-radius:17px;padding:12px;box-shadow:0 7px 20px #0002}
+.cash-wrap.show{display:block}.cash-title{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:9px}.cash-title strong{font-size:14px;color:#f4d59b}.cash-title .mini{font-size:10px;color:#b6d7c6}
+.cash-grid{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:6px;margin-bottom:8px}.cash-stat{background:#09251fa6;border:1px solid #285947;border-radius:11px;padding:8px;text-align:center}.cash-stat small{font-size:10px;color:#b5d5c6;display:block}.cash-stat strong{display:block;font-size:19px;white-space:nowrap;font-variant-numeric:tabular-nums}.cash-stat .profit{color:#7cedbb}.cash-stat .loss{color:#ffb8a4}
+.cash-info{color:#d6eddd;font-size:11px;line-height:1.55;margin:7px 0 0}.cash-hint{border-radius:9px;background:#ebd09617;border:1px solid #9a815b88;padding:8px 9px;color:#ffe4af;font-size:12px;font-weight:700;line-height:1.5;margin:8px 0}
+.cash-section{margin-top:8px;padding-top:9px;border-top:1px solid #37604b}.cash-section h3{font-size:13px;margin:0 0 8px;color:#f3d79b}.cash-preset{display:flex;gap:7px;overflow-x:auto}.cash-preset button{flex:1;min-width:93px;background:#123f32;color:#d7eedd;border:1px solid #486e55;border-radius:9px;padding:9px 5px;font-size:12px;font-weight:750}.cash-preset button.on{color:#172b23;background:#edcf93;border-color:#ffd998}
+.cash-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.cash-form label{color:#b7d9cb;font-size:11px;display:block}.cash-form input{background:#f9f8ee;color:#153227;border:1px solid #c4dbc8;border-radius:10px;display:block;width:100%;height:42px;font-size:16px;font-weight:800;margin-top:5px;padding:8px 10px}
+.cash-form input:focus{outline:2px solid #ffd986;outline-offset:2px}.cash-button{width:100%;border:0;border-radius:11px;background:#edd08d;color:#1a3128;font-weight:800;min-height:45px;padding:10px 13px}.cash-button.secondary-cash{border:1px solid #67877a;background:#154132;color:#e3f8eb}.cash-button.ghost-cash{background:#382e2d;color:#ffd5cc;border:1px solid #8b5a50}.cash-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.cash-muted{font-size:11px;color:#b0ccbe;line-height:1.5}.cash-summary{padding:10px;background:#203c34;border-radius:10px;font-size:12px;line-height:1.7}.cash-summary strong{font-size:20px;color:#f4dba5}.cash-summary .loss{color:#ffb7ad}.cash-summary .profit{color:#8af4bc}.cash-history{max-height:135px;overflow-y:auto;margin-top:7px}.cash-history div{display:flex;justify-content:space-between;gap:8px;font-size:11px;border-bottom:1px solid #ffffff15;padding:4px 2px}.cash-history b{color:#f3d394}.cash-chart{width:100%;height:100px;display:block;background:#082720;border-radius:10px;border:1px solid #325c4e;margin-top:7px}.cash-chip{color:#ffebbf;border:1px solid #816d48;padding:3px 7px;border-radius:7px;font-size:10px}
+.bank-sim{margin-top:8px}.bank-sim summary{cursor:pointer;color:#e9d39e;font-weight:850;font-size:12px;padding:6px 0}.bank-sim .sim-card{margin-top:9px;background:#0b2923;border:1px solid #315649;padding:9px;border-radius:11px}.bank-sim .sim-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.bank-sim .sim-nums div{text-align:center;border-radius:8px;border:1px solid #47675c;padding:8px 3px}.bank-sim .sim-nums b{display:block;font-size:18px;color:#f3d9ab}.bank-sim .sim-nums small{font-size:10px;color:#b2ccbe}.bank-sim svg{width:100%;height:auto}.badge-sim{background:#e8c584;color:#153529;padding:2px 7px;border-radius:99px;font-weight:900;font-size:10px}
+.cash-closed{border-radius:12px;background:#213d36;border:1px solid #a08b61;padding:12px;font-size:13px;line-height:1.6}
+@media(max-width:375px){.cash-stat strong{font-size:17px}.cash-wrap{padding:9px}.cash-form{gap:7px}}
+</style>
+</head>
+<body>
+<div class="shell">
+ <div class="topline"><div class="brand"><div class="brand-mark" aria-hidden="true">♠</div><div><h1>BLACKJACK CHALLENGE</h1><p>随机实战训练 · 虚拟资金训练 · 中文版 v3</p></div></div><span class="pill">离线可用 · 免费练习</span></div>
+ <p class="intro">随机训练继续保留；完整牌局新增 <b>自选初始金额、每手 $15 起、逐局结算、止盈止损与离场概率模拟</b>。仅使用虚拟资金。</p>
+ <main class="main-area">
+  <div class="two-tabs" role="tablist" aria-label="训练模式"><button id="tabQuiz" role="tab" aria-selected="true" class="active">⚡ 极速判断</button><button id="tabLive" role="tab" aria-selected="false">♣ 完整牌局</button></div>
+  <div class="stat-grid" aria-live="polite"><div class="stat"><span class="val" id="nDone">0</span><div class="lbl">已练题数</div></div><div class="stat"><span class="val" id="accuracy">—</span><div class="lbl">正确率</div></div><div class="stat"><span class="val" id="streak">0</span><div class="lbl">连对</div></div><div class="stat"><span class="val" id="wrongCount">0</span><div class="lbl">待复习</div></div></div>
+  <div class="filters" id="filters" role="group" aria-label="选择刷题范围"><button class="chip active" data-mode="mixed">综合随机</button><button class="chip" data-mode="hard">易错难题</button><button class="chip" data-mode="2">两张牌</button><button class="chip" data-mode="3">三张牌</button><button class="chip" data-mode="4">四张牌</button><button class="chip" data-mode="soft">A软牌</button><button class="chip" data-mode="review">错题强化</button></div>
+
+  <section class="cash-wrap" id="cashPanel" aria-label="虚拟资金及离场管理">
+   <div class="cash-title"><strong>💰 Star 风格 · 虚拟资金</strong><span class="cash-chip">不是真钱 · 不连接赌场</span></div>
+   <div class="cash-grid" aria-live="polite">
+    <div class="cash-stat"><small>当前余额</small><strong id="cashBalance">A$100</strong></div>
+    <div class="cash-stat"><small>累计净盈亏</small><strong id="cashDelta">A$0</strong></div>
+    <div class="cash-stat"><small>已玩手数</small><strong id="cashRounds">0 / 10</strong></div>
+   </div>
+   <div class="cash-hint" id="cashStatus">设置你愿意承担的虚拟金额，再点击开始模拟。</div>
+   <div id="cashSetup">
+    <div class="cash-section"><h3>选择离场计划（只是风险限额，不提高获胜率）</h3>
+     <div class="cash-preset" role="group" aria-label="离场计划预设">
+      <button type="button" data-risk="short">短时体验</button><button type="button" data-risk="standard" class="on">标准体验</button><button type="button" data-risk="long">长时间体验</button>
+     </div>
+     <div class="cash-form">
+      <label>初始虚拟金额 A$<input type="number" inputmode="decimal" id="cashStartInput" min="15" max="50000" step="5" value="100"></label>
+      <label>每手下注 A$<input type="number" inputmode="decimal" id="cashBetInput" min="15" max="5000" step="5" value="15"></label>
+      <label>止损金额（从本金最多亏）A$<input type="number" inputmode="decimal" id="cashLossInput" min="5" max="50000" step="5" value="45"></label>
+      <label>止盈金额（比本金赚）A$<input type="number" inputmode="decimal" id="cashProfitInput" min="5" max="50000" step="5" value="30"></label>
+      <label>最多玩多少手<input type="number" inputmode="numeric" id="cashMaxInput" min="1" max="500" step="1" value="10"></label>
+     </div>
+     <p class="cash-muted" id="cashPlanPreview">推荐：用 A$100 开始，每手 A$15；达到 A$130 或跌到 A$55（及以下）就离场，最多10手。</p>
+     <button type="button" class="cash-button" id="cashBeginBtn">开始带资金的完整模拟 →</button>
+    </div>
+   </div>
+   <div id="cashActive" class="hidden">
+    <div class="cash-info" id="cashTargets">本手最低风险 A$15 · 目标 A$130 / 止损 A$55</div>
+    <div class="cash-btn-row"><button type="button" id="cashExitBtn" class="cash-button secondary-cash">现在离场 · 结算</button><button type="button" id="cashResetBtn" class="cash-button ghost-cash">重新设定本金</button></div>
+   </div>
+   <div id="cashFinal" class="hidden cash-closed" role="status" aria-live="polite"></div>
+   <details id="cashHistoryPanel" class="bank-sim hidden"><summary>📈 余额变化 / 每局记录</summary><svg id="cashHistoryChart" class="cash-chart" viewBox="0 0 500 100" role="img" aria-label="资金余额变化曲线"></svg><div class="cash-history" id="cashHistoryList"></div></details>
+   <details class="bank-sim" id="cashProjectionPanel"><summary>🎲 模拟1000晚：最后可能剩多少钱？</summary>
+    <div class="sim-card"><p class="cash-muted">以当前设置和自动 Hit / Stand 概率决策，随机重复 1000 次完整娱乐时段；只是统计样本，不是今晚的预测。</p>
+     <button type="button" class="cash-button secondary-cash" id="cashSimBtn">运行 1000 次虚拟会话</button>
+     <div id="cashSimResults" aria-live="polite" class="cash-muted"></div>
+    </div>
+   </details>
+  </section>
+  <div class="categorynote"><span id="categoryText">每轮覆盖不同牌数和牌型</span><span id="questionIndex">第 1 题</span></div>
+  <div class="progress" title="当前20题训练轮次"><span id="progressFill"></span></div>
+  <div class="table" aria-label="Blackjack Challenge 模拟牌桌">
+   <div class="table-inner">
+    <div class="table-header"><span class="round-label" id="tableMode">QUICK DECISION</span><span class="tag" id="roundTag">两张 · 硬牌</span></div>
+    <div class="dealer-area"><div class="area-label">荷官 DEALER · 明牌</div><div class="cards" id="dealerCards"></div><div class="point" id="dealerPoint">明牌 6 点</div></div>
+    <div class="divider"></div>
+    <div class="player-area"><div class="area-label">你 PLAYER · 手牌</div><div class="cards" id="playerCards"></div><div class="point" id="playerPoint">总点数 <strong>16</strong></div></div>
+    <div class="game-note" id="gameNote">Challenge：相同点数算输；21点或五张不爆自动赢</div>
+   </div>
+  </div>
+  <div class="status">
+   <div class="prompt-title" id="promptTitle">这一手，你选择什么？</div>
+   <div class="prompt-sub" id="promptSub">只比较要牌和停牌，不考虑加倍、分牌和边注。</div>
+   <div class="live-toolbar hidden" id="liveToolbar"><span class="live-state" id="liveState">🟢 当前可操作</span><button id="liveNewBtn" class="live-new" type="button">↻ 换一手练习</button></div>
+   <div class="actions" id="choiceActions"><button type="button" id="hitBtn" class="action hit">要牌 <span style="font-size:11px">HIT · 再拿一张</span></button><button type="button" id="standBtn" class="action stand">停牌 <span style="font-size:11px">STAND · 不再拿</span></button></div>
+   <div class="result" id="result" role="status" aria-live="polite"><div class="result-top"><div class="result-title" id="resultTitle"></div><span id="resultBadge" class="pill"></span></div><div class="result-desc" id="resultDesc"></div><div class="numbers" id="evNumbers"><div class="num"><span class="k">要牌理论期望</span><span class="v" id="hitEV">—</span></div><div class="num"><span class="k">停牌理论期望</span><span class="v" id="standEV">—</span></div></div><div class="tiny" id="evDisclaimer" style="margin-top:7px">期望值以每下注1单位计算，是无限牌组近似值，并非本局中奖率。</div></div>
+   <button class="next hidden" id="nextBtn">下一题 →</button>
+   <div class="check-row" id="quizOptions"><label class="switch-wrap"><input type="checkbox" id="autoNext"> 极速连刷（1.6秒自动下一题）</label><button class="subtle-button" id="resetBtn">重置成绩</button></div>
+   <div class="mini-hint" id="hint">手机点击大按钮；电脑也可按 <span class="kbd">H</span> / <span class="kbd">S</span> / <span class="kbd">N</span></div>
+  </div>
+  <section class="section" id="rules">
+   <h2>一眼记住 Challenge 的四个不同点</h2>
+   <div class="rule-grid">
+    <div class="rule"><strong>21点 → 自动赢</strong><span>不是只有A+10的天然21才赢。</span></div>
+    <div class="rule"><strong>五张不爆 → 自动赢</strong><span>即使只有15点，只要五张且不超过21就赢。</span></div>
+    <div class="rule"><strong>同点 → 玩家输</strong><span>普通手牌与庄家同点，不退还下注。</span></div>
+    <div class="rule"><strong>庄家17点停</strong><span>包括软17；庄家没有暗牌。</span></div>
+   </div>
+   <details class="details"><summary>如何理解 A 软牌 / 算点 / 训练范围？</summary><div class="details-content"><p><b>硬牌</b>：A不能按11点计，或没有A，例如10+6=16。</p><p><b>软牌</b>：至少有一个A可以按11点计，例如A+7=软18；再拿一张牌通常更不容易爆。</p><p><b>10/J/Q/K</b>均为10点。<b>A</b>可按1或11点计算。</p><p><b>此训练刻意不做 Double 和 Split</b>，让你专注每一手的 Hit / Stand；对子也仅练不分牌时的两动作选择。真实赌场允许加倍、分牌，完整最佳策略可能因此不同。</p><p><b>边界题处理</b>：如果两动作的理论期望差距小于每单位下注0.02，答任一项都不扣分，因为实际剩余牌会引起小幅变化。</p><p><b>数学计算</b>：采用牌面概率 A至9各1/13、10点牌4/13，以庄家软17停牌、玩家21及五张自动赢、平局算输为规则，用递归计算从当前牌面开始的 Hit / Stand 期望值。未计具体已发牌对六/八副牌的影响，因此接近分界的情景会标记为“边界题”。</p></div></details>
+  </section>
+  <div class="footer">本工具完全在设备上运行，不连接赌场、不下注、无真钱交易。随机练习的牌面刻意均衡抽样，不对应赌场牌型分布；完整牌局按六副牌模拟，资金预测使用近似随机抽样。按照 The Star 的天然 Blackjack 特殊赔付结算；不提供加倍和分牌，所以赌场官方庄家优势并不直接适用于本模拟。止盈/止损只是限制娱乐支出，不保证盈利。<br>规则依据：<a href="https://www.star.com.au/sites/default/files/2025-06/TSB%20-%20BlackJack%20Challenge.pdf" rel="noopener noreferrer" target="_blank">The Star Brisbane 官方玩法</a> · <a href="https://wizardofodds.com/games/blackjack-challenge/" target="_blank" rel="noopener noreferrer">Wizard of Odds Challenge 分析</a>。</div>
+ </main>
+</div>
+<div class="toast" id="toast" aria-live="polite"></div>
+<script>
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const valueOf = rank => rank==='A'?1:('JQK'.includes(rank)?10:Number(rank));
+ const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+ const SUITS=['♠','♥','♦','♣'];
+ const VALS=[1,2,3,4,5,6,7,8,9,10];
+ const WEIGHTS=[1,1,1,1,1,1,1,1,1,4];
+ const D_UPS=[2,3,4,5,6,7,8,9,10,1];
+ const storeKey='challengeTrainerV3';
+ const emptyStats=()=>({done:0,correct:0,streak:0,best:0,wrong:[],session:0});
+ let stats=emptyStats();
+ try{const v=JSON.parse(localStorage.getItem(storeKey)||'null');if(v&&Number.isFinite(v.done)&&Array.isArray(v.wrong))stats={...stats,...v,wrong:v.wrong.slice(-120)};}catch(e){}
+ let mode='quiz',filter='mixed',question=null,answered=false,timer=null,shoe=[],live=null;
+ let money=null, simBusy=false;
+ let quizNumber=0,rotation=0,recent=[];
+ let toastTimer=null;
+ const categories=['hardLow2','hardMid2','hardHigh2','softLow2','softHigh2','pair2','hard3','soft3','hardLow4','hardHigh4','soft4','edge'];
+ const pool={};categories.forEach(c=>pool[c]=[]);
+ const dealerMemo=new Map(), playerMemo=new Map();
+ function readTotal(vals){
+   let raw=0,aces=0;
+   for(const v of vals){raw+=v;if(v===1)aces++}
+   const soft=aces>0&&raw+10<=21;
+   return {total:raw+(soft?10:0),soft};
+ }
+ function addCard(total,soft,v){
+   if(soft){return total+v<=21?{total:total+v,soft:true}:{total:total+v-10,soft:false};}
+   return v===1&&total+11<=21?{total:total+11,soft:true}:{total:total+v,soft:false};
+ }
+ function dealerDist(total,soft){
+   const key=total+'|'+Number(soft);if(dealerMemo.has(key))return dealerMemo.get(key);
+   const result=[0,0,0,0,0,0];
+   if(total>21)result[5]=1;
+   else if(total>=17)result[total-17]=1;
+   else for(let i=0;i<VALS.length;i++){
+      const a=addCard(total,soft,VALS[i]); const d=dealerDist(a.total,a.soft),p=WEIGHTS[i]/13;
+      for(let j=0;j<6;j++)result[j]+=p*d[j];
+   }
+   dealerMemo.set(key,result);return result;
+ }
+ function computeEV(total,soft,count,up){
+   if(total>21)return {hit:-1,stand:-1,best:-1};
+   if(total===21||count>=5)return {hit:1,stand:1,best:1};
+   const key=[total,Number(soft),count,up].join('|'); if(playerMemo.has(key))return playerMemo.get(key);
+   const dealer=dealerDist(up===1?11:up,up===1);
+   let winning=dealer[5]; for(let k=17;k<=20;k++)if(total>k)winning+=dealer[k-17];
+   const stand=2*winning-1;
+   let hit=0;
+   for(let i=0;i<VALS.length;i++){
+      const a=addCard(total,soft,VALS[i]);let v;
+      if(a.total>21)v=-1;
+      else if(a.total===21||count+1===5)v=1;
+      else v=computeEV(a.total,a.soft,count+1,up).best;
+      hit+=WEIGHTS[i]/13*v;
+   }
+   const o={hit,stand,best:Math.max(hit,stand)};
+   playerMemo.set(key,o);return o;
+ }
+ // Enumerate abstract player-card combinations once. Sampling is balanced for skill training,
+ // rather than claiming cards with low totals appear as frequently as common real casino hands.
+ function seedPool(){
+   function categorize(vals){
+     const n=vals.length,r=readTotal(vals),t=r.total;
+     if(n===2){
+       if(vals[0]===vals[1])return 'pair2';
+       if(r.soft)return t<=17?'softLow2':'softHigh2';
+       return t<=11?'hardLow2':t<=16?'hardMid2':'hardHigh2';
+     }
+     if(n===3)return r.soft?'soft3':'hard3';
+     if(n===4)return r.soft?'soft4':t<=15?'hardLow4':'hardHigh4';
+   }
+   function walk(arr){
+     if(arr.length>=2){
+       const r=readTotal(arr);
+       const isBJ=arr.length===2&&arr.includes(1)&&arr.includes(10);
+       if(r.total>20||isBJ)return;
+       const cat=categorize(arr);
+       if(cat)pool[cat].push(arr.slice());
+       if(arr.length===4)return;
+     }
+     for(let k=1;k<=10;k++){arr.push(k);walk(arr);arr.pop();}
+   }
+   walk([]);
+ }
+ seedPool();
+ function random(a){return Math.floor(Math.random()*a)}
+ function pick(a){return a[random(a.length)]}
+ function sign(x){return (x>=0?'+':'')+x.toFixed(3)}
+ function showToast(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800)}
+ function cardView(c){const red=c.suit==='♥'||c.suit==='♦';return '<div class="card '+(red?'red':'')+'" aria-label="'+c.rank+c.suit+'"><span class="corner">'+c.rank+c.suit+'</span><span class="suit">'+c.suit+'</span><span class="bottom">'+c.suit+'</span></div>';}
+ function makeCardFromValue(v){const rank=v===1?'A':v===10?pick(['10','J','Q','K']):String(v);return{rank,suit:pick(SUITS),value:v};}
+ function cardsHTML(vals){return vals.map(cardView).join('');}
+ function bucketLabel(c){return ({hardLow2:'两张·低硬牌',hardMid2:'两张·中段硬牌',hardHigh2:'两张·高硬牌',softLow2:'两张·低软牌',softHigh2:'两张·高软牌',pair2:'两张·对子',hard3:'三张·硬牌',soft3:'三张·软牌',hardLow4:'四张·低硬牌',hardHigh4:'四张·高硬牌',soft4:'四张·软牌',edge:'容易判断错的牌'})[c]||'随机情景';}
+ function getBucket(){
+   if(filter==='mixed'){return categories[(rotation++)%categories.length];}
+   if(filter==='hard')return pick(['hardMid2','hardHigh2','softHigh2','hard3','soft3','hardHigh4','soft4','edge']);
+   if(filter==='soft')return pick(['softLow2','softHigh2','soft3','soft4']);
+   if(filter==='2')return pick(categories.filter(x=>x.endsWith('2')));
+   if(filter==='3')return pick(['hard3','soft3']);
+   if(filter==='4')return pick(['hardLow4','hardHigh4','soft4']);
+   if(filter==='review')return stats.wrong.length?'review':pick(['hardMid2','softHigh2','hardHigh4','edge']);
+   return 'hardMid2';
+ }
+ const edgeList=[{a:[10,6],d:10},{a:[10,6],d:9},{a:[10,7],d:1},{a:[10,2],d:3},{a:[10,5],d:10},{a:[1,7],d:9},{a:[1,8],d:7},{a:[4,4,4],d:3},{a:[3,3,5,5],d:5},{a:[1,2,3,4],d:10},{a:[5,3,4],d:6},{a:[10,4,2],d:10},{a:[7,2,5,2],d:10},{a:[1,1,3,2],d:1}];
+ function pickQuestion(){
+   let sel=null;
+   for(let tries=0;tries<20;tries++){
+     const b=getBucket();let vals,up,label;
+     if(b==='review'&&stats.wrong.length){const e=pick(stats.wrong);vals=e.a.slice();up=e.d;label='错题重练';}
+     else if(b==='edge'){const e=pick(edgeList);vals=e.a.slice();up=e.d;label='挑战·易错情景';}
+     else{const possible=pool[b];vals=pick(possible).slice();up=pick(D_UPS);label=bucketLabel(b);}
+     const id=vals.join(',')+'-'+up;
+     if(!recent.includes(id)||tries===19){sel={values:vals,up,label,id};break;}
+   }
+   if(!sel)throw new Error('No scenario was available');
+   recent.push(sel.id);if(recent.length>35)recent.shift();
+   const state=readTotal(sel.values), ev=computeEV(state.total,state.soft,sel.values.length,sel.up);
+   sel.total=state.total;sel.soft=state.soft;sel.ev=ev;
+   sel.answer=ev.hit>ev.stand?'hit':'stand';
+   sel.cards=sel.values.map(makeCardFromValue);sel.dealer=makeCardFromValue(sel.up);
+   return sel;
+ }
+ function refreshStats(){
+   $('nDone').textContent=stats.done;
+   $('accuracy').textContent=stats.done?Math.round(stats.correct/stats.done*100)+'%':'—';
+   $('streak').textContent=stats.streak;
+   $('wrongCount').textContent=stats.wrong.length;
+ }
+ function save(){try{localStorage.setItem(storeKey,JSON.stringify(stats));}catch(e){}}
+ function render(){
+   if(mode==='quiz')renderQuiz();else renderLive();
+ }
+ function setPrompt(title,sub){$('promptTitle').textContent=title;$('promptSub').textContent=sub;}
+ function questionHeader(cards,dealer){
+   $('dealerCards').innerHTML=cardView(dealer);
+   $('playerCards').innerHTML=cardsHTML(cards);
+   const r=readTotal(cards.map(c=>c.value));
+   $('dealerPoint').textContent='明牌 '+(dealer.value===1?'A':dealer.value)+' 点';
+   $('playerPoint').innerHTML='总点数 <strong>'+r.total+'</strong>'+(r.soft?' · 软牌（A按11）':' · 硬牌');
+   $('roundTag').textContent=cards.length+' 张 · '+(r.soft?'软牌 Soft':'硬牌 Hard');
+ }
+ function renderQuiz(){
+   if(!question)question=pickQuestion();
+   $('liveToolbar').classList.add('hidden');
+   $('choiceActions').classList.remove('hidden');
+   questionHeader(question.cards,question.dealer);
+   $('tableMode').textContent='QUICK DECISION · 极速判断';
+   $('categoryText').textContent=question.label;
+   $('questionIndex').textContent='第 '+(quizNumber+1)+' 题';
+   $('progressFill').style.width=(quizNumber%20)*5+'%';
+   $('gameNote').textContent=question.values.length===4?'已经有四张！再拿一张不爆即可直接赢。':'Challenge：普通平局算输；21点或五张不爆自动赢';
+   setPrompt('这一手，应该要牌还是停牌？','不考虑加倍和分牌。先凭自己的判断作答。');
+   $('hitBtn').disabled=answered;$('standBtn').disabled=answered;
+   if(!answered){$('result').className='result';$('nextBtn').classList.add('hidden');}
+ }
+ function explain(q){
+   const n=q.values.length,t=q.total,d=q.up,ev=q.ev,delta=Math.abs(ev.hit-ev.stand);
+   const a=q.answer;
+   let reason='';
+   if(t<=11)reason='目前点数很低，再拿一张不会爆牌，通常应继续补牌争取更好的结果。';
+   else if(n===4&&q.soft)reason='四张软牌含按11点计算的A，拿第五张不会爆牌，直接触发五张自动赢。';
+   else if(n===4&&a==='hit')reason='你已经有四张牌了，下一张只要不爆就自动获胜。根据剩余可抽点数，要牌的理论期望更高。';
+   else if(n===4&&a==='stand')reason='虽有五张自动赢奖励，但当前点数较高，再抽一张爆牌的风险比等待庄家结算更不划算。';
+   else if(q.soft&&a==='hit')reason='软牌里的A可以从11点降为1点，补牌更不容易直接爆掉，值得尝试提高点数。';
+   else if(t>=18&&a==='stand')reason='当前点数已经较高，继续补牌通常让你爆掉的风险大于可能得到的收益。';
+   else if(d>=2&&d<=6&&a==='stand')reason='庄家明牌偏弱，必须继续抽到至少17点。你不主动冒险爆牌通常更合理。';
+   else if(d===10&&a==='stand')reason='虽然庄家亮出10点，但在这个Challenge牌数与总点组合下，停牌的期望仍略高；它与普通21点可能不同。';
+   else if(a==='hit')reason='按照此牌数、软硬牌和庄家明牌，继续要牌的综合收益期望更好；只看“离21点多远”是不够的。';
+   else reason='根据庄家可能的最终结果与你补牌后的爆牌风险，停牌的长期数学期望更高。';
+   if(delta<0.02)reason+=' 这是边界题：两种操作的数学差距很小，真实六/八副牌的剩余牌构成可能改变建议。';
+   return reason;
+ }
+ function displayResult(choice,q){
+   const boundary=Math.abs(q.ev.hit-q.ev.stand)<0.02;
+   const correct=choice===q.answer||boundary;
+   const r=$('result');r.className='result show '+(correct?'good':'bad');
+   $('resultTitle').textContent=boundary?'≈ 边界题，两种动作都可接受':correct?'✓ 判断正确！':'↗ 这题更优的是'+(q.answer==='hit'?'要牌 HIT':'停牌 STAND');
+   $('resultBadge').textContent=boundary?'微小差距，不扣分':correct?'掌握 +1':'加入错题';
+   $('resultDesc').textContent=explain(q);
+   $('hitEV').textContent=sign(q.ev.hit);$('standEV').textContent=sign(q.ev.stand);
+   $('hitEV').style.color=q.answer==='hit'?'#83f7be':'#d0dfd5';
+   $('standEV').style.color=q.answer==='stand'?'#83f7be':'#d0dfd5';
+   $('evNumbers').classList.remove('hidden');$('evDisclaimer').classList.remove('hidden');
+   $('nextBtn').textContent='下一道随机题 →';$('nextBtn').classList.remove('hidden');
+ }
+ function answerQuiz(which){
+   if(answered)return;
+   answered=true;clearTimeout(timer);
+   const good=which===question.answer||Math.abs(question.ev.hit-question.ev.stand)<0.02;
+   stats.done++;quizNumber++;if(good){stats.correct++;stats.streak++;stats.best=Math.max(stats.best,stats.streak);}else{
+     stats.streak=0;
+     if(!stats.wrong.some(e=>e.id===question.id))stats.wrong.push({a:question.values,d:question.up,id:question.id});
+     if(stats.wrong.length>120)stats.wrong.shift();
+   }
+   // Reviewed a mistake successfully: only clear it after the user got it right twice in review mode.
+   if(good&&filter==='review'){
+     const ix=stats.wrong.findIndex(x=>x.id===question.id);
+     if(ix>=0){stats.wrong[ix].wins=(stats.wrong[ix].wins||0)+1;if(stats.wrong[ix].wins>=2)stats.wrong.splice(ix,1);}
+   }
+   save();refreshStats();$('hitBtn').disabled=true;$('standBtn').disabled=true;
+   displayResult(which,question);
+   $('questionIndex').textContent='已完成 '+quizNumber+' 题';
+   $('progressFill').style.width=((quizNumber%20)||20)*5+'%';
+   if($('autoNext').checked)timer=setTimeout(nextQuiz,1600);
+ }
+ function nextQuiz(){clearTimeout(timer);answered=false;question=pickQuestion();renderQuiz();}
+ function setFilter(v){
+   clearTimeout(timer);filter=v;
+   document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.mode===v));
+   if(mode==='quiz')nextQuiz();
+ }
+ function freshShoe(){const a=[];for(let i=0;i<6;i++)for(const rank of RANKS)for(const suit of SUITS)a.push({rank,suit,value:valueOf(rank)});
+   for(let i=a.length-1;i>0;i--){const j=random(i+1);const tmp=a[i];a[i]=a[j];a[j]=tmp;}return a;
+ }
+ function draw(){if(shoe.length<28)shoe=freshShoe();return shoe.pop();}
+
+ function moneyFmt(v){const n=Math.round(Number(v)*100)/100;return (n<0?'-':'')+'A$'+Math.abs(n).toLocaleString('en-AU',{maximumFractionDigits:2,minimumFractionDigits:Math.abs(n)%1?2:0});}
+ function moneySigned(v){return (v>0?'+':'')+moneyFmt(v);}
+ function readPlan(){
+   const amount=id=>Number($(id).value);
+   const start=amount('cashStartInput'),bet=amount('cashBetInput'),loss=amount('cashLossInput'),profit=amount('cashProfitInput'),max=Math.floor(amount('cashMaxInput'));
+   if(![start,bet,loss,profit,max].every(Number.isFinite)||start<15||bet<15||bet>start||loss<=0||profit<=0||max<1||max>500||start>50000||bet>5000){
+     throw new Error('请检查金额：本金不少于 A$15、每手不少于 A$15 且不高于本金；止盈止损须为正数，最多500手。');
+   }
+   return {start,bet,loss,profit,max};
+ }
+ function defaultPlan(){return {start:100,bet:15,loss:45,profit:30,max:10};}
+ function configuredPlan(){try{return readPlan();}catch(err){showToast(err.message);return null;}}
+ function previewPlan(){
+   try{const p=readPlan();$('cashPlanPreview').textContent='本金 '+moneyFmt(p.start)+'，每手 '+moneyFmt(p.bet)+'。余额达到 '+moneyFmt(p.start+p.profit)+' 或跌到 '+moneyFmt(p.start-p.loss)+' 及以下，或完成 '+p.max+' 手后结束。阈值以完整结算后的余额判断，可能越过设定值。';}
+   catch(err){$('cashPlanPreview').textContent=err.message;}
+ }
+ function stopReason(s){
+    if(!s)return '';
+    if(s.balance< s.bet)return '余额不足下一手最低下注，自动离场';
+    if(s.balance<=s.start-s.loss)return '已到达预设止损范围';
+    if(s.balance>=s.start+s.profit)return '已达到预设止盈目标';
+    if(s.rounds>=s.max)return '已达到最多玩 '+s.max+' 手的限制';
+    return '';
+ }
+ function saveMoney(){try{localStorage.setItem('challengeBankrollV3',JSON.stringify(money));}catch(err){}}
+ function loadMoney(){
+   try{const o=JSON.parse(localStorage.getItem('challengeBankrollV3')||'null');
+     if(o&&Number.isFinite(o.start)&&Number.isFinite(o.balance)&&Array.isArray(o.history)&&typeof o.active==='boolean'&&Number.isFinite(o.bet)){
+       money=o;
+       if(money.active&&!money.finished){money.finished=true;money.finishReason='已恢复保存的账户。为避免中途刷新牌局造成不一致，本次模拟已结算离场。';money.active=false;saveMoney();}
+     }
+   }catch(err){}
+ }
+ loadMoney();
+ function resetMoney(){
+   money=null;live=null;saveMoney();
+   $('cashSetup').classList.remove('hidden');$('cashActive').classList.add('hidden');$('cashFinal').classList.add('hidden');$('cashHistoryPanel').classList.add('hidden');
+   renderMoney();renderLive();
+ }
+ function startMoney(){
+   const p=configuredPlan();if(!p)return;
+   money={...p,balance:p.start,rounds:0,wins:0,losses:0,peak:p.start,maxDrawdown:0,history:[],active:true,finished:false,finishReason:''};
+   $('cashSetup').classList.add('hidden');$('cashActive').classList.remove('hidden');$('cashFinal').classList.add('hidden');saveMoney();beginLive();
+ }
+ function endMoney(reason){
+   if(!money||money.finished)return;
+   money.finished=true;money.active=false;money.finishReason=reason||'你选择了结束本次模拟';
+   saveMoney();renderMoney();renderLive();
+ }
+ function finishRound(multiplier,note){
+   if(!money||!money.active||!live||live.settled)return;
+   live.settled=true;live.ended=true;live.multiplier=multiplier;
+   const before=money.balance,delta=Math.round(money.bet*multiplier*100)/100;
+   money.balance=Math.round((before+delta)*100)/100;
+   money.rounds++;
+   if(delta>0)money.wins++;else money.losses++;
+   money.peak=Math.max(money.peak,money.balance);
+   money.maxDrawdown=Math.max(money.maxDrawdown,money.peak-money.balance);
+   money.history.push({n:money.rounds,delta,balance:money.balance,reason:note||'本局结算'});
+   if(money.history.length>500)money.history.shift();
+   const reason=stopReason(money);if(reason){money.active=false;money.finished=true;money.finishReason=reason;}
+   saveMoney();renderMoney();
+ }
+ function isNatural(h){return h.length===2&&h.some(c=>c.rank==='A')&&h.some(c=>c.value===10);}
+ function tenRank(h){const k=h.find(c=>c.value===10);return k?({10:0,J:1,Q:2,K:3})[k.rank]:-1;}
+ function settleNatural(h,d){
+    if(!isNatural(h))return {mult:0,why:'非天然 Blackjack'};
+    if(!isNatural(d))return {mult:2,why:'天然 Blackjack，庄家非 Blackjack，净赔 2:1'};
+    const a=tenRank(h),b=tenRank(d),mult=a>b?5:(a===b?4:3);
+    return {mult,why:'双方都是天然 Blackjack，比较10点牌等级（K>Q>J>10），净赔 '+mult+':1'};
+ }
+ function beginLive(){
+   clearTimeout(timer);
+   if(!money||!money.active){renderMoney();renderLive();return;}
+   const reason=stopReason(money);if(reason){endMoney(reason);return;}
+   live={hand:[draw(),draw()],dealer:[draw()],ended:false,settled:false,outcome:null,feed:'',decisionCount:0};
+   if(isNatural(live.hand)){
+     live.dealer.push(draw());const res=settleNatural(live.hand,live.dealer);
+     live.outcome='win';live.feed=res.why+'。';finishRound(res.mult,res.why);
+   }
+   renderLive();
+ }
+ function settleLiveStand(){
+   const p=readTotal(live.hand.map(x=>x.value));
+   while(readTotal(live.dealer.map(x=>x.value)).total<17)live.dealer.push(draw());
+   const d=readTotal(live.dealer.map(x=>x.value));
+   live.outcome=d.total>21||p.total>d.total?'win':'lose';
+   live.feed='你停在 '+p.total+' 点，庄家 '+d.total+(d.total>21?'（爆牌）':'')+'。'+(live.outcome==='win'?'你赢了这一手。':'你输了'+(d.total===p.total?'（Challenge 同点算输）':'')+'。');
+   finishRound(live.outcome==='win'?1:-1,live.feed);
+ }
+ function actionLive(which){
+   if(!money||!money.active||!live||live.ended)return;
+   const r=readTotal(live.hand.map(x=>x.value)),n=live.hand.length,u=live.dealer[0].value;
+   const calc=computeEV(r.total,r.soft,n,u),optimal=calc.hit>calc.stand?'hit':'stand';
+   const q={values:live.hand.map(c=>c.value),up:u,total:r.total,soft:r.soft,ev:calc,answer:optimal};
+   const correct=which===optimal||Math.abs(calc.hit-calc.stand)<0.02;
+   stats.done++;quizNumber++;
+   if(correct){stats.correct++;stats.streak++;stats.best=Math.max(stats.best,stats.streak);}
+   else{stats.streak=0;const id=q.values.join(',')+'-'+u;if(!stats.wrong.some(x=>x.id===id))stats.wrong.push({a:q.values,d:u,id});}
+   live.decisionCount++;
+   if(which==='hit'){
+     const card=draw();live.hand.push(card);
+     const now=readTotal(live.hand.map(x=>x.value));
+     if(now.total>21){live.outcome='lose';live.feed='补到 '+card.rank+card.suit+'，共 '+now.total+' 点，爆牌。';finishRound(-1,'爆牌');}
+     else if(now.total===21){live.outcome='win';live.feed='补到 '+card.rank+card.suit+'，正好21点！自动赢。';finishRound(1,'21点自动赢');}
+     else if(live.hand.length===5){live.outcome='win';live.feed='五张合计 '+now.total+' 点，不爆自动赢！';finishRound(1,'五张不爆自动赢');}
+     else live.feed='补到了 '+card.rank+card.suit+'，现在 '+now.total+' 点。继续选择。';
+   }else settleLiveStand();
+   live.lastChoice={q,which,correct};
+   save();refreshStats();renderLive();
+   if(!correct)showToast('本手数学上更优：'+(optimal==='hit'?'要牌 HIT':'停牌 STAND'));
+ }
+ function renderMoney(){
+   const p=money||configuredPlan()||defaultPlan();
+   $('cashBalance').textContent=moneyFmt(money?money.balance:p.start);
+   const change=money?money.balance-money.start:0;
+   $('cashDelta').textContent=moneySigned(change);
+   $('cashDelta').className=change<0?'loss':change>0?'profit':'';
+   $('cashRounds').textContent=(money?money.rounds:0)+' / '+p.max;
+   $('cashStatus').textContent= money?.finished?'🚪 已结束：'+money.finishReason : money?.active?'🎯 离场条件：到 '+moneyFmt(p.start+p.profit)+' 止盈、到 '+moneyFmt(p.start-p.loss)+' 止损，或达到 '+p.max+' 手。':'🎮 先设置预算：金额都是虚拟的，不是真实赌场余额。';
+   $('cashSetup').classList.toggle('hidden',!!money);
+   $('cashActive').classList.toggle('hidden',!money||money.finished);
+   $('cashFinal').classList.toggle('hidden',!money||!money.finished);
+   $('cashHistoryPanel').classList.toggle('hidden',!money||!money.history.length);
+   if(money){
+      $('cashTargets').textContent='当前投注 '+moneyFmt(money.bet)+' /手；止盈 '+moneyFmt(money.start+money.profit)+'，止损 '+moneyFmt(money.start-money.loss)+'；最高余额 '+moneyFmt(money.peak)+'。';
+      if(money.finished){
+         const c=money.balance-money.start;
+         $('cashFinal').innerHTML='<b>离场结算：</b>'+money.finishReason+'<div>起始 '+moneyFmt(money.start)+' → <strong class="'+(c>=0?'profit':'loss')+'">最终 '+moneyFmt(money.balance)+'</strong></div><div>累计 '+moneySigned(c)+'，'+money.rounds+' 手，赢 '+money.wins+' / 输 '+money.losses+'，最大回撤 '+moneyFmt(money.maxDrawdown)+'</div><button type="button" class="cash-button" id="moneyRestartInside" style="margin-top:9px">重新设定本金 · 再练一次</button>';
+         $('moneyRestartInside').addEventListener('click',resetMoney);
+      }
+      const start=money.start,points=[start,...money.history.map(h=>h.balance)],min=Math.min(...points),max=Math.max(...points),span=Math.max(1,max-min);
+      const loc=(x,y)=>((x/(Math.max(1,points.length-1)))*476+12).toFixed(1)+','+(90-(y-min)/span*76).toFixed(1);
+      const d=points.map((y,i)=>(i?'L':'M')+loc(i,y)).join(' ');
+      $('cashHistoryChart').innerHTML='<path d="'+d+'" fill="none" stroke="#f4d194" stroke-width="3" stroke-linejoin="round"/><path d="M 12 14 H 488" stroke="#406b57" stroke-dasharray="3 5"/><text x="13" y="12" fill="#b6ddc4" font-size="11">最高 '+moneyFmt(max)+'</text><text x="13" y="98" fill="#b6ddc4" font-size="11">最低 '+moneyFmt(min)+'</text>';
+      $('cashHistoryList').innerHTML=money.history.slice().reverse().slice(0,25).map(h=>'<div><span>第 '+h.n+' 手 · '+h.reason+'</span><span>'+(h.delta>0?'+':'')+moneyFmt(h.delta)+' → <b>'+moneyFmt(h.balance)+'</b></span></div>').join('');
+   }
+ }
+ function renderLive(){
+   renderMoney();
+   $('tableMode').textContent='FULL ROUND · 带资金的完整模拟';
+   $('categoryText').textContent='Star Brisbane 风格 · 六副牌';
+   $('questionIndex').textContent=money?('本次第 '+(money.rounds+(live&&!live.ended?1:0))+' 手'):'设置资金后开始';
+   $('progressFill').style.width='0%';
+   $('liveToolbar').classList.toggle('hidden',!money||money.finished||!live||live.ended);
+   $('choiceActions').classList.toggle('hidden',!money||!money.active||!live||live.ended);
+   $('hitBtn').disabled=!money||!money.active||!live||live.ended;
+   $('standBtn').disabled=!money||!money.active||!live||live.ended;
+   $('nextBtn').classList.add('hidden');
+   if(!money){
+      $('dealerCards').innerHTML='';$('playerCards').innerHTML='';
+      $('dealerPoint').textContent='请先设定本金';$('playerPoint').textContent='等待发牌';
+      $('roundTag').textContent='资金设置';$('gameNote').textContent='带资金牌局：每局随机发牌并计算虚拟筹码。';
+      setPrompt('设置初始金额，再点击上方「开始」','开始后可操作 HIT / STAND；网页版可在手机上使用。');
+      $('result').className='result';return;
+   }
+   if(!live){
+      $('dealerCards').innerHTML='';$('playerCards').innerHTML='';
+      $('dealerPoint').textContent='暂无正在进行的手牌';$('playerPoint').textContent='本次模拟已结束';$('roundTag').textContent='已离场';
+      $('gameNote').textContent='可重新设定虚拟账户。';$('result').className='result';
+      setPrompt(money.finishReason||'离场结算完成','最终余额 '+moneyFmt(money.balance));return;
+   }
+   questionHeader(live.hand,live.dealer[0]);
+   if(live.dealer.length>1&&live.ended){$('dealerCards').innerHTML=cardsHTML(live.dealer);const d=readTotal(live.dealer.map(x=>x.value));$('dealerPoint').textContent='庄家最终 '+d.total+' 点';}
+   $('gameNote').textContent=live.feed||'你可以 HIT/ STAND。21点或五张不爆即自动赢。';
+   if(live.ended){
+      setPrompt(live.outcome==='win'?'本手赢 '+moneyFmt(live.multiplier*money.bet):'本手输 '+moneyFmt(money.bet),'虚拟余额 '+moneyFmt(money.balance)+(money.finished?' · 已自动离场':''));
+      $('result').className='result show '+(live.outcome==='win'?'good':'bad');
+      $('resultTitle').textContent=live.outcome==='win'?'✓ 本手获胜':'这手没有赢';
+      $('resultBadge').textContent=(live.multiplier>1?'特殊 '+live.multiplier+':1 ':'')+live.decisionCount+' 次操作';
+      $('resultDesc').textContent=live.feed;
+      $('evNumbers').classList.add('hidden');$('evDisclaimer').classList.add('hidden');
+      if(!money.finished){$('nextBtn').textContent='下一局 · '+moneyFmt(money.bet)+' →';$('nextBtn').classList.remove('hidden');}
+   }else{
+      const now=readTotal(live.hand.map(x=>x.value));
+      setPrompt(live.hand.length+'张牌，'+now.total+'点：要牌还是停牌？','本局下注 '+moneyFmt(money.bet)+' · 决策不影响此前已结算资金');
+      $('result').className='result';
+   }
+   $('liveState').textContent='正在打牌 · 这手不支持免费跳过';
+   $('liveState').classList.remove('is-over');
+   $('liveNewBtn').textContent='放弃这手（输 '+moneyFmt(money.bet)+'）';
+ }
+ // A complete imaginary session follows the same loss/target/number-of-hands rules
+ // but draws independent rank values, rather than a finite six-deck shoe.
+ function simDraw(){const rank=RANKS[random(13)];return {rank,value:valueOf(rank)};}
+ function simOneRound(){
+    const hand=[simDraw(),simDraw()],dealer=[simDraw()];
+    if(isNatural(hand)){
+      dealer.push(simDraw());return settleNatural(hand,dealer).mult;
+    }
+    while(true){
+      const r=readTotal(hand.map(c=>c.value));
+      if(r.total>21)return -1;
+      if(r.total===21||hand.length>=5)return 1;
+      const ev=computeEV(r.total,r.soft,hand.length,dealer[0].value);
+      if(ev.hit<=ev.stand){break;}hand.push(simDraw());
+    }
+    while(readTotal(dealer.map(c=>c.value)).total<17)dealer.push(simDraw());
+    const a=readTotal(hand.map(c=>c.value)).total,b=readTotal(dealer.map(c=>c.value)).total;
+    return b>21||a>b?1:-1;
+ }
+ function simulateOnce(plan){
+    let balance=plan.start,rounds=0;
+    while(balance>=plan.bet&&balance>plan.start-plan.loss&&balance<plan.start+plan.profit&&rounds<plan.max){
+      balance=Math.round((balance+plan.bet*simOneRound())*100)/100;rounds++;
+    }
+    return {balance,rounds};
+ }
+ function pct(a,x){const k=(a.length-1)*x,l=Math.floor(k),h=Math.ceil(k);return a[l]+(a[h]-a[l])*(k-l);}
+ function renderSim(samples,plan){
+    const a=samples.map(x=>x.balance).sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length;
+    const gain=a.filter(x=>x>plan.start).length,loss=a.filter(x=>x<plan.start).length;
+    const p10=pct(a,.1),median=pct(a,.5),p90=pct(a,.9);
+    const buckets=12,low=Math.min(...a),high=Math.max(...a),step=Math.max(1,(high-low)/buckets);const bins=Array(buckets).fill(0);
+    for(const val of a)bins[Math.min(buckets-1,Math.floor((val-low)/step))]++;
+    const hmax=Math.max(...bins,1);let bars='';
+    bins.forEach((n,i)=>{const height=Math.round(n/hmax*70);bars+='<rect x="'+(i*24+8)+'" y="'+(78-height)+'" width="18" height="'+height+'" rx="3" fill="'+(i<buckets/2?'#92c3b1':'#f2d495')+'"/>';});
+    $('cashSimResults').innerHTML='<div class="sim-nums"><div><b>'+moneyFmt(p10)+'</b><small>10%分位</small></div><div><b>'+moneyFmt(median)+'</b><small>余额中位数</small></div><div><b>'+moneyFmt(p90)+'</b><small>90%分位</small></div></div><svg viewBox="0 0 305 107" aria-label="最终余额分布直方图" role="img">'+bars+'<text x="5" y="100" fill="#c6daca" font-size="10">'+moneyFmt(low)+'</text><text x="303" text-anchor="end" y="100" fill="#c6daca" font-size="10">'+moneyFmt(high)+'</text></svg><p class="cash-muted">1000次样本：最终盈利约 <b>'+gain/10+'%</b>，最终亏损约 <b>'+loss/10+'%</b>，持平约 <b>'+((samples.length-gain-loss)/10).toFixed(1)+'%</b>；样本平均余额 '+moneyFmt(avg)+'。所有数字会因重新模拟而变动。</p><p class="cash-muted">提示：本预测假设每手只选择理论较优的 HIT / STAND，没有加倍与分牌，牌面按独立随机抽样，未精确复刻赌场有限牌靴、玩家实际错误及动态加注。不是保证收益，也不是所谓“最佳离场获利法”。</p>';
+ }
+ function simulateNights(){
+   if(simBusy)return;
+   let p=money?money:configuredPlan();if(!p)return;
+   simBusy=true;const btn=$('cashSimBtn');btn.disabled=true;btn.textContent='正在模拟，请稍候…';
+   const samples=[],count=1000;
+   function step(){
+     for(let i=0;i<40&&samples.length<count;i++)samples.push(simulateOnce(p));
+     $('cashSimResults').textContent='模拟进度 '+samples.length+' / '+count;
+     if(samples.length<count)setTimeout(step,0);
+     else{renderSim(samples,p);btn.disabled=false;btn.textContent='再运行1000次';simBusy=false;}
+   }
+   setTimeout(step,0);
+ }
+ function switchMode(v){
+   clearTimeout(timer);mode=v;
+   $('tabQuiz').classList.toggle('active',v==='quiz');$('tabLive').classList.toggle('active',v==='live');
+   $('tabQuiz').setAttribute('aria-selected',String(v==='quiz'));$('tabLive').setAttribute('aria-selected',String(v==='live'));
+   $('filters').classList.toggle('hidden',v!=='quiz');$('quizOptions').classList.toggle('hidden',v!=='quiz');
+   $('hint').innerHTML=v==='quiz'?'手机点击大按钮；电脑也可按 <span class="kbd">H</span> / <span class="kbd">S</span> / <span class="kbd">N</span>':'虚拟牌局，无需押任何真钱。选 Hit 后会自动再发一张。';
+   $('cashPanel').classList.toggle('show',v==='live');
+   if(v==='live'){renderLive();}else{answered=false;question=pickQuestion();renderQuiz();}
+ }
+ $('tabQuiz').addEventListener('click',()=>{if(mode!=='quiz')switchMode('quiz')});
+ $('tabLive').addEventListener('click',()=>{if(mode!=='live')switchMode('live')});
+ $('hitBtn').addEventListener('click',()=>{if(mode==='quiz')answerQuiz('hit');else actionLive('hit')});
+ $('standBtn').addEventListener('click',()=>{if(mode==='quiz')answerQuiz('stand');else actionLive('stand')});
+ $('nextBtn').addEventListener('click',()=>{if(mode==='quiz')nextQuiz();else if(money&&money.active)beginLive()});
+ $('liveNewBtn').addEventListener('click',()=>{if(mode==='live'&&money&&money.active&&live&&!live.ended&&confirm('放弃本手会扣除 '+moneyFmt(money.bet)+' 虚拟筹码。确定吗？')){live.outcome='lose';live.feed='主动放弃本手，按本手亏损结算。';finishRound(-1,'主动放弃');renderLive();}});
+ document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.mode)));
+ $('resetBtn').addEventListener('click',()=>{if(confirm('确定清除练习统计和错题记录吗？')){stats=emptyStats();save();refreshStats();quizNumber=0;showToast('已清除训练记录');if(mode==='quiz')nextQuiz();}});
+ $('autoNext').addEventListener('change',()=>{if(!$('autoNext').checked)clearTimeout(timer);else if(answered&&mode==='quiz')timer=setTimeout(nextQuiz,1600)});
+ document.addEventListener('keydown',e=>{const tag=(document.activeElement&&document.activeElement.tagName)||'';if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
+   if(e.key==='h'||e.key==='H'){e.preventDefault();if(mode==='quiz')answerQuiz('hit');else actionLive('hit');}
+   else if(e.key==='s'||e.key==='S'){e.preventDefault();if(mode==='quiz')answerQuiz('stand');else actionLive('stand');}
+   else if((e.key==='n'||e.key==='N'||e.key==='Enter')&&(! (mode==='quiz'&&!answered))){e.preventDefault();if(mode==='quiz')nextQuiz();else if(live&&live.ended&&money&&money.active)beginLive();}
+ });
+ $('cashBeginBtn').addEventListener('click',startMoney);
+ $('cashExitBtn').addEventListener('click',()=>{if(!money||!money.active)return;if(live&&!live.ended){if(!confirm('当前手牌还没结算。立即离场将放弃本手并扣除 '+moneyFmt(money.bet)+' 虚拟金额，确定吗？'))return;live.outcome='lose';live.feed='中途离场，本手按全部输掉处理。';finishRound(-1,'中途放弃');if(money.active)endMoney('主动中途离场（已扣当前下注）');else{money.finishReason='主动中途离场（已扣当前下注）';saveMoney();renderMoney();renderLive();}return;}endMoney('你选择主动离场');});
+ $('cashResetBtn').addEventListener('click',()=>{if(money&&money.rounds&&money.active&&!confirm('重新开始会清除当前虚拟资金历史，确定吗？'))return;resetMoney();});
+ $('cashSimBtn').addEventListener('click',simulateNights);
+ for(const b of document.querySelectorAll('[data-risk]'))b.addEventListener('click',()=>{
+   const v=b.dataset.risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('on',x===b));
+   const x=Number($('cashStartInput').value)||100,bet=Number($('cashBetInput').value)||15;
+   if(v==='short'){$('cashLossInput').value=String(Math.min(x,2*bet));$('cashProfitInput').value=String(bet);$('cashMaxInput').value='6';}
+   if(v==='standard'){$('cashLossInput').value=String(Math.min(x,3*bet));$('cashProfitInput').value=String(2*bet);$('cashMaxInput').value='10';}
+   if(v==='long'){$('cashLossInput').value=String(x);$('cashProfitInput').value=String(4*bet);$('cashMaxInput').value='25';}
+   previewPlan();
+ });
+ for(const id of ['cashStartInput','cashBetInput','cashLossInput','cashProfitInput','cashMaxInput'])$(id).addEventListener('input',()=>{previewPlan();if(!money)renderMoney();});
+ previewPlan();renderMoney();refreshStats();question=pickQuestion();renderQuiz();
+ // Lightweight sanity checks for the model; errors do not interrupt UI.
+ try {
+  if(computeEV(16,false,2,6).stand < computeEV(16,false,2,6).hit) console.warn('Unexpected 16v6 decision');
+  if(computeEV(16,true,4,10).hit<0.999999)console.warn('Expected four-card soft hit win');
+  if(computeEV(16,false,2,10).stand < computeEV(16,false,2,10).hit)console.warn('Unexpected 16v10 decision');
+ }catch(err){console.warn('Trainer sanity-check warning',err);}
+})();
+</script>
+</body>
+</html>
