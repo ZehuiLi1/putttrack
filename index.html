@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#071a18">
-<title>Blackjack Challenge · Star 风格虚拟资金训练 V3</title>
+<meta name="description" content="Blackjack Challenge 要牌/停牌中文快速训练器：每道题答完长期保留最优策略及原因，附带虚拟资金、完整牌局和离场模拟。">
+<title>Blackjack Challenge · 虚拟资金与常驻策略讲解 V4</title>
 <style>
 :root{--bg:#071a18;--bg2:#0b2420;--panel:#102c28;--panel2:#143a32;--line:#315249;--ink:#f1f7f1;--muted:#9ab9ad;--gold:#f5cb79;--green:#4ee3aa;--red:#ff968d;--blue:#80cbff}
 *{box-sizing:border-box}
@@ -43,6 +44,23 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
 @keyframes slide{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
+/* Learning feedback is persistent: no auto-advance, including full-game decisions. */
+.lesson{margin-top:11px;background:linear-gradient(155deg,#1d4739,#112c26);border:2px solid #e9ca86;border-radius:16px;padding:13px 14px;box-shadow:0 6px 18px #0003}
+.lesson[hidden],.lesson-log[hidden]{display:none!important}
+.lesson-kicker{font-size:11px;font-weight:800;color:#ffe5a9;letter-spacing:.15px}
+.lesson-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:9px 0 8px}
+.lesson-header strong{font-size:19px;color:#ffe0a1}
+.lesson-header span{border-radius:99px;border:1px solid #88a899;background:#173c32;padding:5px 9px;font-size:11px;font-weight:700;color:#deede1}
+.lesson-why{margin:7px 0 9px;font-size:13px;line-height:1.65;color:#f1fff0}
+.lesson-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}
+.lesson-metrics span{display:block;border:1px solid #436958;background:#09251e99;border-radius:9px;padding:8px;color:#d1e9dc;font-size:12px;line-height:1.5}
+.lesson-log{border-top:1px solid #5e816e;margin-top:12px;padding-top:7px}
+.lesson-log div{border-bottom:1px solid #ffffff1a;padding:8px 2px;font-size:12px;line-height:1.5;color:#e4f0e8}
+.lesson-log div:last-child{border-bottom:0}
+.lesson-foot{font-size:11px;color:#afcbbb;margin-top:10px;line-height:1.55}
+.persistent-hint{font-size:11px;line-height:1.5;color:#f5dfac;max-width:70%}
+@media(max-width:420px){.lesson{padding:11px}.lesson-header strong{font-size:17px}.lesson-metrics{gap:6px}.lesson-metrics span{font-size:11px;padding:7px}}
+
 /* V3: Cash and session controls */
 .cash-wrap{display:none;margin:9px 0 12px;background:linear-gradient(165deg,#17392f,#0c2925);border:1px solid #517567;border-radius:17px;padding:12px;box-shadow:0 7px 20px #0002}
 .cash-wrap.show{display:block}.cash-title{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:9px}.cash-title strong{font-size:14px;color:#f4d59b}.cash-title .mini{font-size:10px;color:#b6d7c6}
@@ -58,8 +76,8 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
 </head>
 <body>
 <div class="shell">
- <div class="topline"><div class="brand"><div class="brand-mark" aria-hidden="true">♠</div><div><h1>BLACKJACK CHALLENGE</h1><p>随机实战训练 · 虚拟资金训练 · 中文版 v3</p></div></div><span class="pill">离线可用 · 免费练习</span></div>
- <p class="intro">随机训练继续保留；完整牌局新增 <b>自选初始金额、每手 $15 起、逐局结算、止盈止损与离场概率模拟</b>。仅使用虚拟资金。</p>
+ <div class="topline"><div class="brand"><div class="brand-mark" aria-hidden="true">♠</div><div><h1>BLACKJACK CHALLENGE</h1><p>随机实战训练 · 资金模拟 · 决策讲解常驻 v4</p></div></div><span class="pill">离线可用 · 免费练习</span></div>
+ <p class="intro">随机训练和完整牌局都新增 <b>点击后常驻显示最优选择及原因</b>，直到你主动切换下一题／下一局。保留自选虚拟金额、每手 $15 起、逐局结算及离场模拟。</p>
  <main class="main-area">
   <div class="two-tabs" role="tablist" aria-label="训练模式"><button id="tabQuiz" role="tab" aria-selected="true" class="active">⚡ 极速判断</button><button id="tabLive" role="tab" aria-selected="false">♣ 完整牌局</button></div>
   <div class="stat-grid" aria-live="polite"><div class="stat"><span class="val" id="nDone">0</span><div class="lbl">已练题数</div></div><div class="stat"><span class="val" id="accuracy">—</span><div class="lbl">正确率</div></div><div class="stat"><span class="val" id="streak">0</span><div class="lbl">连对</div></div><div class="stat"><span class="val" id="wrongCount">0</span><div class="lbl">待复习</div></div></div>
@@ -119,8 +137,17 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    <div class="live-toolbar hidden" id="liveToolbar"><span class="live-state" id="liveState">🟢 当前可操作</span><button id="liveNewBtn" class="live-new" type="button">↻ 换一手练习</button></div>
    <div class="actions" id="choiceActions"><button type="button" id="hitBtn" class="action hit">要牌 <span style="font-size:11px">HIT · 再拿一张</span></button><button type="button" id="standBtn" class="action stand">停牌 <span style="font-size:11px">STAND · 不再拿</span></button></div>
    <div class="result" id="result" role="status" aria-live="polite"><div class="result-top"><div class="result-title" id="resultTitle"></div><span id="resultBadge" class="pill"></span></div><div class="result-desc" id="resultDesc"></div><div class="numbers" id="evNumbers"><div class="num"><span class="k">要牌理论期望</span><span class="v" id="hitEV">—</span></div><div class="num"><span class="k">停牌理论期望</span><span class="v" id="standEV">—</span></div></div><div class="tiny" id="evDisclaimer" style="margin-top:7px">期望值以每下注1单位计算，是无限牌组近似值，并非本局中奖率。</div></div>
+   <section class="lesson" id="lessonCard" aria-live="polite" aria-label="本次决策最优选择与讲解" hidden>
+     <div class="lesson-kicker">🧠 决策讲解 · 留在这里直到你主动进入下一题 / 下一局</div>
+     <div class="lesson-header"><strong id="lessonBest">最优：—</strong><span id="lessonPicked">你选择：—</span></div>
+     <p class="lesson-why" id="lessonWhy"></p>
+     <div class="lesson-metrics"><span id="lessonBust"></span><span id="lessonDealerBust"></span></div>
+     <div class="lesson-metrics"><span id="lessonHitEv"></span><span id="lessonStandEv"></span></div>
+     <div id="lessonLog" class="lesson-log" hidden></div>
+     <div class="lesson-foot">仅比较 Hit / Stand，按该游戏规则计算长期近似期望；不是对下一张牌的预测。</div>
+   </section>
    <button class="next hidden" id="nextBtn">下一题 →</button>
-   <div class="check-row" id="quizOptions"><label class="switch-wrap"><input type="checkbox" id="autoNext"> 极速连刷（1.6秒自动下一题）</label><button class="subtle-button" id="resetBtn">重置成绩</button></div>
+   <div class="check-row" id="quizOptions"><span class="persistent-hint">⏸ 答完不自动切换，讲解会保留到你点击「下一题」</span><button class="subtle-button" id="resetBtn">重置成绩</button></div>
    <div class="mini-hint" id="hint">手机点击大按钮；电脑也可按 <span class="kbd">H</span> / <span class="kbd">S</span> / <span class="kbd">N</span></div>
   </div>
   <section class="section" id="rules">
@@ -292,7 +319,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    $('gameNote').textContent=question.values.length===4?'已经有四张！再拿一张不爆即可直接赢。':'Challenge：普通平局算输；21点或五张不爆自动赢';
    setPrompt('这一手，应该要牌还是停牌？','不考虑加倍和分牌。先凭自己的判断作答。');
    $('hitBtn').disabled=answered;$('standBtn').disabled=answered;
-   if(!answered){$('result').className='result';$('nextBtn').classList.add('hidden');}
+   if(!answered){$('result').className='result';$('nextBtn').classList.add('hidden');clearLesson();}
  }
  function explain(q){
    const n=q.values.length,t=q.total,d=q.up,ev=q.ev,delta=Math.abs(ev.hit-ev.stand);
@@ -311,18 +338,54 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    if(delta<0.02)reason+=' 这是边界题：两种操作的数学差距很小，真实六/八副牌的剩余牌构成可能改变建议。';
    return reason;
  }
+ function percent(n){return (Math.max(0,Math.min(1,n))*100).toFixed(1)+'%';}
+ function hitBustProbability(q){
+   let bust=0;
+   for(let i=0;i<VALS.length;i++)if(addCard(q.total,q.soft,VALS[i]).total>21)bust+=WEIGHTS[i]/13;
+   return bust;
+ }
+ function moveName(move){return move==='hit'?'要牌 HIT':'停牌 STAND';}
+ function clearLesson(){
+   $('lessonCard').hidden=true;
+   $('lessonLog').hidden=true;
+   $('lessonLog').replaceChildren();
+ }
+ function showLesson(record,history){
+   if(!record||!record.q){clearLesson();return;}
+   const q=record.q,delta=Math.abs(q.ev.hit-q.ev.stand),boundary=delta<0.02;
+   $('lessonCard').hidden=false;
+   $('lessonBest').textContent='最优选择：'+moveName(q.answer)+(boundary?'（接近五五开）':'');
+   $('lessonPicked').textContent='你选：'+moveName(record.which)+(record.correct?' ✓':' · 值得复习');
+   $('lessonWhy').textContent=explain(q)+' 两种选择的模型期望差距约 '+delta.toFixed(3)+'（每单位赌注）。';
+   $('lessonBust').textContent='再拿一张直接爆牌概率：'+percent(hitBustProbability(q));
+   const up=q.up===1?11:q.up;
+   $('lessonDealerBust').textContent='庄家按规则继续抽至17+，爆牌概率：'+percent(dealerDist(up,q.up===1)[5]);
+   $('lessonHitEv').textContent='要牌长期期望：'+sign(q.ev.hit);
+   $('lessonStandEv').textContent='停牌长期期望：'+sign(q.ev.stand);
+   const log=$('lessonLog');log.replaceChildren();
+   if(history&&history.length>1){
+      log.hidden=false;
+      const head=document.createElement('div');head.style.fontWeight='800';head.textContent='本手全部操作回顾（保留到下一局）：';log.appendChild(head);
+      history.forEach((part,i)=>{
+         const line=document.createElement('div');
+         line.textContent='第 '+(i+1)+' 次 · '+part.q.values.length+'张／'+part.q.total+'点，庄家 '+(part.q.up===1?'A':part.q.up)+'：你选'+moveName(part.which)+'；最优'+moveName(part.q.answer)+'。'+explain(part.q);
+         log.appendChild(line);
+      });
+   }else{log.hidden=true;}
+ }
  function displayResult(choice,q){
    const boundary=Math.abs(q.ev.hit-q.ev.stand)<0.02;
    const correct=choice===q.answer||boundary;
    const r=$('result');r.className='result show '+(correct?'good':'bad');
-   $('resultTitle').textContent=boundary?'≈ 边界题，两种动作都可接受':correct?'✓ 判断正确！':'↗ 这题更优的是'+(q.answer==='hit'?'要牌 HIT':'停牌 STAND');
+   $('resultTitle').textContent=(correct?'✓ 判断正确':'↗ 这题可以优化')+' · 最优：'+moveName(q.answer);
    $('resultBadge').textContent=boundary?'微小差距，不扣分':correct?'掌握 +1':'加入错题';
-   $('resultDesc').textContent=explain(q);
+   $('resultDesc').textContent='你选择了 '+moveName(choice)+'；'+(boundary?'两种选择非常接近。':correct?'你的选择符合模型建议。':'更推荐另一种选择。')+' 下方有完整解释，并会一直保留。';
    $('hitEV').textContent=sign(q.ev.hit);$('standEV').textContent=sign(q.ev.stand);
    $('hitEV').style.color=q.answer==='hit'?'#83f7be':'#d0dfd5';
    $('standEV').style.color=q.answer==='stand'?'#83f7be':'#d0dfd5';
    $('evNumbers').classList.remove('hidden');$('evDisclaimer').classList.remove('hidden');
-   $('nextBtn').textContent='下一道随机题 →';$('nextBtn').classList.remove('hidden');
+   $('nextBtn').textContent='我看懂了 · 下一道随机题 →';$('nextBtn').classList.remove('hidden');
+   showLesson({q,which:choice,correct},null);
  }
  function answerQuiz(which){
    if(answered)return;
@@ -339,12 +402,12 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
      if(ix>=0){stats.wrong[ix].wins=(stats.wrong[ix].wins||0)+1;if(stats.wrong[ix].wins>=2)stats.wrong.splice(ix,1);}
    }
    save();refreshStats();$('hitBtn').disabled=true;$('standBtn').disabled=true;
+   question.lastAnswer=which;
    displayResult(which,question);
    $('questionIndex').textContent='已完成 '+quizNumber+' 题';
    $('progressFill').style.width=((quizNumber%20)||20)*5+'%';
-   if($('autoNext').checked)timer=setTimeout(nextQuiz,1600);
  }
- function nextQuiz(){clearTimeout(timer);answered=false;question=pickQuestion();renderQuiz();}
+ function nextQuiz(){clearTimeout(timer);answered=false;clearLesson();question=pickQuestion();renderQuiz();}
  function setFilter(v){
    clearTimeout(timer);filter=v;
    document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.mode===v));
@@ -392,7 +455,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
  function resetMoney(){
    money=null;live=null;saveMoney();
    $('cashSetup').classList.remove('hidden');$('cashActive').classList.add('hidden');$('cashFinal').classList.add('hidden');$('cashHistoryPanel').classList.add('hidden');
-   renderMoney();renderLive();
+   clearLesson();renderMoney();renderLive();
  }
  function startMoney(){
    const p=configuredPlan();if(!p)return;
@@ -430,7 +493,8 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    clearTimeout(timer);
    if(!money||!money.active){renderMoney();renderLive();return;}
    const reason=stopReason(money);if(reason){endMoney(reason);return;}
-   live={hand:[draw(),draw()],dealer:[draw()],ended:false,settled:false,outcome:null,feed:'',decisionCount:0};
+   live={hand:[draw(),draw()],dealer:[draw()],ended:false,settled:false,outcome:null,feed:'',decisionCount:0,decisions:[]};
+   clearLesson();
    if(isNatural(live.hand)){
      live.dealer.push(draw());const res=settleNatural(live.hand,live.dealer);
      live.outcome='win';live.feed=res.why+'。';finishRound(res.mult,res.why);
@@ -464,6 +528,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
      else live.feed='补到了 '+card.rank+card.suit+'，现在 '+now.total+' 点。继续选择。';
    }else settleLiveStand();
    live.lastChoice={q,which,correct};
+   live.decisions.push(live.lastChoice);
    save();refreshStats();renderLive();
    if(!correct)showToast('本手数学上更优：'+(optimal==='hit'?'要牌 HIT':'停牌 STAND'));
  }
@@ -505,6 +570,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    $('standBtn').disabled=!money||!money.active||!live||live.ended;
    $('nextBtn').classList.add('hidden');
    if(!money){
+      clearLesson();
       $('dealerCards').innerHTML='';$('playerCards').innerHTML='';
       $('dealerPoint').textContent='请先设定本金';$('playerPoint').textContent='等待发牌';
       $('roundTag').textContent='资金设置';$('gameNote').textContent='带资金牌局：每局随机发牌并计算虚拟筹码。';
@@ -512,12 +578,14 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
       $('result').className='result';return;
    }
    if(!live){
+      clearLesson();
       $('dealerCards').innerHTML='';$('playerCards').innerHTML='';
       $('dealerPoint').textContent='暂无正在进行的手牌';$('playerPoint').textContent='本次模拟已结束';$('roundTag').textContent='已离场';
       $('gameNote').textContent='可重新设定虚拟账户。';$('result').className='result';
       setPrompt(money.finishReason||'离场结算完成','最终余额 '+moneyFmt(money.balance));return;
    }
    questionHeader(live.hand,live.dealer[0]);
+   if(live.decisions&&live.decisions.length)showLesson(live.decisions[live.decisions.length-1],live.decisions);else clearLesson();
    if(live.dealer.length>1&&live.ended){$('dealerCards').innerHTML=cardsHTML(live.dealer);const d=readTotal(live.dealer.map(x=>x.value));$('dealerPoint').textContent='庄家最终 '+d.total+' 点';}
    $('gameNote').textContent=live.feed||'你可以 HIT/ STAND。21点或五张不爆即自动赢。';
    if(live.ended){
@@ -533,7 +601,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
       setPrompt(live.hand.length+'张牌，'+now.total+'点：要牌还是停牌？','本局下注 '+moneyFmt(money.bet)+' · 决策不影响此前已结算资金');
       $('result').className='result';
    }
-   $('liveState').textContent='正在打牌 · 这手不支持免费跳过';
+   $('liveState').textContent='正在打牌 · 操作后会常驻讲解最佳选择';
    $('liveState').classList.remove('is-over');
    $('liveNewBtn').textContent='放弃这手（输 '+moneyFmt(money.bet)+'）';
  }
@@ -594,7 +662,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
    $('filters').classList.toggle('hidden',v!=='quiz');$('quizOptions').classList.toggle('hidden',v!=='quiz');
    $('hint').innerHTML=v==='quiz'?'手机点击大按钮；电脑也可按 <span class="kbd">H</span> / <span class="kbd">S</span> / <span class="kbd">N</span>':'虚拟牌局，无需押任何真钱。选 Hit 后会自动再发一张。';
    $('cashPanel').classList.toggle('show',v==='live');
-   if(v==='live'){renderLive();}else{answered=false;question=pickQuestion();renderQuiz();}
+   if(v==='live'){renderLive();}else{renderQuiz();if(answered&&question.lastAnswer)displayResult(question.lastAnswer,question);}
  }
  $('tabQuiz').addEventListener('click',()=>{if(mode!=='quiz')switchMode('quiz')});
  $('tabLive').addEventListener('click',()=>{if(mode!=='live')switchMode('live')});
@@ -604,7 +672,6 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
  $('liveNewBtn').addEventListener('click',()=>{if(mode==='live'&&money&&money.active&&live&&!live.ended&&confirm('放弃本手会扣除 '+moneyFmt(money.bet)+' 虚拟筹码。确定吗？')){live.outcome='lose';live.feed='主动放弃本手，按本手亏损结算。';finishRound(-1,'主动放弃');renderLive();}});
  document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.mode)));
  $('resetBtn').addEventListener('click',()=>{if(confirm('确定清除练习统计和错题记录吗？')){stats=emptyStats();save();refreshStats();quizNumber=0;showToast('已清除训练记录');if(mode==='quiz')nextQuiz();}});
- $('autoNext').addEventListener('change',()=>{if(!$('autoNext').checked)clearTimeout(timer);else if(answered&&mode==='quiz')timer=setTimeout(nextQuiz,1600)});
  document.addEventListener('keydown',e=>{const tag=(document.activeElement&&document.activeElement.tagName)||'';if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
    if(e.key==='h'||e.key==='H'){e.preventDefault();if(mode==='quiz')answerQuiz('hit');else actionLive('hit');}
    else if(e.key==='s'||e.key==='S'){e.preventDefault();if(mode==='quiz')answerQuiz('stand');else actionLive('stand');}
